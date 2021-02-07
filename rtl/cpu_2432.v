@@ -14,7 +14,7 @@ module cpu_2432 (
                  );
 
   // Register file is 14x32b
-  reg [31:0]                   rf_q [14:0];
+  reg [31:0]                   rf_q [14:1];
   reg [31:0]                   pc_d, pc_q;
   reg [31:0]                   psr_d, psr_q;
   reg [1:0]                    jmp_cc_d, jmp_cc_q;
@@ -48,8 +48,8 @@ module cpu_2432 (
   wire                         mcp_w;
   wire                         clk_en_w = i_clk_en & !mcp_q;
 
-  assign o_iaddr  = pc_q;
-  assign o_daddr  = p1_ead_d;
+  assign o_iaddr  = pc_q[23:0];
+  assign o_daddr  = p1_ead_d[23:0];
   assign o_ram_rd = p1_ram_rd_d;
   assign o_ram_wr = p1_ram_wr_d;
   assign o_dout   = p1_ram_dout_d;
@@ -95,7 +95,7 @@ module cpu_2432 (
     else if (i_instr[23:21] == 3'b000) begin    // Format A
       p0_opcode_d = { i_instr[23:18]};
       p0_rsrc0_d = {3'b000, i_instr[`RDST_RNG]};
-      p0_rdest_d = 7'b1000000;            
+      p0_rdest_d = 7'b1000000;
       if ( p0_opcode_d==`BRA_CC || p0_opcode_d==`CALL_CC ) begin
         p0_imm_d = { {22{i_instr[13]}}, i_instr[13:10],i_instr[5:0]};
         p0_cond_d = i_instr[17:14];
@@ -136,16 +136,37 @@ module cpu_2432 (
 
     // Compute the result ready for assigning to the RF and propagating forward to flags for calculation in next cycle
     // Need to present the byte in the correct location for writing to the register file
-    if ( p1_opcode_q == `LD_B && p1_stage_valid_q )
+    if ( p1_opcode_q == `LD_B && p1_stage_valid_q ) begin
       p0_result_d = { 24'b0, (i_din >> p1_ead_q[1:0])};
-    else if ( p1_opcode_q == `LD_H && p1_stage_valid_q )
+      psr_d[`Z] = !(|p0_result_d);
+      psr_d[`S] = alu_dout[31];
+    end
+
+    else if ( p1_opcode_q == `LD_H && p1_stage_valid_q ) begin
       p0_result_d = {16'b0, (i_din >> p1_ead_q[0])};
-    else if ( p1_opcode_q == `LD_W && p1_stage_valid_q )
+      psr_d[`Z] = !(|p0_result_d);
+      psr_d[`S] = alu_dout[31];
+    end
+
+    else if ( p1_opcode_q == `LD_W && p1_stage_valid_q ) begin
       p0_result_d = i_din ;
+      psr_d[`Z] = !(|p0_result_d);
+      psr_d[`S] = alu_dout[31];
+    end
     else if ( p1_rdest_q[5] )
       psr_d = alu_dout;
     else if ( p1_rdest_q[4] )
       pc_d = alu_dout;
+    else if ( p1_opcode_q == `STO_B ||
+              p1_opcode_q == `STO_H ||
+              p1_opcode_q == `STO_W ||
+              p1_opcode_q == `BRA_CC ||
+              p1_opcode_q == `CALL_CC ||
+              p1_opcode_q == `LJMP ||
+              p1_opcode_q == `LCALL ) begin
+      // No flag setting for these instructions
+      p0_result_d = alu_dout;
+    end
     else begin
       psr_d[`C] = alu_cout;
       psr_d[`V] = alu_vout;
@@ -167,11 +188,11 @@ module cpu_2432 (
     if ( p1_stage_valid_d ) begin
       p1_ram_rd_d = ( p0_opcode_q == `LD_B || p0_opcode_q == `LD_H || p0_opcode_q == `LD_W );
       if ( p0_opcode_q == `STO_B && p1_stage_valid_d) begin
-        p1_ram_wr_d   = 4'b0001 <<p1_ead_d[1:0] ;        
+        p1_ram_wr_d   = 4'b0001 <<p1_ead_d[1:0] ;
         p1_ram_dout_d = p1_src0_data_d << (p1_ead_d[1:0]*8);
       end
       else if ( p0_opcode_q == `STO_H && p1_stage_valid_d) begin
-        p1_ram_wr_d = 4'b0011 << p1_ead_d[0] ;                
+        p1_ram_wr_d = 4'b0011 << p1_ead_d[0] ;
         p1_ram_dout_d = p1_src0_data_d << (p1_ead_d[0]*16);
       end
       else if ( p0_opcode_q == `STO_W && p1_stage_valid_d) begin
@@ -203,7 +224,7 @@ module cpu_2432 (
 	default: jmp_cc_d = 2'b11 ;            // Always - unconditional
       endcase // case (p0_cond_q)
     end // if ( p0_opcode_q==`BRA_CC || p0_opcode_q==`CALL_CC)
-    
+
 
     // Pass through expanded opcode and dest/source register Ids
     p1_opcode_d = p0_opcode_q;
@@ -240,9 +261,9 @@ module cpu_2432 (
         else if ( p1_opcode_q == `LD_H )
           rf_q[p1_rdest_q] = {16'b0, p0_result_d[15:0]};
         else begin
-          $display("Writing %6X to R%d" , p0_result_d, p1_rdest_q);        
+          $display("Writing %6X to R%d" , p0_result_d, p1_rdest_q);
           rf_q[p1_rdest_q]= p0_result_d;
-        end        
+        end
       end // if ( p1_stage_valid_q && |(p1_rdest_q[6:4]) )
     end // if (clk_en)
   end // always @ ( posedge i_clk or negedge i_rstb )

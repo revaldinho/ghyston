@@ -52,7 +52,8 @@ module system(
                       .cs_b(1'b0)
                       );
 
-  // Addresses for DATA RAM are byte oriented
+  // CPU_2432 uses Byte addressing, so use only word addresses (ignore 2 lsbs)
+  // for a 32b wide RAM and control byte writes via the cs_b bits
   ram_8192x32 dram_0 (
                       .din(cpu_dout_w),
                       .dout(ram_dout_w),
@@ -65,8 +66,5 @@ module system(
                               ! (ram_wr_w[0] | ram_rd_w)}
                              )
                       );
-
-
-
 
 endmodule // system
