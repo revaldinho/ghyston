@@ -1,0 +1,8 @@
+verilog work "../rtl/system.v"
+verilog work "../rtl/rom_8192x24.v"
+verilog work "../rtl/ram_8192x32.v"
+verilog work "../rtl/cpu_2432.vh"
+verilog work "../rtl/cpu_2432.v"
+verilog work "../rtl/alu.v"
+verilog work "../rtl/gpio.v"
+

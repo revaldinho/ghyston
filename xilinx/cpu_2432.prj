@@ -1,0 +1,4 @@
+verilog work "../rtl/cpu_2432.vh"
+verilog work "../rtl/cpu_2432.v"
+verilog work "../rtl/alu.v"
+
