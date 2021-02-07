@@ -5,6 +5,8 @@
 # Clean up first
 
 # ./README [project] [sx]
+# Clean up so only primary data remains
+rm -rf *~ xst .#* `ls -1 | egrep -v '(prj|xst|README)$'`
 
 # code project name here temporarily
 project_name="cpu_2432"
@@ -32,9 +34,6 @@ if [ $# -ge 2 ]; then
 fi
 
 
-# Clean up so only primary data remains
-rm -rf *~ xst .#* `ls -1 | egrep -v '(prj|xst|README)$'`
-exit
 
 # Create new work directories
 mkdir tmp
