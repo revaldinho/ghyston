@@ -17,7 +17,6 @@ module cpu_2432 (
   reg [31:0]                   rf_q [14:1];
   reg [31:0]                   pc_d, pc_q;
   reg [31:0]                   psr_d, psr_q;
-  reg [1:0]                    jmp_cc_d, jmp_cc_q;
   reg [3:0]                    rf_wr_en_d;
 
   reg                          p0_stage_valid_d, p0_stage_valid_q;
@@ -32,6 +31,7 @@ module cpu_2432 (
   reg [3:0]                    p0_cond_d, p0_cond_q;
   reg [31:0]                   p0_result_d ;
 
+  reg                          p1_jump_taken_d, p1_jump_taken_q;
   reg                          p1_stage_valid_d, p1_stage_valid_q;
   reg [31:0]                   p1_ead_d, p1_ead_q;
   reg [31:0]                   p1_src0_data_d, p1_src0_data_q;
@@ -72,7 +72,7 @@ module cpu_2432 (
   always @( * ) begin
 
     // defaults
-    p0_stage_valid_d = i_rstb;   // new fetch always generates valid instruction
+    p0_stage_valid_d = !p1_jump_taken_d & i_rstb;   // invalidate any instruction behind a taken jump
     p0_ead_use_imm_d = 1'b0;     // expect EAD = rsrc1 + EAD
     p0_cond_d = 4'b0;            // default cond field to be 'unconditional'
     p0_rdest_d = { i_instr[`RDST_RNG]==`RZERO, i_instr[`RDST_RNG]==`RPSR, i_instr[`RDST_RNG]==`RPC, i_instr[`RDST_RNG] };
@@ -127,7 +127,7 @@ module cpu_2432 (
 
   always @ ( * ) begin
     // Update the PC usually by incrementing but loading directly with the EAD result for taken branches and jumps
-    pc_d = (jmp_cc_q) ? p1_ead_q : pc_q + 1;
+    pc_d = (p1_jump_taken_q) ? p1_ead_q : pc_q + 1;
 
     // default is to retain PSR
     psr_d = psr_q;
@@ -180,7 +180,7 @@ module cpu_2432 (
   // Pipe Stage 1
   always @(*) begin
     // Invalidate next stage if JUMP and condition true for two cycles
-    p1_stage_valid_d = p0_stage_valid_q & !(|jmp_cc_q);
+    p1_stage_valid_d = p0_stage_valid_q ;
     p1_ram_wr_d = 4'b0000;
     p1_ram_dout_d = p1_src0_data_d;
     p1_ram_rd_d = 1'b0;
@@ -204,24 +204,24 @@ module cpu_2432 (
 
   always @(*) begin
     // Set JMP bits if a jump/branch is to be taken
-    jmp_cc_d = { 1'b0, jmp_cc_q[1]} ;
+    p1_jump_taken_d = (p0_opcode_q == `LJMP || p0_opcode_q == `LCALL);
     if ( p0_opcode_q==`BRA_CC || p0_opcode_q==`CALL_CC) begin
       case (p0_cond_q)
-	`EQ: jmp_cc_d = {2{(psr_q[`Z]==1)}};    // Equal
-	`NE: jmp_cc_d = {2{(psr_q[`Z]==0)}};    // Not equal
-	`CS: jmp_cc_d = {2{(psr_q[`C]==1)}};    // Unsigned higher or same (or carry set).
-	`CC: jmp_cc_d = {2{(psr_q[`C]==0)}};    // Unsigned lower (or carry clear).
-	`MI: jmp_cc_d = {2{(psr_q[`S]==1)}};    // Negative. The mnemonic stands for "minus".
-	`PL: jmp_cc_d = {2{(psr_q[`S]==0)}};    // Positive or zero. The mnemonic stands for "plus".
-	`VS: jmp_cc_d = {2{(psr_q[`V]==1)}};    // Signed overflow. The mnemonic stands for "V set".
-	`VC: jmp_cc_d = {2{(psr_q[`V]==0)}};    // No signed overflow. The mnemonic stands for "V clear".
-	`HI: jmp_cc_d = {2{((psr_q[`C]==1) && (psr_q[`Z]==0))}}; // Unsigned higher.
-	`LS: jmp_cc_d = {2{((psr_q[`C]==0) || (psr_q[`Z]==1))}}; // Unsigned lower or same.
-	`GE: jmp_cc_d = {2{(psr_q[`S]==psr_q[`V])}};             // Signed greater than or equal.
-	`LT: jmp_cc_d = {2{(psr_q[`S]!=psr_q[`V])}};             // Signed less than.
-	`GT: jmp_cc_d = {2{((psr_q[`Z]==0) && (psr_q[`S]==psr_q[`V]))}}; // Signed greater than.
-	`LE: jmp_cc_d = {2{((psr_q[`Z]==1) || (psr_q[`S]!=psr_q[`V]))}}; // Signed less than or equal.
-	default: jmp_cc_d = 2'b11 ;            // Always - unconditional
+	`EQ: p1_jump_taken_d = (psr_q[`Z]==1);    // Equal
+	`NE: p1_jump_taken_d = (psr_q[`Z]==0);    // Not equal
+	`CS: p1_jump_taken_d = (psr_q[`C]==1);    // Unsigned higher or same (or carry set).
+	`CC: p1_jump_taken_d = (psr_q[`C]==0);    // Unsigned lower (or carry clear).
+	`MI: p1_jump_taken_d = (psr_q[`S]==1);    // Negative. The mnemonic stands for "minus".
+	`PL: p1_jump_taken_d = (psr_q[`S]==0);    // Positive or zero. The mnemonic stands for "plus".
+	`VS: p1_jump_taken_d = (psr_q[`V]==1);    // Signed overflow. The mnemonic stands for "V set".
+	`VC: p1_jump_taken_d = (psr_q[`V]==0);    // No signed overflow. The mnemonic stands for "V clear".
+	`HI: p1_jump_taken_d = ((psr_q[`C]==1) && (psr_q[`Z]==0)); // Unsigned higher.
+	`LS: p1_jump_taken_d = ((psr_q[`C]==0) || (psr_q[`Z]==1)); // Unsigned lower or same.
+	`GE: p1_jump_taken_d = (psr_q[`S]==psr_q[`V]);             // Signed greater than or equal.
+	`LT: p1_jump_taken_d = (psr_q[`S]!=psr_q[`V]);             // Signed less than.
+	`GT: p1_jump_taken_d = ((psr_q[`Z]==0) && (psr_q[`S]==psr_q[`V])); // Signed greater than.
+	`LE: p1_jump_taken_d = ((psr_q[`Z]==1) || (psr_q[`S]!=psr_q[`V])); // Signed less than or equal.
+	default: p1_jump_taken_d = 1'b1 ;            // Always - unconditional
       endcase // case (p0_cond_q)
     end // if ( p0_opcode_q==`BRA_CC || p0_opcode_q==`CALL_CC)
 
@@ -283,7 +283,6 @@ module cpu_2432 (
     if ( !i_rstb ) begin
       pc_q             <= 0;
       psr_q            <= 0;
-      jmp_cc_q         <= 0;
       p0_stage_valid_q <= 0;
       p0_opcode_q      <= 0;
       p0_ead_use_imm_q <= 0;
@@ -292,6 +291,7 @@ module cpu_2432 (
       p0_rsrc1_q       <= 0;
       p0_imm_q         <= 0;
       p0_cond_q        <= 0;
+      p1_jump_taken_q  <= 0;
       p1_stage_valid_q <= 0;
       p1_ead_q         <= 0;
       p1_src0_data_q   <= 0;
@@ -306,7 +306,6 @@ module cpu_2432 (
       if ( clk_en_w ) begin
         pc_q <= pc_d;
         psr_q <= psr_d;
-        jmp_cc_q <= jmp_cc_d;
 
         p0_stage_valid_q <= p0_stage_valid_d;
         p0_opcode_q <= p0_opcode_d;
@@ -317,6 +316,7 @@ module cpu_2432 (
         p0_imm_q <= p0_imm_d;
         p0_cond_q <= p0_cond_d;
 
+        p1_jump_taken_q <= p1_jump_taken_d;
         p1_stage_valid_q <= p1_stage_valid_d;
         p1_ead_q <= p1_ead_d;
         p1_src0_data_q <= p1_src0_data_d;

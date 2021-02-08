@@ -22,7 +22,7 @@ module alu(
            input [31:0]  din_a,
            input [31:0]  din_b,
            input         cin,
-           input         vin,           
+           input         vin,
            input [5:0]   opcode,
            output [31:0] dout,
            output        cout,
@@ -33,7 +33,7 @@ module alu(
   reg [31:0]             dout_r;
   reg                    vout_r;
   reg                    cout_r;
-  reg                    mcp_out_r;                    
+  reg                    mcp_out_r;
   wire [31:0]            shifted_w;
   wire                   shifted_c;
 
@@ -42,7 +42,7 @@ module alu(
   assign vout = vout_r;
   assign mcp_out = mcp_out_r;
 
-  
+
   barrel_shifter u0 (
                      .din(din_a),
                      .distance(din_b[4:0]),
@@ -55,7 +55,7 @@ module alu(
     cout_r = cin;
     vout_r = vin;
     mcp_out_r = 1'b0;
-    
+
     case ( opcode )
       //MOVT will have the bits shifted to the top of the word before writing the regfile
       `MOVT       :{cout_r,dout_r} = {cin, din_b[15:0], din_a[15:0]} ;
@@ -65,16 +65,17 @@ module alu(
       `XOR        :{cout_r,dout_r} = {1'b0, din_a ^ din_b};
 `ifdef MUL32
       // Wide multiply 32b x32b = 32b (truncated) uses 3 cycles and stretches the clock cycle to complete
-      `MUL        :{mcp_out_r,cout_r,dout_r} = {1'b1, din_a * din_b};      
-`else      
+      `MUL        :{mcp_out_r,cout_r,dout_r} = {1'b1, din_a * din_b};
+`else
       // Restrict multiplies to 18x18 to fit a single DSP slice on a Spartan 6 FPGA and single cycle execution
       `MUL        :{cout_r,dout_r} = {din_a[17:0] * din_b[17:0]};
-`endif    
+`endif
       //`DIV        :{cout_r,dout_r} = {din_a[17:0] / din_b[17:0]};
       `ADD        :{cout_r,dout_r} = {din_a + din_b};
       `SUB        :{cout_r,dout_r} = {din_a - din_b};
-      `BSET       :{cout_r,dout_r} = {cin, din_a | (31'b1<<din_b[4:0])};
-      `BCLR       :{cout_r,dout_r} = {cin, din_a & !(31'b1<<din_b[4:0])};            
+      `BTST       :{cout_r,dout_r} = {cin, din_a & (32'b1<<din_b[4:0])};
+      `BSET       :{cout_r,dout_r} = {cin, din_a | (32'b1<<din_b[4:0])};
+      `BCLR       :{cout_r,dout_r} = {cin, din_a & !(32'b1<<din_b[4:0])};
       `ASR, `ROR, `LSR, `ASL, `ROL:
         {cout_r,dout_r} = {shifted_c, shifted_w};
       default :{cout_r,dout_r} = {cin,din_b} ;

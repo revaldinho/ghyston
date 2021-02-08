@@ -22,7 +22,7 @@
 `define LT 4'hB // Signed less than.
 `define GT 4'hC // Signed greater than.
 `define LE 4'hD // Signed less than or equal.
-          
+
 `define AL 4'hF // Always - unconditional
 
 `define OPCODE_RNG  23:19
@@ -50,14 +50,14 @@
 `define  XOR	6'b100010  // Rd	Rs	Rs	Imm	1	1	3	2
 `define  MUL	6'b100011  // Rd	Rs	Rs	Imm	1	1	3	3
 `define  RET	6'b100100  // Rd	Rs	Rs	Imm	1	1	3	4
-`define  SPARE	6'b100101  // Rd	Rs	Rs	Imm	1	1	3	5
+`define  RETI	6'b100101  // Rd	Rs	Rs	Imm	1	1	3	5
 `define  ADD	6'b100110  // Rd	Rs	Rs	Imm	1	1	3	6
 `define  SUB	6'b100111  // Rd	Rs	Rs	Imm	1	1	3	7
 `define  ASR	6'b001000  // Rd	Rs	Rs	Imm	3	001	3	0
 `define  LSR	6'b001001  // Rd	Rs	Rs	Imm	3	001	3	1
 `define  BSET	6'b001010  // Rd	Rs	Rs	Imm	3	001	3	2
 `define  BCLR	6'b001011  // Rd	Rs	Rs	Imm	3	001	3	3
-`define  RETI	6'b001100  // Rd	Rs	Rs	Imm	3	001	3	4
+`define  BTST	6'b001100  // Rd	Rs	Rs	Imm	3	001	3	4
 `define  ROR	6'b001101  // Rd	Rs	Rs	Imm	3	001	3	5
 `define  ASL	6'b001110  // Rd	Rs	Rs	Imm	3	001	3	6
 `define  ROL	6'b001111  // Rd	Rs	Rs	Imm	3	001	3	7
@@ -65,19 +65,3 @@
 `define  LCALL	6'b010100  // -	-	-	imm	3	010	1	1
 `define  MOV	6'b011000  // Rd	-	-	Imm	3	011	1	0
 `define  MOVT	6'b011100  // Rd	-	-	Imm	3	011	1	1
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
