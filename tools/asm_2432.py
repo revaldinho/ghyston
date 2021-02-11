@@ -190,7 +190,7 @@ def assemble( filename, listingon=True):
     for iteration in range (0,2): # Two pass assembly
         (wcount,nextmem) = (0,0)
         for line in newtext:
-            mobj = re.match('^(?:(?P<label>\w+)\:)?(\s*)?(?P<inst>\w+)?\s*(?P<operands>.*)',re.sub("#.*","",line))
+            mobj = re.match('^(?:(?P<label>\w+)\:)?(\s*)?(?P<inst>\w[\w\.]+)?\s*(?P<operands>.*)',re.sub("#.*","",line))
             (label, inst, operands) = [ mobj.groupdict()[item] for item in ("label", "inst","operands")]
             (opfields,words, memptr) = ([ x.strip() for x in operands.split(",")],[], nextmem)
             if (iteration==0 and (label and label != "None") or (inst=="EQU")):
@@ -260,11 +260,11 @@ def assemble( filename, listingon=True):
                     imm96 = 0
                     imm1310 = 0
                     imm50 = 0
-
+                    opcode = op[inst]["opcode"]
+                    
                     # Format A - load/store instructions
                     if ifmt == "a":
                         rdest = words[0]
-                        rsrc1 = words[0]
                         if len(words) > 2:
                             rsrc2 = words[1]
                             imm = words[2] & 0x03FF
@@ -308,7 +308,7 @@ def assemble( filename, listingon=True):
                             rsrc2 = 0
                             imm = words[2]
                         if ifmt in ("b", "b1"):
-                            opcode = 0x8 + (op[inst]["opcode"] & 0x7)
+                            opcode = 0x20 + (op[inst]["opcode"] & 0x7)
                     # Format D - long JMP, CALL instructions, dest is PC but Link reg must be written too
                     elif ifmt == "d":
                         rdest = 15
@@ -317,7 +317,8 @@ def assemble( filename, listingon=True):
                     elif ifmt == "e":
                         rdest = words[0]
                         imm = words[1]
-                    if ( debug):
+                    if ( True):
+                        print (inst)
                         print ("opcode = %s" % op[inst]["opcode"])
                         print ("format = %s" % ifmt)
                         print ("rdest = %s" % rdest)
@@ -350,7 +351,7 @@ def assemble( filename, listingon=True):
             elif inst and (inst != "EQU") and iteration>0 :
                 errors.append("Error: unrecognized instruction or macro %s in ...\n         %s" % (inst,line.strip()))
             if iteration > 0 and listingon==True:
-                print("%08x  %-36s  %s"%(memptr,' '.join([("%08x" % i) for i in words]),line.rstrip()))
+                print("%08x  %-36s  %s"%(memptr,' '.join([("%06x" % i) for i in words]),line.rstrip()))
 
     print ("\nAssembled %d words of code with %d error%s and %d warning%s." % (wcount,len(errors),'' if len(errors)==1 else 's',len(warnings),'' if len(warnings)==1 else 's'))
     print ("\nSymbol Table:\n\n%s\n\n%s\n%s" % ('\n'.join(["%-32s 0x%08X (%08d)" % (k,v,v) for k,v in sorted(symtab.items()) if not re.match("r\d|r\d\d|pc|psr",k)]),'\n'.join(errors),'\n'.join(warnings)))
