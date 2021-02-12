@@ -90,7 +90,7 @@ cond_codes = {
 }
 
 instr_format = {
-    "a":    {"imm_lo":0,    "imm_hi":1023,     "sign_ext":False, "min_op": 2, "max_op": 3,},    # Mnemonic Rd,       [Rs|Imm| Rs, Imm]
+    "a":    {"imm_lo":-512, "imm_hi":511,      "sign_ext":True, "min_op": 2, "max_op": 3,},    # Mnemonic Rd,       [Rs|Imm| Rs, Imm]
     "a1.1": {"imm_lo":-512, "imm_hi":511,      "sign_ext":True,  "min_op": 1, "max_op": 1,},    # Mnemonic <PC> [CC] [Rs|Imm| Rs, Imm]
     "a1.2": {"imm_lo":-512, "imm_hi":511,      "sign_ext":True,  "min_op": 2, "max_op": 2,},    # Mnemonic <PC>      [Rs|Imm| Rs, Imm]
     "a1.3": {"imm_lo":-512, "imm_hi":511,      "sign_ext":True,  "min_op": 2, "max_op": 2,},    # Mnemonic <PC>      [Rs|Imm| Rs, Imm]
@@ -136,8 +136,8 @@ op = {
 	"rol"	   : { "opcode": 0b001111, "instr_format":"c"},
 	"jmp"	   : { "opcode": 0b010000, "instr_format":"d"},
 	"call"	   : { "opcode": 0b010100, "instr_format":"d"},
-	"mov"	   : { "opcode": 0b011000, "instr_format":"e"},
-	"movt"	   : { "opcode": 0b011100, "instr_format":"e"},
+	"movi"	   : { "opcode": 0b011000, "instr_format":"e"},
+	"movti"	   : { "opcode": 0b011100, "instr_format":"e"},
     }
 
 
@@ -267,7 +267,7 @@ def assemble( filename, listingon=True):
                         rdest = words[0]
                         if len(words) > 2:
                             rsrc2 = words[1]
-                            imm = words[2] & 0x03FF
+                            imm = words[2]
                         elif is_register(opfields[1]):
                             rsrc2 = words[1]
                         else:
@@ -304,20 +304,19 @@ def assemble( filename, listingon=True):
                         if len(words) > 3:
                             rsrc2 = words[2]
                             imm = words[3]
+                        elif is_register(opfields[2]):
+                            rsrc2 = words[2]
                         else:
-                            rsrc2 = 0
                             imm = words[2]
                         if ifmt in ("b", "b1"):
                             opcode = 0x20 + (op[inst]["opcode"] & 0x7)
-                    # Format D - long JMP, CALL instructions, dest is PC but Link reg must be written too
+                    # Format D - long JMP, CALL instructions
                     elif ifmt == "d":
-                        rdest = 15
-                        rsrc1 = 15
                         imm = words[0]
                     elif ifmt == "e":
                         rdest = words[0]
                         imm = words[1]
-                    if ( True):
+                    if ( debug ):
                         print (inst)
                         print ("opcode = %s" % op[inst]["opcode"])
                         print ("format = %s" % ifmt)
@@ -328,7 +327,7 @@ def assemble( filename, listingon=True):
                         print ("imm   = %05x (%d)" % (imm,imm))
 
                     if ( not (instr_format[ifmt]["imm_lo"] <= imm <= instr_format[ifmt]["imm_hi"]) ):
-                        errors.append("Error: immediate out of range (%d to %d) \n on line %s" % (instr_format[ifmt]["imm_lo"], instr_format[ifmt]["imm_hi"], line.strip()))
+                        errors.append("Error: immediate %d out of range (%d to %d) \n on line %s" % (imm, instr_format[ifmt]["imm_lo"], instr_format[ifmt]["imm_hi"], line.strip()))
 
                     # Break up immediate for recoding
                     imm50   = ((imm & 0b00000000000000111111)      ) 
@@ -348,6 +347,9 @@ def assemble( filename, listingon=True):
                     (wordmem[nextmem:nextmem+len(words)], nextmem,wcount )  = (words, nextmem+len(words),wcount+len(words))
             elif inst == "ORG":
                 nextmem = eval(operands,globals(),symtab)
+            elif inst in ("WORDALIGN", "WALIGN","ALIGN"):
+                while ( nextmem % 4 ) :
+                    nextmem += 1
             elif inst and (inst != "EQU") and iteration>0 :
                 errors.append("Error: unrecognized instruction or macro %s in ...\n         %s" % (inst,line.strip()))
             if iteration > 0 and listingon==True:

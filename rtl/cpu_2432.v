@@ -96,12 +96,9 @@ module cpu_2432 (
       p0_opcode_d = { i_instr[23:18]};
       p0_rsrc0_d = {3'b000, i_instr[`RDST_RNG]};
       p0_rdest_d = 7'b1000000;
-      if ( p0_opcode_d==`BRA_CC || p0_opcode_d==`CALL_CC ) begin
-        p0_imm_d = { {22{i_instr[13]}}, i_instr[13:10],i_instr[5:0]};
-        p0_cond_d = i_instr[17:14];
-      end
-      else
-        p0_imm_d = { 22'b0, i_instr[13:10],i_instr[5:0]};
+      // Always sign extend in Format A
+      p0_imm_d = { {22{i_instr[13]}}, i_instr[13:10],i_instr[5:0]};
+      p0_cond_d = i_instr[17:14];
     end
     else if (i_instr[23:21] == 3'b001) begin    // Format C
       p0_opcode_d = { i_instr[23:18]};
@@ -127,7 +124,7 @@ module cpu_2432 (
 
   always @ ( * ) begin
     // Update the PC usually by incrementing but loading directly with the EAD result for taken branches and jumps
-    pc_d = (p1_jump_taken_q) ? p1_ead_q : pc_q + 1;
+    pc_d = (p1_stage_valid_q) ? ((p1_jump_taken_q) ? p1_ead_q : pc_q + 1) : pc_q;   
 
     // default is to retain PSR
     psr_d = psr_q;
