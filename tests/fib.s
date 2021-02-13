@@ -36,12 +36,25 @@ LOOP:
 
         add   r5, r5, 4  # DRAM is BYTE oriented 
         sub   r3, r3, 1
-        bra   LOOP
-        #bcc  nz LOOP
+        bcc  nz LOOP
+        # these instructions will get fetched but should NOT complete 'til
+        # the loop is done
+        MOV   (r2,r0)
+        bra   END2
+        MOV   (r5,r0)
 
+        
 
 END:    
         bra END
 
+END2:
+        bra END2
+
+
+## DATA SECTION - LABELS for use in BYTE ORIENTED DMEM
+        
+        ORG 0
+        
         WALIGN
 RESULTS:        

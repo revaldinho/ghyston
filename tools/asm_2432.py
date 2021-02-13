@@ -282,13 +282,12 @@ def assemble( filename, listingon=True):
                         if is_register(opfields[0]):
                             rsrc2 = words[0]
                         else:
-                            # Immediate is relative to PC, which will have been incremented when computing EAD
+                            # Immediate is relative to PC
                             rsrc2 = 15
                             imm = words[0] - (nextmem+2)
-                    # Format A.2, A.3 - JRCC and JSRCC instructions, dest always PC but write LINK reg too
+                    # Format A.2, A.3 - JRCC and JSRCC instructions, dest always PC
                     elif ifmt == "a1.2":
                         rdest = 15
-                        rsrc1 = 15
                         cond = cond_codes[condfield]
                         # check if first operand has a space separated condition code
                         if len(words)>1:
@@ -310,7 +309,7 @@ def assemble( filename, listingon=True):
                             imm = words[2]
                         if ifmt in ("b", "b1"):
                             opcode = 0x20 + (op[inst]["opcode"] & 0x7)
-                    # Format D - long JMP, CALL instructions
+                    # Format D - long JMP, CALL instructions, Format E, MOV Rd imm
                     elif ifmt == "d":
                         imm = words[0]
                     elif ifmt == "e":

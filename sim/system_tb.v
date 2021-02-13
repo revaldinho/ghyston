@@ -40,7 +40,7 @@ module system_tb() ;
     { clk, reset_b}  = 0;
     clken = 1'b1;
     #1005 reset_b = 1;
-    #8000 ;
+    #10000 ;
 `ifdef RAM_DUMP_FILE_D    
     $writememh(RAM_DUMP_FILE, dut_0.dram_0.ram);
 `endif    
@@ -51,10 +51,14 @@ module system_tb() ;
     #50 clk = !clk;
   end
 
-always @ ( negedge clk ) begin
-  if ( reset_b ) begin
-    $display( "%04X : %06X " , dut_0.cpu_0.o_iaddr, dut_0.cpu_0.i_instr);
-  end
+always @ ( posedge clk ) begin
+  $display( "%04X : %06X : %d%d%d" , dut_0.cpu_0.o_iaddr, 
+            dut_0.cpu_0.i_instr,
+            dut_0.cpu_0.p1_jump_taken_q,
+            dut_0.cpu_0.pm1_stage_valid_q,
+            dut_0.cpu_0.p0_stage_valid_q,             
+            dut_0.cpu_0.p1_stage_valid_q,                         
+            );
 end
   
 
