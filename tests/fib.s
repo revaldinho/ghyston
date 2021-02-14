@@ -18,16 +18,13 @@ L1:     WORD 00
         WORD 00
         WORD 00                
 
-        
-
 START:
-
         movi  r5, RESULTS+4
         MOV   (r1, r0)
         movi  r2, 1
         movi  r3, 10
 
-        sto.w r1, r5,-1 
+        sto.w r1, r5,-4
 LOOP:
         sto.w r2, r5
         add   r4, r1, r2
@@ -42,8 +39,6 @@ LOOP:
         MOV   (r2,r0)
         bra   END2
         MOV   (r5,r0)
-
-        
 
 END:    
         bra END

@@ -1,5 +1,7 @@
 `include "cpu_2432.vh"
 
+`define DEBUG_D 1
+
 module cpu_2432 (
                  input [23:0]  i_instr,
                  input         i_clk,
@@ -13,14 +15,12 @@ module cpu_2432 (
                  output [3:0]  o_ram_wr
                  );
 
-  // Register file is 14x32b
-  reg [31:0]                   rf_q [14:1];
   reg [31:0]                   pc_d, pc_q;
   reg [31:0]                   psr_d, psr_q;
   reg [3:0]                    rf_wr_en_d;
 
   reg                          pm1_stage_valid_d, pm1_stage_valid_q;
-  reg                          pm2_stage_valid_d, pm2_stage_valid_q;  
+  reg                          pm2_stage_valid_d, pm2_stage_valid_q;
   reg                          p0_stage_valid_d, p0_stage_valid_q;
   reg [5:0]                    p0_opcode_d, p0_opcode_q;
   reg                          p0_ead_use_imm_d, p0_ead_use_imm_q;
@@ -49,6 +49,8 @@ module cpu_2432 (
   wire [31:0]                  alu_dout;
   wire                         mcp_w;
   wire                         clk_en_w = i_clk_en & !mcp_q;
+  wire [31:0]                  rf_dout_0;
+  wire [31:0]                  rf_dout_1;
 
   assign o_iaddr  = pc_q[23:0];
   assign o_daddr  = p1_ead_d[23:0];
@@ -56,10 +58,33 @@ module cpu_2432 (
   assign o_ram_wr = p1_ram_wr_d;
   assign o_dout   = p1_ram_dout_d;
 
+  always @ (posedge i_clk) begin
+    if ( |o_ram_wr) begin
+      $display ("RAM write %08X to addr %04X" , o_dout, o_daddr);
+    end
+  end
+  
+
+  // General Register File
+  grf1w2r u0(
+             .i_waddr(p1_rdest_q[3:0]),
+             .i_cs_b ( !(p1_stage_valid_q &&  !(|(p1_rdest_q[6:4])))),
+             .i_wen({ p1_opcode_q != `LD_B &&  p1_opcode_q != `LD_H,
+                      p1_opcode_q != `LD_B &&  p1_opcode_q != `LD_H,
+                      p1_opcode_q != `LD_B,
+                      1'b1 } ),
+             .i_raddr_0(p0_rsrc0_q[3:0]),
+             .i_raddr_1(p0_rsrc1_q[3:0]),
+             .i_din(p0_result_d),
+             .i_clk(i_clk),
+             .i_clk_en(clk_en_w),
+             .o_dout_0(rf_dout_0),
+             .o_dout_1(rf_dout_1)
+             );
 
   // Barrel shifter/ALU is effectively after Pipe stage 1
-  alu u0 (
-          .din_a( p1_src0_data_q ) ,
+  alu u1 (
+          .din_a( p1_src0_data_q) ,
           .din_b( p1_ead_q ) ,
           .cin( psr_q[`C] ),
           .vin( psr_q[`V] ),
@@ -74,7 +99,7 @@ module cpu_2432 (
 
     // defaults
     pm2_stage_valid_d = !p1_jump_taken_d;                      // invalidate any instruction behind a taken jump
-    pm1_stage_valid_d = pm2_stage_valid_q & !p1_jump_taken_d ;                      // invalidate any instruction behind a taken jump    
+    pm1_stage_valid_d = pm2_stage_valid_q & !p1_jump_taken_d ;                      // invalidate any instruction behind a taken jump
     p0_stage_valid_d =  pm1_stage_valid_q & !p1_jump_taken_d ;   // invalidate any instruction behind a taken jump
     p0_ead_use_imm_d = 1'b0;     // expect EAD = rsrc1 + EAD
     p0_cond_d = 4'b0;            // default cond field to be 'unconditional'
@@ -98,10 +123,13 @@ module cpu_2432 (
     else if (i_instr[23:21] == 3'b000) begin    // Format A
       p0_opcode_d = { i_instr[23:18]};
       p0_rsrc0_d = {3'b000, i_instr[`RDST_RNG]};
-      p0_rdest_d = 7'b1000000;
+      if ( p0_opcode_d == `BRA_CC || p0_opcode_d == `CALL_CC ||
+           p0_opcode_d == `STO_W || p0_opcode_d == `STO_H || p0_opcode_d == `STO_B) begin
+        p0_rdest_d = 7'b1000000;
+        p0_cond_d = i_instr[17:14];
+      end
       // Always sign extend in Format A
       p0_imm_d = { {22{i_instr[13]}}, i_instr[13:10],i_instr[5:0]};
-      p0_cond_d = i_instr[17:14];
     end
     else if (i_instr[23:21] == 3'b001) begin    // Format C
       p0_opcode_d = { i_instr[23:18]};
@@ -129,23 +157,15 @@ module cpu_2432 (
     // Update the PC usually by incrementing but loading directly with the EAD result for taken branches and jumps
 
     if ( p1_jump_taken_q ) begin
-`ifdef DEBUG_D
-      $display("Jumping to %08x with opcode %06X", p1_ead_q, p1_opcode_q);
-`endif      
       pc_d = p1_ead_q;
     end else begin
       pc_d = pc_q + 1 ;
-`ifdef DEBUG_D      
-      $display("Incrementing PC to  %08x", pc_d);
-`endif      
     end
-
 
     // default is to retain PSR
     psr_d = psr_q;
     // default result to be from ALU
     p0_result_d = alu_dout;
-
     // Compute the result ready for assigning to the RF and propagating forward to flags for calculation in next cycle
     // Need to present the byte in the correct location for writing to the register file
     if ( p1_opcode_q == `LD_B && p1_stage_valid_q ) begin
@@ -153,14 +173,14 @@ module cpu_2432 (
       psr_d[`Z] = !(|p0_result_d);
       psr_d[`S] = alu_dout[31];
     end
-
     else if ( p1_opcode_q == `LD_H && p1_stage_valid_q ) begin
       p0_result_d = {16'b0, (i_din >> p1_ead_q[0])};
       psr_d[`Z] = !(|p0_result_d);
       psr_d[`S] = alu_dout[31];
     end
-
     else if ( p1_opcode_q == `LD_W && p1_stage_valid_q ) begin
+      $display("LOAD INSTR, din = %08X addr=%06X", i_din, p1_ead_q);
+
       p0_result_d = i_din ;
       psr_d[`Z] = !(|p0_result_d);
       psr_d[`S] = alu_dout[31];
@@ -170,7 +190,6 @@ module cpu_2432 (
     else if ( p1_rdest_q[4] ) begin
       // DO nothing - only BRA/JMP/CALL can affect PC !
     end
-
     else if ( p1_opcode_q == `STO_B ||
               p1_opcode_q == `STO_H ||
               p1_opcode_q == `STO_W ||
@@ -258,35 +277,13 @@ module cpu_2432 (
                  ((p0_rsrc1_q[6]) ? 32'b0:
                   (p0_rsrc1_q[5]) ? psr_q:
                   (p0_rsrc1_q[4]) ? pc_q:
-                  rf_q[(p0_rsrc1_q[3:0])]);
+                  rf_dout_1 );
 
     p1_src0_data_d = ((p0_rsrc0_q[6]) ? 32'b0:
                       (p0_rsrc0_q[5]) ? psr_q:
                       (p0_rsrc0_q[4]) ? pc_q:
-                      rf_q[(p0_rsrc0_q[3:0])]);
-
+                      rf_dout_0);
   end
-
-
-  always @ ( posedge i_clk ) begin
-    if (clk_en_w) begin
-      // Register Write - select the result and write the register file
-      // Writes to Zero reg, PSR and PC don't go to the register file
-      if ( p1_stage_valid_q &&  !(|(p1_rdest_q[6:4])) ) begin
-        if ( p1_opcode_q == `LD_B )
-          rf_q[p1_rdest_q] = {24'b0, p0_result_d[7:0]};
-        else if ( p1_opcode_q == `LD_H )
-          rf_q[p1_rdest_q] = {16'b0, p0_result_d[15:0]};
-        else begin
-`ifdef DEBUG_D          
-          $display("Writing %6X to R%d" , p0_result_d, p1_rdest_q);
-`endif          
-          rf_q[p1_rdest_q]= p0_result_d;
-        end
-      end // if ( p1_stage_valid_q && |(p1_rdest_q[6:4]) )
-    end // if (clk_en)
-  end // always @ ( posedge i_clk or negedge i_rstb )
-
 
   // Special MCP control for 32x32 multiplications
   always @ ( posedge i_clk or negedge i_rstb ) begin
@@ -303,7 +300,7 @@ module cpu_2432 (
       pc_q             <= 0;
       psr_q            <= 0;
       pm1_stage_valid_q <= 1;
-      pm2_stage_valid_q <= 1;      
+      pm2_stage_valid_q <= 1;
       p0_stage_valid_q <= 0;
       p0_opcode_q      <= 0;
       p0_ead_use_imm_q <= 0;
@@ -327,7 +324,7 @@ module cpu_2432 (
       if ( clk_en_w ) begin
         pc_q <= pc_d;
         psr_q <= psr_d;
-        pm2_stage_valid_q <= pm2_stage_valid_d;        
+        pm2_stage_valid_q <= pm2_stage_valid_d;
         pm1_stage_valid_q <= pm1_stage_valid_d;
 
         p0_stage_valid_q <= p0_stage_valid_d;

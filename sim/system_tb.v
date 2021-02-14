@@ -3,7 +3,8 @@
 module system_tb() ;
   reg         clk, reset_b, clken;
   wire [31:0] gpio_w;
-
+  integer     cycle;
+  
   parameter   VCD_FILE="", RAM_DUMP_FILE="";
 
   system   dut_0
@@ -39,6 +40,7 @@ module system_tb() ;
 `endif
     { clk, reset_b}  = 0;
     clken = 1'b1;
+    cycle = 0;    
     #1005 reset_b = 1;
     #10000 ;
 `ifdef RAM_DUMP_FILE_D    
@@ -49,10 +51,12 @@ module system_tb() ;
 
   always begin
     #50 clk = !clk;
+    if (clk ) cycle = cycle+1;    
   end
 
 always @ ( posedge clk ) begin
-  $display( "%04X : %06X : %d%d%d" , dut_0.cpu_0.o_iaddr, 
+  $display( "%10d: %04X : %06X : %d%d%d" , cycle,
+            dut_0.cpu_0.o_iaddr, 
             dut_0.cpu_0.i_instr,
             dut_0.cpu_0.p1_jump_taken_q,
             dut_0.cpu_0.pm1_stage_valid_q,
