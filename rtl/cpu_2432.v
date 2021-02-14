@@ -101,8 +101,7 @@ module cpu_2432 (
 
     // defaults
     pm1_stage_valid_d = !p2_jump_taken_d;
-    p0_stage_valid_d =  pm1_stage_valid_q & !p2_jump_taken_d ; // invalidate any instruction behind a taken jump
-    p1_stage_valid_d =  p0_stage_valid_q & !p2_jump_taken_d ;  // invalidate any instruction behind a taken jump
+    p0_stage_valid_d = pm1_stage_valid_q & !p2_jump_taken_d ; // invalidate any instruction behind a taken jump
 
     p0_ead_use_imm_d = 1'b0;     // expect EAD = rsrc1 + EAD
     p0_cond_d = 4'b0;            // default cond field to be 'unconditional'
@@ -219,6 +218,8 @@ module cpu_2432 (
     p1_ram_wr_d = 4'b0000;
     p1_ram_dout_d = p1_src0_data_d;
     p1_ram_rd_d = 1'b0;
+    p1_cond_d = p0_cond_q;
+    p1_stage_valid_d = p0_stage_valid_q & !p2_jump_taken_d ;  // invalidate any instruction behind a taken jump
 
     if ( p1_stage_valid_d ) begin
       p1_ram_rd_d = ( p0_opcode_q == `LD_B || p0_opcode_q == `LD_H || p0_opcode_q == `LD_W );
@@ -260,9 +261,9 @@ module cpu_2432 (
 	  `GT: p2_jump_taken_d = ((psr_q[`Z]==0) && (psr_q[`S]==psr_q[`V])); // Signed greater than.
 	  `LE: p2_jump_taken_d = ((psr_q[`Z]==1) || (psr_q[`S]!=psr_q[`V])); // Signed less than or equal.
 	  default: p2_jump_taken_d = 1'b1 ;            // Always - unconditional
-        endcase // case (p0_cond_q)
-      end // if ( p0_opcode_q==`BRA_CC || p0_opcode_q==`CALL_CC)
-    end // if ( p0_stage_valid_q )
+        endcase
+      end
+    end
 
     // Pass through expanded opcode and dest/source register Ids
     p1_opcode_d = p0_opcode_q;

@@ -22,7 +22,6 @@
 `define LT 4'hB // Signed less than.
 `define GT 4'hC // Signed greater than.
 `define LE 4'hD // Signed less than or equal.
-
 `define AL 4'hF // Always - unconditional
 
 `define OPCODE_RNG  23:19

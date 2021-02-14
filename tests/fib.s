@@ -28,12 +28,11 @@ LOOP:
         MOV   (r2, r4)
         add   r5, r5, 4  
         sub   r3, r3, 1
-        #        bcc   nz LOOP
-        bra   LOOP
+        bcc   nz LOOP
         # these instructions will get fetched but should NOT complete 'til
         # the loop is done
         MOV   (r2,r0)
-        bra   END2
+        MOV   (r2,r0)
         MOV   (r5,r0)
 
 END:    
