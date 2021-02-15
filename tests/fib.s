@@ -19,7 +19,7 @@ START:
         movi  r5, RESULTS+4
         movi  r1, 0
         movi  r2, 1
-        movi  r3, 5
+        movi  r3, 8
         sto.w r1, r5,-4
 LOOP:
         sto.w r2, r5
