@@ -32,6 +32,7 @@ module cpu_2432 (
   reg [3:0]                    p0_cond_d, p0_cond_q;
   reg [31:0]                   p0_result_d ;
 
+  reg                          p0_moe_d, p0_moe_q;
   reg                          p1_jump_taken_d, p1_jump_taken_q;
   reg                          p1_stage_valid_d, p1_stage_valid_q;
   reg [31:0]                   p1_ead_d, p1_ead_q;
@@ -53,6 +54,9 @@ module cpu_2432 (
   wire                         clk_en_w = i_clk_en & !mcp_q;
   wire [31:0]                  rf_dout_0;
   wire [31:0]                  rf_dout_1;
+  wire [3:0]                   rf_wen;
+  wire [3:0]                   rf0_wen;  
+
 
   assign o_iaddr  = pc_q[23:0];
   assign o_daddr  = p1_ead_d[23:0];
@@ -66,15 +70,22 @@ module cpu_2432 (
     end
   end
 
+  assign rf_wen = { (p1_opcode_q != `LD_B &&  p1_opcode_q != `LD_H),
+                    (p1_opcode_q != `LD_B &&  p1_opcode_q != `LD_H),
+                    (p1_opcode_q != `LD_B &&  p1_opcode_q != `MOVT),
+                    (p1_opcode_q != `MOVT) };
+  
+  assign rf0_wen = { (p0_opcode_q != `LD_B &&  p0_opcode_q != `LD_H),
+                     (p0_opcode_q != `LD_B &&  p0_opcode_q != `LD_H),
+                     (p0_opcode_q != `LD_B &&  p0_opcode_q != `MOVT),
+                     (p0_opcode_q != `MOVT) };
+  
 
   // General Register File
   grf1w2r u0(
              .i_waddr(p1_rdest_q[3:0]),
              .i_cs_b ( !(p1_stage_valid_q &&  !(|(p1_rdest_q[6:4])))),
-             .i_wen({ p1_opcode_q != `LD_B &&  p1_opcode_q != `LD_H,
-                      p1_opcode_q != `LD_B &&  p1_opcode_q != `LD_H,
-                      p1_opcode_q != `LD_B,
-                      1'b1 } ),
+             .i_wen(rf_wen),
              .i_raddr_0(p0_rsrc0_q[3:0]),
              .i_raddr_1(p0_rsrc1_q[3:0]),
              .i_din(p0_result_d),
@@ -101,7 +112,7 @@ module cpu_2432 (
 
     // defaults
     pm1_stage_valid_d = !p2_jump_taken_d;
-    p0_stage_valid_d = pm1_stage_valid_q & !p2_jump_taken_d ; // invalidate any instruction behind a taken jump
+    p0_stage_valid_d = p0_moe_d & pm1_stage_valid_q & !p2_jump_taken_d ; // invalidate any instruction behind a taken jump
 
     p0_ead_use_imm_d = 1'b0;     // expect EAD = rsrc1 + EAD
     p0_cond_d = 4'b0;            // default cond field to be 'unconditional'
@@ -124,12 +135,17 @@ module cpu_2432 (
     end
     else if (i_instr[23:21] == 3'b000) begin    // Format A
       p0_opcode_d = { i_instr[23:18]};
-      p0_rsrc0_d = {3'b000, i_instr[`RDST_RNG]};
       if ( p0_opcode_d == `BRA_CC || p0_opcode_d == `CALL_CC ||
            p0_opcode_d == `STO_W || p0_opcode_d == `STO_H || p0_opcode_d == `STO_B) begin
+        $display("Format A");        
+        p0_rsrc0_d = {3'b000, i_instr[`RDST_RNG]};
         p0_rdest_d = 7'b1000000;
         p0_cond_d = i_instr[17:14];
       end
+      else begin
+        p0_rsrc0_d = 7'b1000000;
+      end
+
       // Always sign extend in Format A
       p0_imm_d = { {22{i_instr[13]}}, i_instr[13:10],i_instr[5:0]};
     end
@@ -146,13 +162,13 @@ module cpu_2432 (
       p0_imm_d = { 12'b0, i_instr[17:14],i_instr[19:18],i_instr[9:6],i_instr[13:10], i_instr[5:0]};
       p0_ead_use_imm_d = 1'b1;
     end
-    else begin     // Format E
+    else begin     // Format E - no need to read reg for MOVT - dealt with by byte enables
       p0_opcode_d = { i_instr[23:20], 2'b00};
-      p0_rsrc0_d = {3'b000,  i_instr[`RDST_RNG]} ; // Need to read the destination register for MOVT
-      p0_rsrc1_d = 7'b1000000 ; // Unused set to RZero
+      p0_rsrc0_d = 7'b1000000; // Unused set to RZero
+      p0_rsrc1_d = 7'b1000000 ; 
       p0_imm_d = { 16'b0, i_instr[19:18],i_instr[9:6],i_instr[13:10],i_instr[5:0]};
       p0_ead_use_imm_d = 1'b1;
-    end // else: !if(i_instr[23:22] == 3'b010)
+    end 
   end // always @ ( * )
 
   always @ ( * ) begin
@@ -211,6 +227,28 @@ module cpu_2432 (
     end
 
   end
+
+
+  // Check for back to back reg write/reads which need to stall for 1 cycle (and no more than one cycle)
+  // rather than use a combinatorial bypass
+  always @ (*) begin
+`define HALFRATE 1    
+`ifdef HALFRATE
+    p0_moe_d = !p0_moe_q;    
+`else    
+    p0_moe_d = 1;
+    if ( !p0_moe_q ) begin
+      if (|(rf0_wen) && p0_stage_valid_q && !(|(p0_rdest_q[6:4]))) begin
+        if (p0_rdest_q == p0_rsrc0_d || p0_rdest_q == p0_rsrc1_d ) begin
+          $display("Delay one cycle or write-through for R%d", p0_rdest_q[3:0]);
+          $display("%02X %d %X %d %02X %02X %02X", p0_opcode_d, p0_moe_q,rf0_wen, p0_stage_valid_q, p0_rdest_q, p0_rsrc0_d, p0_rsrc1_d);        
+          p0_moe_d = 1'b0;
+        end
+      end
+    end
+`endif    
+  end 
+  
 
   // Pipe Stage 1
   always @(*) begin
@@ -323,13 +361,17 @@ module cpu_2432 (
       p1_rsrc1_q       <= 0;
       p1_opcode_q      <= 0;
       p1_cond_q        <= 0;
+      p0_moe_q         <= 1;
     end
     else
       if ( clk_en_w ) begin
-        pc_q <= pc_d;
-        psr_q <= psr_d;
-        pm1_stage_valid_q <= pm1_stage_valid_d;
+        p0_moe_q <= p0_moe_d;
         p0_stage_valid_q <= p0_stage_valid_d;
+        pm1_stage_valid_q <= pm1_stage_valid_d;
+        psr_q <= psr_d;
+        if ( p0_moe_d ) begin
+          pc_q <= pc_d;
+        end        
         p0_opcode_q <= p0_opcode_d;
         p0_ead_use_imm_q <= p0_ead_use_imm_d;
         p0_rdest_q <= p0_rdest_d;
