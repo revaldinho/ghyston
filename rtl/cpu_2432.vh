@@ -67,7 +67,6 @@
 `define BTST   6'b111010
 
 // These instructions need to use all 6 opcode bits
-`define RET    6'b010100
 `define RETI   6'b010101
 `define JMP    6'b010110
 `define JSR    6'b010111

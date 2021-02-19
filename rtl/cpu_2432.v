@@ -202,7 +202,7 @@ module cpu_2432 (
     // If a jump is take always load the PC directly even if pipe0 stage is stalled because
     // a jump will invalidate anything in earlier stages anyway
     if ( p2_jump_taken_d && p1_stage_valid_q)
-      if ( p1_opcode_q == `JMP || p1_opcode_q == `JSR || p1_opcode_q == `RET ) 
+      if ( p1_opcode_q == `JMP || p1_opcode_q == `JSR ) 
         p0_pc_d = p1_ead_q;
       else
         // need to read the PC associated with the jump instruction
@@ -299,7 +299,7 @@ module cpu_2432 (
     p2_jump_taken_d = 0;
 
     if ( p1_stage_valid_q ) begin
-      p2_jump_taken_d = (p1_opcode_q == `JMP || p1_opcode_q == `JSR || p1_opcode_q == `RET);
+      p2_jump_taken_d = (p1_opcode_q == `JMP || p1_opcode_q == `JSR );
       if ( p1_opcode_q==`JRCC || p1_opcode_q==`JRSRCC) begin
         case (p1_cond_q)
 	  `EQ: p2_jump_taken_d = (psr_q[`Z]==1);    // Equal

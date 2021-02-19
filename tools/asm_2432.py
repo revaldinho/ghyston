@@ -100,11 +100,13 @@ op = {
     "sto.w"   : {"format":"b", "opcode": 12 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
 #   ""        : {"format":"b", "opcode": 14 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":0},
     "jr"      : {"format":"c", "opcode": 16 ,"sext":False, "cond":True,  "operands":2, "sext": False, "min_imm":-512, "max_imm":511}, # COND field is optional in source code
+    # Ret is a synonmym for JR AL RLINK,0
+    "ret"     : {"format":"c", "opcode": 17 ,"sext":False, "cond":True,  "operands":2, "sext": False, "min_imm":0,    "max_imm":0},
+
     "bra"     : {"format":"c", "opcode": 16 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},
     "bcc"     : {"format":"c", "opcode": 16 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},
     "jrsr"    : {"format":"c", "opcode": 18 ,"sext":False, "cond":True,  "operands":2, "sext": False, "min_imm":-512, "max_imm":511},
-    "bsr"     : {"format":"c", "opcode": 18 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},
-    "ret"     : {"format":"c", "opcode": 20 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":0,    "max_imm":0},
+    "bsr"     : {"format":"c", "opcode": 18 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},    
     "reti"    : {"format":"c", "opcode": 21 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":0,    "max_imm":0},
     "jmp"     : {"format":"c2","opcode": 22 ,"sext":False, "cond":False, "operands":1, "sext": False, "min_imm":0,    "max_imm":262143},
     "jsr"     : {"format":"c2","opcode": 23 ,"sext":False, "cond":False, "operands":1, "sext": False, "min_imm":0,    "max_imm":262143},
@@ -237,11 +239,23 @@ def assemble( filename, listingon=True):
                         direct=True
                     words = [int(eval( f,globals(), symtab)) for f in opfields ]
                 else:
-                    if inst in ("ret", "reti"):
-                        opfields = ["r13"]
-                        words = [13]
-                    else:
-                        words = []
+                    words = []
+
+                # deal with RET synonym for JR CC Rlink,0                
+                if inst in ("ret" ):
+                    if len(opfields) == 0:
+                        opfields.append("r13")
+                        words.append(13)
+                        opfields.append("0") 
+                        words.append(0)                        
+                    elif len(opfields) == 1 and (opfields[0]==''):
+                        opfields[0] = "r13"
+                        words.append(13)
+                        opfields.append("0") 
+                        words.append(0)
+                    elif len(opfields):
+                        opfields.append("0") 
+                        words.append(0)
 
                 if ( op[inst]["operands"] != len(words)):
                     errors.append("Error: wrong number of operands for instruction %s\n on line %s" % (inst, line.strip()))
@@ -263,12 +277,7 @@ def assemble( filename, listingon=True):
                     # Format C - branch and return instructions
                     elif ifmt == "c":
                         cond = cond_codes[condfield]
-                        if (inst in ("ret","reti")):
-                            if ( len(words) > 0 and is_register(opfields[0])):
-                                rsrc2 = words[0]
-                            else:
-                                rsrc2 = 13 # Link reg is default
-                        elif (inst in ("bra","bsr","bcc")):
+                        if (inst in ("bra","bsr","bcc")):
                             rsrc1 = 15 # PC
                             if (direct):
                                 # Branch to a label
@@ -340,7 +349,6 @@ def assemble( filename, listingon=True):
                     words=[ iword ]
                     (wordmem[nextmem:nextmem+len(words)], nextmem,wcount )  = (words, nextmem+len(words),wcount+len(words))
                     exec("PC=%d+%d" % (nextmem,len(opfields)-1), globals(), symtab) # calculate PC as it will be in EXEC state
-
             elif inst == "ORG":
                 nextmem = eval(operands,globals(),symtab)
             elif inst in ("WORDALIGN", "WALIGN","ALIGN"):
