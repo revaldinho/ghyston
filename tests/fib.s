@@ -23,6 +23,7 @@ LOOP:
         sto.w r2, r5
         add   r4, r1, r2
         mov   r1, r2
+        mov   r0, r0
         mov   r2, r4
         add   r5, r5, 4  
         sub   r3, r3, 1

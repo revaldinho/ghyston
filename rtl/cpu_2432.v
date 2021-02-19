@@ -15,10 +15,9 @@ module cpu_2432 (
                  output [3:0]  o_ram_wr
                  );
 
-  reg [31:0]                   pc_d, pc_q;
   reg [31:0]                   psr_d, psr_q;
   reg [3:0]                    rf_wr_en_d;
-
+  reg [31:0]                   p0_pc_d, p0_pc_q;    
   reg                          p0_stage_valid_d, p0_stage_valid_q;
   reg                          pm1_stage_valid_d, pm1_stage_valid_q;
   reg [5:0]                    p0_opcode_d, p0_opcode_q;
@@ -31,8 +30,10 @@ module cpu_2432 (
   reg [31:0]                   p0_imm_d, p0_imm_q;
   reg [3:0]                    p0_cond_d, p0_cond_q;
   reg [31:0]                   p0_result_d ;
-
+  
   reg                          p0_moe_d, p0_moe_q;
+  
+  reg [31:0]                   p1_pc_d, p1_pc_q;
   reg                          p1_jump_taken_d, p1_jump_taken_q;
   reg                          p1_stage_valid_d, p1_stage_valid_q;
   reg [31:0]                   p1_ead_d, p1_ead_q;
@@ -47,6 +48,7 @@ module cpu_2432 (
   reg [31:0]                   p1_ram_dout_d;
 
   reg                          p2_jump_taken_d, p2_jump_taken_q ;
+  reg [31:0]                   p2_pc_d, p2_pc_q;    
 
   reg                          mcp_q;
   wire [31:0]                  alu_dout;
@@ -58,7 +60,7 @@ module cpu_2432 (
   wire [3:0]                   rf0_wen;
 
 
-  assign o_iaddr  = pc_q[23:0];
+  assign o_iaddr  = p0_pc_q[23:0];
   assign o_daddr  = p1_ead_d[23:0];
   assign o_ram_rd = p1_ram_rd_d;
   assign o_ram_wr = p1_ram_wr_d;
@@ -113,8 +115,7 @@ module cpu_2432 (
 
   // Pipe Stage 0
   always @( * ) begin
-    // defaults
-    
+    // defaults    
     p0_cond_d = 4'b0;            // default cond field to be 'unconditional'
     p0_rdest_d = { i_instr[`RDST_RNG]==`RZERO, i_instr[`RDST_RNG]==`RPSR, i_instr[`RDST_RNG]==`RPC, i_instr[`RDST_RNG] };
     p0_rsrc0_d = { i_instr[`RSRC0_RNG]==`RZERO, i_instr[`RSRC0_RNG]==`RPSR, i_instr[`RSRC0_RNG]==`RPC, i_instr[`RSRC0_RNG] };
@@ -175,12 +176,12 @@ module cpu_2432 (
 
     // Check for back to back reg write/reads which need to stall for 1 cycle (and no more than one cycle)
     // rather than use a combinatorial bypass
-`define BYPASS_EN 1
-`ifdef BYPASS_EN
+//`define BYPASS_EN_D 1
+`ifdef BYPASS_EN_D
     p0_moe_d = 1;
 `else
-//  `define HALFRATE 1
-  `ifdef HALFRATE
+//  `define HALF_RATE_D 1
+  `ifdef HALF_RATE_D
     p0_moe_d = !p0_moe_q;
   `else
     p0_moe_d = 1'b1;
@@ -201,14 +202,20 @@ module cpu_2432 (
     // a jump will invalidate anything in earlier stages anyway
     if ( p2_jump_taken_d && p1_stage_valid_q)
       if ( p1_opcode_q == `JMP || p1_opcode_q == `JSR ) 
-        pc_d = p1_ead_q;
+        p0_pc_d = p1_ead_q;
       else
-        pc_d = p1_ead_q + p1_src0_data_q ;    
+        // need to read the PC associated with the jump instruction
+        // and ensure that stalling is accounted for
+        if (p1_rsrc0_q[3:0]==4'b1111)
+          p0_pc_d = p1_ead_q + p2_pc_q;
+        else
+          p0_pc_d = p1_ead_q + p1_src0_data_q ;
+    
     // If pipe0 is moving then increment PC
     else if (p0_moe_d)
-      pc_d = pc_q + 1;
+      p0_pc_d = p0_pc_q + 1;
     else
-      pc_d = pc_q ;
+      p0_pc_d = p0_pc_q ;
   end
 
   always @ ( * ) begin
@@ -266,6 +273,8 @@ module cpu_2432 (
     p1_ram_dout_d = p1_src0_data_d;
     p1_ram_rd_d = 1'b0;
     p1_cond_d = p0_cond_q;
+    p1_pc_d = p0_pc_q;
+    p2_pc_d = p1_pc_q;        
     p1_stage_valid_d = p0_stage_valid_q & !p2_jump_taken_d ;  // invalidate any instruction behind a taken jump
 
     if ( p1_stage_valid_d ) begin
@@ -324,13 +333,13 @@ module cpu_2432 (
       p1_ead_d = p0_imm_q;
     else
       p1_ead_d =  ((p0_rsrc1_q[6]) ? 32'b0:
-                  (p0_rsrc1_q[5]) ? psr_q:
-                  (p0_rsrc1_q[4]) ? pc_q:
-                  rf_dout_1 );
-
+                   (p0_rsrc1_q[5]) ? psr_q:
+                   (p0_rsrc1_q[4]) ? p0_pc_q:
+                   rf_dout_1 );
+    
     p1_src0_data_d = ((p0_rsrc0_q[6]) ? 32'b0:
                       (p0_rsrc0_q[5]) ? psr_q:
-                      (p0_rsrc0_q[4]) ? pc_q:
+                      (p0_rsrc0_q[4]) ? p0_pc_q:
                       rf_dout_0);
   end
 
@@ -346,9 +355,9 @@ module cpu_2432 (
   // Edge triggered state
   always @ ( posedge i_clk or negedge i_rstb ) begin
     if ( !i_rstb ) begin
-      pc_q             <= 0;
       psr_q            <= 0;
       pm1_stage_valid_q<= 0;
+      p0_pc_q          <= 0;      
       p0_stage_valid_q <= 0;
       p0_opcode_q      <= 0;
       p0_ead_use_imm_q <= 0;
@@ -358,6 +367,7 @@ module cpu_2432 (
       p0_imm_q         <= 0;
       p0_cond_q        <= 0;
       p2_jump_taken_q  <= 0;
+      p1_pc_q          <= 0;      
       p1_jump_taken_q  <= 0;
       p1_stage_valid_q <= 0;
       p1_ead_q         <= 0;
@@ -377,7 +387,7 @@ module cpu_2432 (
         p0_stage_valid_q <= p0_stage_valid_d;
         pm1_stage_valid_q <= pm1_stage_valid_d;
         psr_q <= psr_d;
-        pc_q <= pc_d;
+        p0_pc_q <= p0_pc_d;
         p0_opcode_q <= p0_opcode_d;
         p0_ead_use_imm_q <= p0_ead_use_imm_d;
         p0_rdest_q <= p0_rdest_d;
@@ -386,8 +396,8 @@ module cpu_2432 (
         p0_imm_q <= p0_imm_d;
         p0_cond_q <= p0_cond_d;
 
+        p1_pc_q <= p1_pc_d;
         p1_cond_q <= p1_cond_d;
-        p2_jump_taken_q <= p2_jump_taken_d;
         p1_jump_taken_q <= p1_jump_taken_d;
         p1_stage_valid_q <= p1_stage_valid_d;
         p1_ead_q <= p1_ead_d;
@@ -398,6 +408,10 @@ module cpu_2432 (
         p1_rsrc0_q <= p1_rsrc0_d;
         p1_rsrc1_q <= p1_rsrc1_d;
         p1_opcode_q <= p1_opcode_d;
+
+        p2_pc_q <= p2_pc_d;                
+        p2_jump_taken_q <= p2_jump_taken_d;
+        
       end
   end
 

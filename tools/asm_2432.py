@@ -263,7 +263,7 @@ def assemble( filename, listingon=True):
                             rsrc1 = 15 # PC
                             if (direct):
                                 # Branch to a label
-                                imm = words[0] - (nextmem+2)
+                                imm = words[0] - (nextmem+1)
                             else:
                                 rsrc2 = words[0]
                         else:

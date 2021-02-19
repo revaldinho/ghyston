@@ -1,3 +1,5 @@
+`include "cpu_2432.vh"
+
 module grf1w2r (
                 input [3:0]       i_waddr,
                 input [3:0]       i_wen,
@@ -27,7 +29,7 @@ module grf1w2r (
     o_dout_0 = rf_q[i_raddr_0];
     o_dout_1 = rf_q[i_raddr_1];
 
-`define BYPASS_EN_D 1
+//`define BYPASS_EN_D 1
 `ifdef BYPASS_EN_D      
     if ( |(i_wen) && !i_cs_b ) begin
       if (i_waddr == i_raddr_0 ) begin
@@ -50,7 +52,7 @@ module grf1w2r (
       if ( !i_cs_b) begin
         rf_q[i_waddr] <= din;        
         $display("Writing %6X to R%d" , din, i_waddr);                
-`define DEBUG_D 1
+//`define DEBUG_D 1
 `ifdef DEBUG_D
         for ( i=0 ; i< 6 ; i= i+1) begin
           $display("Reg %02d = %08X", i, rf_q[i]);

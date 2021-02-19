@@ -56,7 +56,7 @@ module system_tb() ;
   end
 
 always @ ( posedge clk ) begin
-  $display( "%10d: %04X : %06X : %d %d%d %d%d%d : %08X %d%d%d%d" , cycle,
+  $display( "%10d: %04X : %06X : %d %d%d %d%d%d : %08X %d%d%d%d : %08X %08X" , cycle,
             dut_0.cpu_0.o_iaddr,
             dut_0.cpu_0.i_instr,
             dut_0.cpu_0.p2_jump_taken_q,
@@ -69,7 +69,10 @@ always @ ( posedge clk ) begin
             dut_0.cpu_0.psr_q[`C],
             dut_0.cpu_0.psr_q[`Z],
             dut_0.cpu_0.psr_q[`V],            
-            dut_0.cpu_0.psr_q[`S],                        
+            dut_0.cpu_0.psr_q[`S],
+            dut_0.cpu_0.p0_pc_q,
+            dut_0.cpu_0.p1_pc_q
+            
             );
 end
 
