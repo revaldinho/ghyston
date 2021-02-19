@@ -16,7 +16,7 @@ START:
         mov  r5,r1
         mov  r1, 0
         mov  r2, 1
-        mov  r3, 8        
+        mov  r3, 5        
         sto.w r1, r5
         add   r5, r5, 4
 LOOP:

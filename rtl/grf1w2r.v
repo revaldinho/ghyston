@@ -54,7 +54,7 @@ module grf1w2r (
         $display("Writing %6X to R%d" , din, i_waddr);                
 //`define DEBUG_D 1
 `ifdef DEBUG_D
-        for ( i=0 ; i< 6 ; i= i+1) begin
+        for ( i=0 ; i< 15 ; i= i+1) begin
           $display("Reg %02d = %08X", i, rf_q[i]);
         end
 `endif

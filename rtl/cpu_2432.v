@@ -110,9 +110,6 @@ module cpu_2432 (
           .vout( alu_vout )
           );
 
-
-
-
   // Pipe Stage 0
   always @( * ) begin
     // defaults    
@@ -136,15 +133,19 @@ module cpu_2432 (
       p0_imm_d = { 18'b0, i_instr[15:12], i_instr[7:4], i_instr[17:16], i_instr[3:0]};
     end
     else if (i_instr[23:21] == 3'b010 ) begin // Format C
-      p0_rdest_d = 7'b0011111; // Dest always PC for branch/jump instructions
+      p0_rdest_d = 7'b1000000 ; // Default is no RF write
       p0_ead_use_imm_d = i_instr[18] || ( p0_opcode_d== `JMP || p0_opcode_d==`JSR);
-      if ( p0_opcode_d == `JMP || p0_opcode_d == `JSR) begin // C2
-        p0_opcode_d = { i_instr[`OPCODE_RNG] };
-        p0_imm_d = { 14'b0, i_instr[15:4], i_instr[17:16], i_instr[3:0]};
+      if ( p0_opcode_d == `JMP || p0_opcode_d == `JSR ) begin // C2
+        p0_opcode_d = { i_instr[`OPCODE_RNG] };        
+        if (  p0_opcode_d == `JSR)
+          p0_rdest_d = 7'b0001101 ; // Rlink= R13        
+        p0_imm_d = { 14'b0, i_instr[15:4], i_instr[17:16], i_instr[3:0]};        
         p0_rsrc0_d = 7'b1000000 ; // Unused set to RZero
         p0_rsrc1_d = 7'b1000000 ; // Unused set to RZero
       end
       else begin
+        if ( p0_opcode_d == `JRSRCC)
+          p0_rdest_d = 7'b0001101 ; // Rlink= R13
         // Sign extend immediates
         p0_imm_d = { {22{i_instr[7]}}, i_instr[7:4], i_instr[17:16], i_instr[3:0]};
         p0_cond_d = i_instr[`RDST_RNG];
@@ -201,7 +202,7 @@ module cpu_2432 (
     // If a jump is take always load the PC directly even if pipe0 stage is stalled because
     // a jump will invalidate anything in earlier stages anyway
     if ( p2_jump_taken_d && p1_stage_valid_q)
-      if ( p1_opcode_q == `JMP || p1_opcode_q == `JSR ) 
+      if ( p1_opcode_q == `JMP || p1_opcode_q == `JSR || p1_opcode_q == `RET ) 
         p0_pc_d = p1_ead_q;
       else
         // need to read the PC associated with the jump instruction
@@ -244,19 +245,18 @@ module cpu_2432 (
     end
     else if ( p1_rdest_q[5] )
       psr_d = alu_dout;
-    else if ( p1_rdest_q[4] ) begin
-      // DO nothing - only BRA/JMP/JSR can affect PC !
-    end
     else if ( p1_opcode_q == `STO_B ||
               p1_opcode_q == `STO_H ||
               p1_opcode_q == `STO_W ||
               p1_opcode_q == `JRCC ||
-              p1_opcode_q == `JRSRCC ||
-              p1_opcode_q == `JMP ||
-              p1_opcode_q == `JSR ) begin
+              p1_opcode_q == `JMP ) begin
       // No flag setting for these instructions
       p0_result_d = alu_dout;
     end
+    else if (p1_opcode_q == `JSR || p1_opcode_q == `JRSRCC) begin
+      // Value to put into link register
+      p0_result_d = p2_pc_q;      
+    end    
     else begin
       psr_d[`C] = alu_cout;
       psr_d[`V] = alu_vout;
@@ -299,7 +299,7 @@ module cpu_2432 (
     p2_jump_taken_d = 0;
 
     if ( p1_stage_valid_q ) begin
-      p2_jump_taken_d = (p1_opcode_q == `JMP || p1_opcode_q == `JSR);
+      p2_jump_taken_d = (p1_opcode_q == `JMP || p1_opcode_q == `JSR || p1_opcode_q == `RET);
       if ( p1_opcode_q==`JRCC || p1_opcode_q==`JRSRCC) begin
         case (p1_cond_q)
 	  `EQ: p2_jump_taken_d = (psr_q[`Z]==1);    // Equal

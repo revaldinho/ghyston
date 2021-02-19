@@ -104,8 +104,8 @@ op = {
     "bcc"     : {"format":"c", "opcode": 16 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},
     "jrsr"    : {"format":"c", "opcode": 18 ,"sext":False, "cond":True,  "operands":2, "sext": False, "min_imm":-512, "max_imm":511},
     "bsr"     : {"format":"c", "opcode": 18 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},
-    "ret"     : {"format":"c", "opcode": 20 ,"sext":False, "cond":True,  "operands":0, "sext": False, "min_imm":0,    "max_imm":0},
-    "reti"    : {"format":"c", "opcode": 21 ,"sext":False, "cond":True,  "operands":0, "sext": False, "min_imm":0,    "max_imm":0},
+    "ret"     : {"format":"c", "opcode": 20 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":0,    "max_imm":0},
+    "reti"    : {"format":"c", "opcode": 21 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":0,    "max_imm":0},
     "jmp"     : {"format":"c2","opcode": 22 ,"sext":False, "cond":False, "operands":1, "sext": False, "min_imm":0,    "max_imm":262143},
     "jsr"     : {"format":"c2","opcode": 23 ,"sext":False, "cond":False, "operands":1, "sext": False, "min_imm":0,    "max_imm":262143},
     ## Next two opcodes take up 4 opcodes each, with 2 LSBs used as additional immediate bits
@@ -232,10 +232,16 @@ def assemble( filename, listingon=True):
                         opfields[0] = tmp[1]
 
                 direct=False
-                if ( not is_register(opfields[-1])):
-                    direct=True
-
-                words = [int(eval( f,globals(), symtab)) for f in opfields ]
+                if len(opfields) > 0 and not opfields[0]=='':
+                    if ( not is_register(opfields[-1])):
+                        direct=True
+                    words = [int(eval( f,globals(), symtab)) for f in opfields ]
+                else:
+                    if inst in ("ret", "reti"):
+                        opfields = ["r13"]
+                        words = [13]
+                    else:
+                        words = []
 
                 if ( op[inst]["operands"] != len(words)):
                     errors.append("Error: wrong number of operands for instruction %s\n on line %s" % (inst, line.strip()))
@@ -258,7 +264,10 @@ def assemble( filename, listingon=True):
                     elif ifmt == "c":
                         cond = cond_codes[condfield]
                         if (inst in ("ret","reti")):
-                            rsrc1 = 13 # Link reg
+                            if ( len(words) > 0 and is_register(opfields[0])):
+                                rsrc2 = words[0]
+                            else:
+                                rsrc2 = 13 # Link reg is default
                         elif (inst in ("bra","bsr","bcc")):
                             rsrc1 = 15 # PC
                             if (direct):

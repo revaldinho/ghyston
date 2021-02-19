@@ -2,10 +2,11 @@
 
 SRCDIR=../rtl
 SRCS= $(wildcard $(SRCDIR)/*.v)
+HDRS= $(wildcard $(SRCDIR)/*.v)
 
 VPATH=${SRCDIR}
 
-system_tb.exe: ${SRCS} system_tb.v
+system_tb.exe: ${HDRS} ${SRCS} system_tb.v
 	iverilog -I${SRCDIR} -o system_tb.exe \
 	   -D MEM_INIT_FILE_D="\"test1.hex\"" \
            -D VCD_FILE_D="\"test1.vcd\"" \
