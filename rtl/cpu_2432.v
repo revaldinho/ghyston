@@ -55,7 +55,7 @@ module cpu_2432 (
   wire [31:0]                  rf_dout_0;
   wire [31:0]                  rf_dout_1;
   wire [3:0]                   rf_wen;
-  wire [3:0]                   rf0_wen;  
+  wire [3:0]                   rf0_wen;
 
 
   assign o_iaddr  = pc_q[23:0];
@@ -72,14 +72,14 @@ module cpu_2432 (
 
   assign rf_wen = { (p1_opcode_q != `LD_B &&  p1_opcode_q != `LD_H),
                     (p1_opcode_q != `LD_B &&  p1_opcode_q != `LD_H),
-                    (p1_opcode_q != `LD_B &&  p1_opcode_q != `MOVT),
-                    (p1_opcode_q != `MOVT) };
-  
+                    (p1_opcode_q != `LD_B &&  p1_opcode_q != `LMOVT),
+                    (p1_opcode_q != `LMOVT) };
+
   assign rf0_wen = { (p0_opcode_q != `LD_B &&  p0_opcode_q != `LD_H),
                      (p0_opcode_q != `LD_B &&  p0_opcode_q != `LD_H),
-                     (p0_opcode_q != `LD_B &&  p0_opcode_q != `MOVT),
-                     (p0_opcode_q != `MOVT) };
-  
+                     (p0_opcode_q != `LD_B &&  p0_opcode_q != `LMOVT),
+                     (p0_opcode_q != `LMOVT) };
+
 
   // General Register File
   grf1w2r u0(
@@ -107,79 +107,111 @@ module cpu_2432 (
           .mcp_out(mcp_w),
           .vout( alu_vout )
           );
+
+
+
+
   // Pipe Stage 0
   always @( * ) begin
-
     // defaults
-    pm1_stage_valid_d = !p2_jump_taken_d;
-    p0_stage_valid_d = p0_moe_d & pm1_stage_valid_q & !p2_jump_taken_d ; // invalidate any instruction behind a taken jump
-
-    p0_ead_use_imm_d = 1'b0;     // expect EAD = rsrc1 + EAD
+    
     p0_cond_d = 4'b0;            // default cond field to be 'unconditional'
     p0_rdest_d = { i_instr[`RDST_RNG]==`RZERO, i_instr[`RDST_RNG]==`RPSR, i_instr[`RDST_RNG]==`RPC, i_instr[`RDST_RNG] };
     p0_rsrc0_d = { i_instr[`RSRC0_RNG]==`RZERO, i_instr[`RSRC0_RNG]==`RPSR, i_instr[`RSRC0_RNG]==`RPC, i_instr[`RSRC0_RNG] };
     p0_rsrc1_d = { i_instr[`RSRC1_RNG]==`RZERO, i_instr[`RSRC1_RNG]==`RPSR, i_instr[`RSRC1_RNG]==`RPC, i_instr[`RSRC1_RNG] };
-
-    p0_opcode_d = 6'b000000;
+    
+    // Most instructions use 5 MSBs as instruction and 1 bit as direct flag
+    p0_opcode_d = { i_instr[23:19], 1'b0};      // Blank out LSB
+    p0_ead_use_imm_d = i_instr[18];    
     p0_imm_d = 32'b000000;
-
-    // Pick and expand the opcode
-    // Expand the immediate with sign extension
-    // Expand the register selection fields and direct unused fields to RZERO
-    if ( i_instr[23] == 1'b1 ) begin               // Format B
-      p0_opcode_d = { 3'b100, i_instr[20:18]};
-      if ( p0_opcode_d==`ADD|| p0_opcode_d==`SUB )
-        p0_imm_d = { {24{i_instr[22]}}, i_instr[22:21], i_instr[5:0]};
-      else
-        p0_imm_d = { 24'b0, i_instr[22:21],i_instr[5:0]};
+        
+    // Expand or pad the opcode, unpack immediates and update any implied register source/dests
+    if (i_instr[23:21] == 3'b000 ) begin // Format A
+      p0_imm_d = { 18'b0, i_instr[11:4], i_instr[17:16], i_instr[3:0]};
+      p0_rsrc0_d = 7'b1000000 ; // Unused set to RZero
     end
-    else if (i_instr[23:21] == 3'b000) begin    // Format A
-      p0_opcode_d = { i_instr[23:18]};
-      if ( p0_opcode_d == `BRA_CC || p0_opcode_d == `CALL_CC ||
-           p0_opcode_d == `STO_W || p0_opcode_d == `STO_H || p0_opcode_d == `STO_B) begin
-        $display("Format A");        
-        p0_rsrc0_d = {3'b000, i_instr[`RDST_RNG]};
-        p0_rdest_d = 7'b1000000;
-        p0_cond_d = i_instr[17:14];
+    else if (i_instr[23:21] == 3'b001 ) begin // Format B
+      p0_rdest_d = 7'b1000000 ; // Unused set to RZero
+      p0_imm_d = { 18'b0, i_instr[15:12], i_instr[7:4], i_instr[17:16], i_instr[3:0]};
+    end
+    else if (i_instr[23:21] == 3'b010 ) begin // Format C
+      p0_rdest_d = 7'b0011111; // Dest always PC for branch/jump instructions
+      p0_ead_use_imm_d = i_instr[18] || ( p0_opcode_d== `JMP || p0_opcode_d==`JSR);
+      if ( p0_opcode_d == `JMP || p0_opcode_d == `JSR) begin // C2
+        p0_opcode_d = { i_instr[`OPCODE_RNG] };
+        p0_imm_d = { 14'b0, i_instr[15:4], i_instr[17:16], i_instr[3:0]};
+        p0_rsrc0_d = 7'b1000000 ; // Unused set to RZero
+        p0_rsrc1_d = 7'b1000000 ; // Unused set to RZero
       end
       else begin
-        p0_rsrc0_d = 7'b1000000;
+        // Sign extend immediates
+        p0_imm_d = { {22{i_instr[7]}}, i_instr[7:4], i_instr[17:16], i_instr[3:0]};
+        p0_cond_d = i_instr[`RDST_RNG];
       end
-
-      // Always sign extend in Format A
-      p0_imm_d = { {22{i_instr[13]}}, i_instr[13:10],i_instr[5:0]};
     end
-    else if (i_instr[23:21] == 3'b001) begin    // Format C
-      p0_opcode_d = { i_instr[23:18]};
-      p0_rsrc0_d = 7'b1000000 ; // Unused set to RZero
-      p0_imm_d = { 26'b0, i_instr[5:0]};
-    end
-    else if (i_instr[23:21] == 3'b010) begin     // Format D
+    else if (i_instr[23:21] == 3'b011 ) begin // Format D - Blank out two LSBs
       p0_opcode_d = { i_instr[23:20], 2'b00};
-      p0_rdest_d = 7'b0010000 ; // LJMP or LCALL instructions dest is PC
+      // No need to read reg for MOVT - dealt with by byte enables
       p0_rsrc0_d = 7'b1000000 ; // Unused set to RZero
       p0_rsrc1_d = 7'b1000000 ; // Unused set to RZero
-      p0_imm_d = { 12'b0, i_instr[17:14],i_instr[19:18],i_instr[9:6],i_instr[13:10], i_instr[5:0]};
+      p0_imm_d = { 16'b0, i_instr[19:18], i_instr[11:4], i_instr[17:16], i_instr[3:0] };
       p0_ead_use_imm_d = 1'b1;
     end
-    else begin     // Format E - no need to read reg for MOVT - dealt with by byte enables
-      p0_opcode_d = { i_instr[23:20], 2'b00};
-      p0_rsrc0_d = 7'b1000000; // Unused set to RZero
-      p0_rsrc1_d = 7'b1000000 ; 
-      p0_imm_d = { 16'b0, i_instr[19:18],i_instr[9:6],i_instr[13:10],i_instr[5:0]};
-      p0_ead_use_imm_d = 1'b1;
-    end 
-  end // always @ ( * )
+    else begin // Format E
+      // Sign extended data for arithmetic operations
+      if (p0_ead_use_imm_d )
+        p0_rsrc1_d = 7'b1000000 ; // Unused set to RZero
+      if ( p0_opcode_d == `MUL || p0_opcode_d == `ADD || p0_opcode_d == `SUB)
+        p0_imm_d = { {22{i_instr[7]}} ,i_instr[7:4], i_instr[17:16], i_instr[3:0] };
+      else
+        p0_imm_d = { 22'b0 ,i_instr[7:4], i_instr[17:16], i_instr[3:0] };
+    end
+  end
+  
+
+  always @ (*) begin
+    pm1_stage_valid_d = !p2_jump_taken_d;
+    p0_stage_valid_d = p0_moe_d & pm1_stage_valid_q & !p2_jump_taken_d ; // invalidate any instruction behind a taken jump
+
+    // Check for back to back reg write/reads which need to stall for 1 cycle (and no more than one cycle)
+    // rather than use a combinatorial bypass
+`define BYPASS_EN 1
+`ifdef BYPASS_EN
+    p0_moe_d = 1;
+`else
+//  `define HALFRATE 1
+  `ifdef HALFRATE
+    p0_moe_d = !p0_moe_q;
+  `else
+    p0_moe_d = 1'b1;
+//    $display("%02X %d %X %d %02X %02X %02X", p0_opcode_d, p0_moe_q,rf0_wen, p0_stage_valid_q, p0_rdest_q, p0_rsrc0_d, p0_rsrc1_d);
+    if ( p0_moe_q )
+      if ((|rf0_wen) & !(|p0_rdest_q[6:4])) begin
+        if ( (p0_rdest_q == p0_rsrc0_d) || (p0_rdest_q == p0_rsrc1_d) ) begin
+          $display("Delay one cycle or write-through for R%d", p0_rdest_q[3:0]);
+          p0_moe_d = 1'b0;
+        end
+      end
+  `endif // !`ifdef HALFRATE
+`endif
+  end // always @ (*)
 
   always @ ( * ) begin
-    // Update the PC usually by incrementing but loading directly with the EAD result for taken branches and jumps
+    // If a jump is take always load the PC directly even if pipe0 stage is stalled because
+    // a jump will invalidate anything in earlier stages anyway
+    if ( p2_jump_taken_d && p1_stage_valid_q)
+      if ( p1_opcode_q == `JMP || p1_opcode_q == `JSR ) 
+        pc_d = p1_ead_q;
+      else
+        pc_d = p1_ead_q + p1_src0_data_q ;    
+    // If pipe0 is moving then increment PC
+    else if (p0_moe_d)
+      pc_d = pc_q + 1;
+    else
+      pc_d = pc_q ;
+  end
 
-    if ( p2_jump_taken_d ) begin
-      pc_d = p1_ead_q;
-    end else begin
-      pc_d = pc_q + 1 ;
-    end
-
+  always @ ( * ) begin
     // default is to retain PSR
     psr_d = psr_q;
     // default result to be from ALU
@@ -206,15 +238,15 @@ module cpu_2432 (
     else if ( p1_rdest_q[5] )
       psr_d = alu_dout;
     else if ( p1_rdest_q[4] ) begin
-      // DO nothing - only BRA/JMP/CALL can affect PC !
+      // DO nothing - only BRA/JMP/JSR can affect PC !
     end
     else if ( p1_opcode_q == `STO_B ||
               p1_opcode_q == `STO_H ||
               p1_opcode_q == `STO_W ||
-              p1_opcode_q == `BRA_CC ||
-              p1_opcode_q == `CALL_CC ||
-              p1_opcode_q == `LJMP ||
-              p1_opcode_q == `LCALL ) begin
+              p1_opcode_q == `JRCC ||
+              p1_opcode_q == `JRSRCC ||
+              p1_opcode_q == `JMP ||
+              p1_opcode_q == `JSR ) begin
       // No flag setting for these instructions
       p0_result_d = alu_dout;
     end
@@ -225,30 +257,7 @@ module cpu_2432 (
       psr_d[`Z] = !(|alu_dout);
       p0_result_d = alu_dout;
     end
-
   end
-
-
-  // Check for back to back reg write/reads which need to stall for 1 cycle (and no more than one cycle)
-  // rather than use a combinatorial bypass
-  always @ (*) begin
-`define HALFRATE 1    
-`ifdef HALFRATE
-    p0_moe_d = !p0_moe_q;    
-`else    
-    p0_moe_d = 1;
-    if ( !p0_moe_q ) begin
-      if (|(rf0_wen) && p0_stage_valid_q && !(|(p0_rdest_q[6:4]))) begin
-        if (p0_rdest_q == p0_rsrc0_d || p0_rdest_q == p0_rsrc1_d ) begin
-          $display("Delay one cycle or write-through for R%d", p0_rdest_q[3:0]);
-          $display("%02X %d %X %d %02X %02X %02X", p0_opcode_d, p0_moe_q,rf0_wen, p0_stage_valid_q, p0_rdest_q, p0_rsrc0_d, p0_rsrc1_d);        
-          p0_moe_d = 1'b0;
-        end
-      end
-    end
-`endif    
-  end 
-  
 
   // Pipe Stage 1
   always @(*) begin
@@ -281,8 +290,8 @@ module cpu_2432 (
     p2_jump_taken_d = 0;
 
     if ( p1_stage_valid_q ) begin
-      p2_jump_taken_d = (p1_opcode_q == `LJMP || p1_opcode_q == `LCALL);
-      if ( p1_opcode_q==`BRA_CC || p1_opcode_q==`CALL_CC) begin
+      p2_jump_taken_d = (p1_opcode_q == `JMP || p1_opcode_q == `JSR);
+      if ( p1_opcode_q==`JRCC || p1_opcode_q==`JRSRCC) begin
         case (p1_cond_q)
 	  `EQ: p2_jump_taken_d = (psr_q[`Z]==1);    // Equal
 	  `NE: p2_jump_taken_d = (psr_q[`Z]==0);    // Not equal
@@ -314,8 +323,7 @@ module cpu_2432 (
     if ( p0_ead_use_imm_q )
       p1_ead_d = p0_imm_q;
     else
-      p1_ead_d = p0_imm_q +
-                 ((p0_rsrc1_q[6]) ? 32'b0:
+      p1_ead_d =  ((p0_rsrc1_q[6]) ? 32'b0:
                   (p0_rsrc1_q[5]) ? psr_q:
                   (p0_rsrc1_q[4]) ? pc_q:
                   rf_dout_1 );
@@ -369,9 +377,7 @@ module cpu_2432 (
         p0_stage_valid_q <= p0_stage_valid_d;
         pm1_stage_valid_q <= pm1_stage_valid_d;
         psr_q <= psr_d;
-        if ( p0_moe_d ) begin
-          pc_q <= pc_d;
-        end        
+        pc_q <= pc_d;
         p0_opcode_q <= p0_opcode_d;
         p0_ead_use_imm_q <= p0_ead_use_imm_d;
         p0_rdest_q <= p0_rdest_d;

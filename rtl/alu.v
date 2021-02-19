@@ -58,8 +58,9 @@ module alu(
 
     case ( opcode )
       //MOVT will have the bits shifted to the top of the word before writing the regfile
-      `MOVT       :{cout_r,dout_r} = {cin, din_b[15:0], din_a[15:0]} ;
-      `MOV        :{cout_r,dout_r} = {cin, din_b} ;
+      `LMOVT       :{cout_r,dout_r} = {cin, din_b[15:0], din_a[15:0]} ;
+      `LMOV        :{cout_r,dout_r} = {cin, din_b} ;
+      `MOV        :{cout_r,dout_r} = {cin, din_b} ;      
       `AND        :{cout_r,dout_r} = {1'b0,(din_a & din_b)};
       `OR         :{cout_r,dout_r} = {1'b0,(din_a & din_b)};
       `XOR        :{cout_r,dout_r} = {1'b0, din_a ^ din_b};

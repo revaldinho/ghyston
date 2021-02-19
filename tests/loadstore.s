@@ -29,8 +29,8 @@ WLOOP:
         sto.w   r3, r5
         ld.w    r6, r5
         add     r3, r6, 1
-        add     r5, r5, r0, 4
-        sub     r4, r4, r0, 1
+        add     r5, r5, 4
+        sub     r4, r4, 1
         bcc nz WLOOP
         
 END:    

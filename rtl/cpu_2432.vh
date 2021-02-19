@@ -24,43 +24,52 @@
 `define LE 4'hD // Signed less than or equal.
 `define AL 4'hF // Always - unconditional
 
-`define OPCODE_RNG  23:19
-`define RDST_RNG    17:14
-`define COND_RNG    17:14
-`define RSRC0_RNG   13:10
-`define RSRC1_RNG   9:6
+`define OPCODE_RNG  23:18
+`define RDST_RNG    15:12
+`define COND_RNG    15:12
+`define RSRC0_RNG   11:8
+`define RSRC1_RNG   7:4
 
 // Register aliasses
 `define RZERO    0
 `define RPSR     14
 `define RPC      15
 
-// Opcodes
-`define  LD_B	6'b000000  // Rd	-	Rs	Imm	3	000	3	0
-`define  LD_H	6'b000001  // Rd	-	Rs	Imm	3	000	3	1
-`define  LD_W	6'b000010  // Rd	-	Rs	Imm	3	000	3	2
-`define  STO_B	6'b000011  // Rd	-	Rs	Imm	3	000	3	3
-`define  STO_H	6'b000100  // Rd	-	Rs	Imm	3	000	3	4
-`define  STO_W	6'b000101  // Rd	-	Rs	Imm	3	000	3	5
-`define  BRA_CC	6'b000110  // CC	-	Rs/PC	Imm	3	000	3	6
-`define  CALL_CC 6'b000111  // CC	-	Rs	Imm	3	000	3	7
-`define  AND	6'b100000  // Rd	Rs	Rs	Imm	1	1	3	0
-`define  OR	6'b100001  // Rd	Rs	Rs	Imm	1	1	3	1
-`define  XOR	6'b100010  // Rd	Rs	Rs	Imm	1	1	3	2
-`define  MUL	6'b100011  // Rd	Rs	Rs	Imm	1	1	3	3
-`define  RET	6'b100100  // Rd	Rs	Rs	Imm	1	1	3	4
-`define  RETI	6'b100101  // Rd	Rs	Rs	Imm	1	1	3	5
-`define  ADD	6'b100110  // Rd	Rs	Rs	Imm	1	1	3	6
-`define  SUB	6'b100111  // Rd	Rs	Rs	Imm	1	1	3	7
-`define  ASR	6'b001000  // Rd	Rs	Rs	Imm	3	001	3	0
-`define  LSR	6'b001001  // Rd	Rs	Rs	Imm	3	001	3	1
-`define  BSET	6'b001010  // Rd	Rs	Rs	Imm	3	001	3	2
-`define  BCLR	6'b001011  // Rd	Rs	Rs	Imm	3	001	3	3
-`define  BTST	6'b001100  // Rd	Rs	Rs	Imm	3	001	3	4
-`define  ROR	6'b001101  // Rd	Rs	Rs	Imm	3	001	3	5
-`define  ASL	6'b001110  // Rd	Rs	Rs	Imm	3	001	3	6
-`define  ROL	6'b001111  // Rd	Rs	Rs	Imm	3	001	3	7
-`define  LJMP	6'b010000  // -	-	-	Imm	3	010	1	0
-`define  LCALL	6'b010100  // -	-	-	imm	3	010	1	1
-`define  MOV	6'b011000  // Rd	-	-	Imm	3	011	1	0
-`define  MOVT	6'b011100  // Rd	-	-	Imm	3	011	1	1
+
+// All opcodes are extended to 6 bits with the LSBs padded to zeros as listed below
+//  
+// These instructions use only 4 opcode bits with the two LSBs as immediate data
+`define LMOV   6'b011000
+`define LMOVT  6'b011100
+
+// Define 5 MSBs only for these instructions where the LSB indicates direct or register source
+`define LD_B   6'b000000
+`define LD_H   6'b000010
+`define LD_W   6'b000100
+`define MOV    6'b000110
+`define STO_B  6'b001000
+`define STO_H  6'b001010
+`define STO_W  6'b001100
+`define JRCC   6'b010000 
+`define JRSRCC 6'b010010
+`define AND    6'b100000
+`define OR     6'b100010
+`define XOR    6'b100100
+`define MUL    6'b100110
+`define ADD    6'b101000
+`define SUB    6'b101010
+`define ASR    6'b101100
+`define LSR    6'b101110
+`define ROR    6'b110000
+`define ASL    6'b110010
+`define ROL    6'b110100
+`define BSET   6'b110110
+`define BCLR   6'b111000
+`define BTST   6'b111010
+
+// These instructions need to use all 6 opcode bits
+`define RET    6'b010100
+`define RETI   6'b010101
+`define JMP    6'b010110
+`define JSR    6'b010111
+

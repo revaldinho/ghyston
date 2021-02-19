@@ -89,56 +89,45 @@ cond_codes = {
     "al": 0xf  ## always - unconditional
 }
 
-instr_format = {
-    "a":    {"imm_lo":-512, "imm_hi":511,      "sign_ext":True, "min_op": 2, "max_op": 3,},    # Mnemonic Rd,       [Rs|Imm| Rs, Imm]
-    "a1.1": {"imm_lo":-512, "imm_hi":511,      "sign_ext":True,  "min_op": 1, "max_op": 1,},    # Mnemonic <PC> [CC] [Rs|Imm| Rs, Imm]
-    "a1.2": {"imm_lo":-512, "imm_hi":511,      "sign_ext":True,  "min_op": 2, "max_op": 2,},    # Mnemonic <PC>      [Rs|Imm| Rs, Imm]
-    "a1.3": {"imm_lo":-512, "imm_hi":511,      "sign_ext":True,  "min_op": 2, "max_op": 2,},    # Mnemonic <PC>      [Rs|Imm| Rs, Imm]
-    "a2":   {"imm_lo":-512, "imm_hi":511,      "sign_ext":True,  "min_op": 2, "max_op": 2,},    # Mnemonic CC        [Rs|Imm| Rs, Imm]
-    "b":    {"imm_lo":0,    "imm_hi":255,      "sign_ext":False, "min_op": 3, "max_op": 4,},    # Mnemonic Rd,  Rs,  [Rs|Imm| Rs, Imm]
-    "b1":   {"imm_lo":-128, "imm_hi":127,      "sign_ext":True,  "min_op": 3, "max_op": 4,},    # Mnemonic Rd,  Rs,  [Rs|Imm| Rs, Imm]
-    "c":    {"imm_lo":0,    "imm_hi":63,       "sign_ext":False, "min_op": 3, "max_op": 4,},    # Mnemonic Rd,  Rs,  [Rs|Imm| Rs, Imm]
-    "d":    {"imm_lo":0,    "imm_hi":1048575,  "sign_ext":False, "min_op": 1, "max_op": 1,},    # Mnemonic               Imm
-    "e":    {"imm_lo":0,    "imm_hi":65535,    "sign_ext":False, "min_op": 2, "max_op": 2,}     # Mnemonic Rd,           Imm
-    }
-
+##  Generally only even opcodes are listed - odd versions select an immediate rather than second source reg
 op = {
-        # Mnemonic :    Expanded  ## Operand fields
-        #          :    Opcode    ##
-	"ld.b"	   : { "opcode": 0b000000, "instr_format":"a"},
-	"ld.h"	   : { "opcode": 0b000001, "instr_format":"a"},
-	"ld.w"	   : { "opcode": 0b000010, "instr_format":"a"},
-	"ld"	   : { "opcode": 0b000010, "instr_format":"a"},
-	"sto.b"	   : { "opcode": 0b000011, "instr_format":"a"},
-	"sto.h"	   : { "opcode": 0b000100, "instr_format":"a"},
-	"sto.w"	   : { "opcode": 0b000101, "instr_format":"a"},
-	"sto"	   : { "opcode": 0b000101, "instr_format":"a"},
-	"bra"	   : { "opcode": 0b000110, "instr_format":"a1.1"},
-	"bcc"	   : { "opcode": 0b000110, "instr_format":"a1.1"},
-	"jr"	   : { "opcode": 0b000110, "instr_format":"a1.2"},
-	"jrcc"	   : { "opcode": 0b000110, "instr_format":"a1.2"},
-	"jsrcc"    : { "opcode": 0b000111, "instr_format":"a2"},
-	"and"	   : { "opcode": 0b100000, "instr_format":"b"},
-	"or"	   : { "opcode": 0b100001, "instr_format":"b"},
-	"xor"	   : { "opcode": 0b100010, "instr_format":"b"},
-	"mul"	   : { "opcode": 0b100011, "instr_format":"b"},
-	"ret"	   : { "opcode": 0b100100, "instr_format":"b"},
-	"reti"	   : { "opcode": 0b100101, "instr_format":"b"},
-	"add"	   : { "opcode": 0b100110, "instr_format":"b"},
-	"sub"	   : { "opcode": 0b100111, "instr_format":"b"},
-	"asr"	   : { "opcode": 0b001000, "instr_format":"c"},
-	"lsr"	   : { "opcode": 0b001001, "instr_format":"c"},
-	"bset"	   : { "opcode": 0b001010, "instr_format":"c"},
-	"bclr"	   : { "opcode": 0b001011, "instr_format":"c"},
-	"btst"	   : { "opcode": 0b001100, "instr_format":"c"},
-	"ror"	   : { "opcode": 0b001101, "instr_format":"c"},
-	"asl"	   : { "opcode": 0b001110, "instr_format":"c"},
-	"rol"	   : { "opcode": 0b001111, "instr_format":"c"},
-	"jmp"	   : { "opcode": 0b010000, "instr_format":"d"},
-	"call"	   : { "opcode": 0b010100, "instr_format":"d"},
-	"movi"	   : { "opcode": 0b011000, "instr_format":"e"},
-	"movti"	   : { "opcode": 0b011100, "instr_format":"e"},
-    }
+    "ld.b"    : {"format":"a", "opcode": 0 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
+    "ld.h"    : {"format":"a", "opcode": 2 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
+    "ld.w"    : {"format":"a", "opcode": 4 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
+    "mov"     : {"format":"a", "opcode": 6 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
+    "sto.b"   : {"format":"b", "opcode": 8 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
+    "sto.h"   : {"format":"b", "opcode": 10 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
+    "sto.w"   : {"format":"b", "opcode": 12 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
+#   ""        : {"format":"b", "opcode": 14 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":0},
+    "jr"      : {"format":"c", "opcode": 16 ,"sext":False, "cond":True,  "operands":2, "sext": False, "min_imm":-512, "max_imm":511}, # COND field is optional in source code
+    "bra"     : {"format":"c", "opcode": 16 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},
+    "bcc"     : {"format":"c", "opcode": 16 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},
+    "jrsr"    : {"format":"c", "opcode": 18 ,"sext":False, "cond":True,  "operands":2, "sext": False, "min_imm":-512, "max_imm":511},
+    "bsr"     : {"format":"c", "opcode": 18 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},
+    "ret"     : {"format":"c", "opcode": 20 ,"sext":False, "cond":True,  "operands":0, "sext": False, "min_imm":0,    "max_imm":0},
+    "reti"    : {"format":"c", "opcode": 21 ,"sext":False, "cond":True,  "operands":0, "sext": False, "min_imm":0,    "max_imm":0},
+    "jmp"     : {"format":"c2","opcode": 22 ,"sext":False, "cond":False, "operands":1, "sext": False, "min_imm":0,    "max_imm":262143},
+    "jsr"     : {"format":"c2","opcode": 23 ,"sext":False, "cond":False, "operands":1, "sext": False, "min_imm":0,    "max_imm":262143},
+    ## Next two opcodes take up 4 opcodes each, with 2 LSBs used as additional immediate bits
+    "movi"    : {"format":"d", "opcode": 24 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":65535},
+    "movti"   : {"format":"d", "opcode": 28 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":65535},
+    "and"     : {"format":"e", "opcode": 32 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
+    "or"      : {"format":"e", "opcode": 34, "sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
+    "xor"     : {"format":"e", "opcode": 36 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
+    "mul"     : {"format":"e", "opcode": 38 ,"sext":True,  "cond":False, "operands":3, "sext": True,  "min_imm":-512, "max_imm":511},
+    "add"     : {"format":"e", "opcode": 40 ,"sext":True,  "cond":False, "operands":3, "sext": True,  "min_imm":-512, "max_imm":511},
+    "sub"     : {"format":"e", "opcode": 42 ,"sext":True,  "cond":False, "operands":3, "sext": True,  "min_imm":-512, "max_imm":511},
+    "asr"     : {"format":"e", "opcode": 44 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
+    "lsr"     : {"format":"e", "opcode": 46 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
+    "ror"     : {"format":"e", "opcode": 48 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
+    "lsl"     : {"format":"e", "opcode": 50 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
+    "rol"     : {"format":"e", "opcode": 52 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
+    "bset"    : {"format":"e", "opcode": 54 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
+    "bclr"    : {"format":"e", "opcode": 56 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
+    "btst"    : {"format":"e", "opcode": 58 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
+#    ""       : {"format":"a", "opcode": 60 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":0},
+#    ""       : {"format":"a", "opcode": 62 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":0},
+}
 
 
 def usage():
@@ -146,8 +135,7 @@ def usage():
     sys.exit(1)
 
 def is_register( word ):
-    return ( re.match( "(r\d)|(psr)|(pc)", word, re.IGNORECASE ))
-
+    return ( re.match( "(r\d(\d)?)|(psr)|(pc)", word, re.IGNORECASE ))
 
 def expand_macro(line, macro, mnum):  # recursively expand macros, passing on instances not (yet) defined
     global nextmnum
@@ -237,86 +225,75 @@ def assemble( filename, listingon=True):
             elif inst in op:
                 # Check if the first of the opfields has a space separated condition code and extract it if it does
                 condfield = "al"
-                if len(opfields)>0:
+                if ( op[inst]["cond"] and len(opfields)>0):
                     tmp = opfields[0].split(" ")
                     if len(tmp) > 1:
                         condfield = tmp[0]
                         opfields[0] = tmp[1]
+
+                direct=False
+                if ( not is_register(opfields[-1])):
+                    direct=True
+
                 words = [int(eval( f,globals(), symtab)) for f in opfields ]
 
-                ifmt = op[inst]["instr_format"]
-                if ( not ( instr_format[ifmt]["min_op"] <= len(words) <= instr_format[ifmt]["max_op"] )):
+                if ( op[inst]["operands"] != len(words)):
                     errors.append("Error: wrong number of operands for instruction %s\n on line %s" % (inst, line.strip()))
                 else:
-                    imm = 0
-                    rdest = 0
-                    cond = 0
-                    rsrc1 = 0
-                    rsrc2 = 0
-                    imm = 0
-                    imm76 = 0
-                    imm1514 = 0
-                    imm1916 = 0
-                    imm96 = 0
-                    imm1310 = 0
-                    imm50 = 0
+                    (rdest, cond, rsrc1, rsrc2, imm) = (0,0,0,0,0)
                     opcode = op[inst]["opcode"]
-                    
-                    # Format A - load/store instructions
-                    if ifmt == "a":
-                        rdest = words[0]
-                        if len(words) > 2:
-                            rsrc2 = words[1]
-                            imm = words[2]
-                        elif is_register(opfields[1]):
-                            rsrc2 = words[1]
+                    ifmt = op[inst]["format"]
+                    # Format A - load instructions and register move
+                    # Format B - store instructions
+                    if ifmt == "a" or ifmt == "b":
+                        if ifmt=="a":
+                            rdest = words[0]
                         else:
+                            rsrc1 = words[0]
+                        if (direct):
                             imm = words[1]
-                            rsrc1 = imm
-                            imm = imm
-                    # Format A.1 - BRA/BCC instructions, always relative to PC
-                    elif ifmt == "a1.1":
-                        # check if first operand has a space separated condition code
-                        cond = cond_codes[condfield]
-                        if is_register(opfields[0]):
-                            rsrc2 = words[0]
                         else:
-                            # Immediate is relative to PC
-                            rsrc2 = 15
-                            imm = words[0] - (nextmem+2)
-                    # Format A.2, A.3 - JRCC and JSRCC instructions, dest always PC
-                    elif ifmt == "a1.2":
-                        rdest = 15
+                            rsrc2 = words[1]
+                    # Format C - branch and return instructions
+                    elif ifmt == "c":
                         cond = cond_codes[condfield]
-                        # check if first operand has a space separated condition code
-                        if len(words)>1:
-                            if is_register(opfields[0]):
+                        if (inst in ("ret","reti")):
+                            rsrc1 = 13 # Link reg
+                        elif (inst in ("bra","bsr","bcc")):
+                            rsrc1 = 15 # PC
+                            if (direct):
+                                # Branch to a label
+                                imm = words[0] - (nextmem+2)
+                            else:
                                 rsrc2 = words[0]
-                                imm = words[1]
-                        elif is_register(opfields[0]):
-                            imm = words[0]
-                    # Format B, B1 and C - general logic and arithmetic
-                    elif ifmt in ("b", "b1", "c"):
-                        rdest = words[0];
-                        rsrc1 = words[1];
-                        if len(words) > 3:
-                            rsrc2 = words[2]
-                            imm = words[3]
-                        elif is_register(opfields[2]):
-                            rsrc2 = words[2]
                         else:
-                            imm = words[2]
-                        if ifmt in ("b", "b1"):
-                            opcode = 0x20 + (op[inst]["opcode"] & 0x7)
-                    # Format D - long JMP, CALL instructions, Format E, MOV Rd imm
-                    elif ifmt == "d":
+                            rsrc1 = words[0]
+                            if (direct):
+                                imm = words[1]
+                            else:
+                                rsrc2 = words[1]
+                    # Format C2 - Jump instructions
+                    elif ifmt == "c2":
                         imm = words[0]
-                    elif ifmt == "e":
+                        # Use the whole instruction so blank out the direct bit
+                        direct = 0
+                    # Format D - Long mov/movt
+                    elif ifmt == "d":
                         rdest = words[0]
                         imm = words[1]
-                    if ( debug ):
+                    # Format E - arith and logic instructions
+                    elif ifmt == "e":
+                        rdest = words[0]
+                        rsrc1 = words[1]
+                        if (direct):
+                            imm = words[2]
+                        else:
+                            rsrc2 = words[2]
+
+                    if (debug):
                         print (inst)
                         print ("opcode = %s" % op[inst]["opcode"])
+                        print ("direct = %d" % direct)
                         print ("format = %s" % ifmt)
                         print ("rdest = %s" % rdest)
                         print ("rsrc1 = %s" % rsrc1)
@@ -324,25 +301,37 @@ def assemble( filename, listingon=True):
                         print ("cond = %d" % cond)
                         print ("imm   = %05x (%d)" % (imm,imm))
 
-                    if ( not (instr_format[ifmt]["imm_lo"] <= imm <= instr_format[ifmt]["imm_hi"]) ):
-                        errors.append("Error: immediate %d out of range (%d to %d) \n on line %s" % (imm, instr_format[ifmt]["imm_lo"], instr_format[ifmt]["imm_hi"], line.strip()))
+                    if ( not (op[inst]["min_imm"] <= imm <= op[inst]["max_imm"]) ):
+                        errors.append("Error: immediate %d out of range (%d to %d) \n on line %s" % (imm, op[inst]["min_imm"], op[inst]["max_imm"], line.strip()))
 
-                    # Break up immediate for recoding
-                    imm50   = ((imm & 0b00000000000000111111)      ) 
-                    imm76   = ((imm & 0b00000000000011000000) >> 6 ) if ifmt in ("b", "b1") else 0
-                    imm96   = ((imm & 0b00000000001111000000) >> 6 ) if ifmt in ("e,d,a1.3,a1.2,a1.1,a".split(",")) else 0
-                    imm1310 = ((imm & 0b00000011110000000000) >> 10) if ifmt in ("d","e") else 0
-                    imm1514 = ((imm & 0b00001100000000000000) >> 14) if ifmt in ("d","e") else 0
-                    imm1916 = ((imm & 0b11110000000000000000) >> 16) if ifmt in ("d") else 0
+                    # Break up immediate for recoding in segments
+                    imm30    = ((imm & 0b00000000000000001111)      )
+                    imm54    = ((imm & 0b00000000000000110000) >> 4 )
+                    imm96    = ((imm & 0b00000000001111000000) >> 6 )
+                    imm1310  = ((imm & 0b00000011110000000000) >> 10)
+                    imm1514  = ((imm & 0b00001100000000000000) >> 14)
+                    imm1714  = ((imm & 0b00111100000000000000) >> 14)
 
-                    words=[ (op[inst]["opcode"]<<18)|
-                            (imm76<<21) |
-                            (imm1514<<18) |
-                            ((rdest | cond | imm1916) <<14) |
-                            ((rsrc1 | imm96) << 10)|
-                            ((rsrc2 | imm1310) << 6) |
-                            (imm50) ]
+                    # Populate standard fields first
+                    iword = (op[inst]["opcode"]<<18)| ((rdest | cond ) << 12) | ((rsrc1 ) << 8) | ((rsrc2 ) << 4) | imm30 | (1<<18 if direct else 0)
+                    # Now fit in immediate segments
+                    if ifmt == "a" and direct:
+                        iword  = iword | (imm54<<16) | (imm1310<<8) | (imm96<<4)
+                    elif ifmt == "b" and direct:
+                        iword  = iword | (imm54<<16) | (imm1310<<12) | (imm96<<4)
+                    elif ifmt == "c" and direct:
+                        iword  = iword | (imm54<<16) | (imm96<<4)
+                    elif ifmt == "c2" :
+                        iword  = iword | (imm54<<16) | (imm1714 << 12) | (imm1310<<8) | (imm96<<4)
+                    elif ifmt == "d" and direct:
+                        iword  = iword | (imm54<<16) | (imm1514 << 18) | (imm1310<<8) | (imm96<<4)
+                    elif ifmt == "e" and direct:
+                        iword  = iword | (imm54<<16) | (imm96<<4)
+
+                    words=[ iword ]
                     (wordmem[nextmem:nextmem+len(words)], nextmem,wcount )  = (words, nextmem+len(words),wcount+len(words))
+                    exec("PC=%d+%d" % (nextmem,len(opfields)-1), globals(), symtab) # calculate PC as it will be in EXEC state
+
             elif inst == "ORG":
                 nextmem = eval(operands,globals(),symtab)
             elif inst in ("WORDALIGN", "WALIGN","ALIGN"):
