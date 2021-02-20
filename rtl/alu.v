@@ -58,11 +58,10 @@ module alu(
 
     case ( opcode )
       //MOVT will have the bits shifted to the top of the word before writing the regfile
-      `LMOVT       :{cout_r,dout_r} = {cin, din_b[15:0], din_a[15:0]} ;
-      `LMOV        :{cout_r,dout_r} = {cin, din_b} ;
-      `MOV        :{cout_r,dout_r} = {cin, din_b} ;      
+      `LMOVT      :{cout_r,dout_r} = {cin, din_b[15:0], din_a[15:0]} ;
+      `LMOV, `MOV :{cout_r,dout_r} = {cin, din_b} ;
       `AND        :{cout_r,dout_r} = {1'b0,(din_a & din_b)};
-      `OR         :{cout_r,dout_r} = {1'b0,(din_a & din_b)};
+      `OR         :{cout_r,dout_r} = {1'b0,(din_a | din_b)};
       `XOR        :{cout_r,dout_r} = {1'b0, din_a ^ din_b};
 `ifdef MUL32
       // Wide multiply 32b x32b = 32b (truncated) uses 3 cycles and stretches the clock cycle to complete
@@ -73,7 +72,7 @@ module alu(
 `endif
       //`DIV        :{cout_r,dout_r} = {din_a[17:0] / din_b[17:0]};
       `ADD        :{cout_r,dout_r} = {din_a + din_b};
-      `SUB        :{cout_r,dout_r} = {din_a - din_b};
+      `SUB, `CMP  :{cout_r,dout_r} = {din_a - din_b};
       `BTST       :{cout_r,dout_r} = {cin, din_a & (32'b1<<din_b[4:0])};
       `BSET       :{cout_r,dout_r} = {cin, din_a | (32'b1<<din_b[4:0])};
       `BCLR       :{cout_r,dout_r} = {cin, din_a & !(32'b1<<din_b[4:0])};
@@ -86,10 +85,12 @@ module alu(
       // overflow if -ve + -ve = +ve  or +ve + +ve = -ve
       vout_r =  ( din_a[31] & din_b[31] & !dout_r[31]) ||
                 ( !din_a[31] & !din_b[31] & dout_r[31]) ;
-    else if ( opcode==`SUB)
+    else if ( opcode==`SUB || opcode==`CMP)
       // overflow if -ve - +ve = +ve  or +ve - -ve = -ve
       vout_r =  ( din_a[31] & !din_b[31] & !dout_r[31]) ||
                 ( !din_a[31] & din_b[31] & dout_r[31]) ;
+    else if ( opcode==`MUL)
+      vout_r = !(din_a[31] ^ din_b[31] ^ dout_r[31]);    
   end
 
 endmodule // alu

@@ -127,7 +127,7 @@ op = {
     "bset"    : {"format":"e", "opcode": 54 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
     "bclr"    : {"format":"e", "opcode": 56 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
     "btst"    : {"format":"e", "opcode": 58 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
-#    ""       : {"format":"a", "opcode": 60 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":0},
+    "cmp"     : {"format":"e", "opcode": 60 ,"sext":True,  "cond":False, "operands":2, "sext": True,  "min_imm":-512, "max_imm":512},
 #    ""       : {"format":"a", "opcode": 62 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":0},
 }
 
@@ -301,6 +301,8 @@ def assemble( filename, listingon=True):
                         imm = words[1]
                     # Format E - arith and logic instructions
                     elif ifmt == "e":
+                        if inst == "cmp":
+                            words.insert(0,0)
                         rdest = words[0]
                         rsrc1 = words[1]
                         if (direct):

@@ -65,6 +65,7 @@
 `define BSET   6'b110110
 `define BCLR   6'b111000
 `define BTST   6'b111010
+`define CMP    6'b111100
 
 // These instructions need to use all 6 opcode bits
 `define RETI   6'b010101
