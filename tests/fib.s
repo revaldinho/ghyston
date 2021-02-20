@@ -1,14 +1,14 @@
         ORG 0000
 
-## Start Vector        
+## Start Vector
         jmp START
-## Interrupt vectors        
+## Interrupt vectors
 L1:     WORD 00
         WORD 00
         WORD 00
         WORD 00
         WORD 00
-        WORD 00                
+        WORD 00
 
 START:
         # NB Data RAM is BYTE addressed
@@ -16,7 +16,7 @@ START:
         mov  r5,r1
         mov  r1, 0
         mov  r2, 1
-        mov  r3, 5        
+        mov  r3, 10
         sto.w r1, r5
         add   r5, r5, 4
 LOOP:
@@ -25,7 +25,7 @@ LOOP:
         mov   r1, r2
         mov   r0, r0
         mov   r2, r4
-        add   r5, r5, 4  
+        add   r5, r5, 4
         sub   r3, r3, 1
         bcc   nz LOOP
         # these instructions will get fetched but should NOT complete 'til
@@ -34,7 +34,7 @@ LOOP:
         mov   r2,r0
         mov   r5,r0
 
-END:    
+END:
         bra END
 
 END2:
@@ -42,8 +42,8 @@ END2:
 
 
 ## DATA SECTION - LABELS for use in BYTE ORIENTED DMEM
-        
+
         ORG 0
-        
+
         WALIGN
-RESULTS:        
+RESULTS:

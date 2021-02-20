@@ -73,5 +73,5 @@
 `define JSR    6'b010111
 
 
-//`define BYPASS_EN_D 1
+`define BYPASS_EN_D 1
 `define HALF_RATE_D 1
