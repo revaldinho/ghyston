@@ -141,13 +141,13 @@ module barrel_shifter(
   assign l_stg2 = ( `ROT8 ) ?  { l_stg1[23:0], l_stg1[31:24]} : l_stg1;
   assign l_stg3 = ( `ROT4 ) ?  { l_stg2[27:0], l_stg2[31:28]} : l_stg2;
   assign l_stg4 = ( `ROT2 ) ?  { l_stg3[29:0], l_stg3[31:30]} : l_stg3;
-  assign l_stg5 = ( `ROT1 ) ?  { l_stg4[30],   l_stg4[31]}    : l_stg4;
+  assign l_stg5 = ( `ROT1 ) ?  { l_stg4[30:0], l_stg4[31]}    : l_stg4;
 
   assign l_mask1 = ( `ROT16 ) ? 32'hFFFF0000: 32'hFFFFFFFF;
   assign l_mask2 = ( `ROT8 ) ?  { l_mask1[23:0], 8'b0} : l_mask1;
   assign l_mask3 = ( `ROT4 ) ?  { l_mask2[27:0], 4'b0} : l_mask2;
   assign l_mask4 = ( `ROT2 ) ?  { l_mask3[29:0], 2'b0} : l_mask3;
-  assign l_mask5 = ( `ROT1 ) ?  { l_mask4[30],   1'b0} : l_mask4;
+  assign l_mask5 = ( `ROT1 ) ?  { l_mask4[30:0], 1'b0} : l_mask4;
 
   // Carry out is a copy of the last bit which would wrap around and re-enter the shifter
   assign cout = ( `OP_ASL | `OP_ROL ) ? l_stg5[0] : r_stg5[31];

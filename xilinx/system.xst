@@ -20,6 +20,6 @@ run
 -fsm_extract YES
 -fsm_encoding Auto
 -safe_implementation No
--resource_sharing YES
+-resource_sharing NO
 -iobuf YES
 -equivalent_register_removal YES

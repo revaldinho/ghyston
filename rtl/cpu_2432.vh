@@ -74,4 +74,4 @@
 
 
 `define BYPASS_EN_D 1
-`define HALF_RATE_D 1
+//`define HALF_RATE_D 1

@@ -29,7 +29,7 @@ module grf1w2r (
     o_dout_0 = rf_q[i_raddr_0];
     o_dout_1 = rf_q[i_raddr_1];
 
-//`define BYPASS_EN_D 1
+  //`define BYPASS_EN_D 1
 `ifdef BYPASS_EN_D      
     if ( |(i_wen) && !i_cs_b ) begin
       if (i_waddr == i_raddr_0 ) begin
@@ -45,7 +45,7 @@ module grf1w2r (
     end // if ( |(i_wen) && !i_cs_b )
 `endif
   end
-
+  
   
   always @ ( posedge i_clk ) begin
     if (i_clk_en)

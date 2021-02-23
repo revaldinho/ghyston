@@ -332,20 +332,20 @@ def assemble( filename, listingon=True):
                     imm1714  = ((imm & 0b00111100000000000000) >> 14)
 
                     # Populate standard fields first
-                    iword = (op[inst]["opcode"]<<18)| ((rdest | cond ) << 12) | ((rsrc1 ) << 8) | ((rsrc2 ) << 4) | imm30 | (1<<18 if direct else 0)
+                    iword = (op[inst]["opcode"]<<18)| ((rdest | cond ) << 12) | ((rsrc1 ) << 8) | ((rsrc2 ) << 4) | imm30 
                     # Now fit in immediate segments
                     if ifmt == "a" and direct:
-                        iword  = iword | (imm54<<16) | (imm1310<<8) | (imm96<<4)
+                        iword  = iword | (imm54<<16) | (imm1310<<8) | (imm96<<4)| (1<<18 if direct else 0)
                     elif ifmt == "b" and direct:
-                        iword  = iword | (imm54<<16) | (imm1310<<12) | (imm96<<4)
+                        iword  = iword | (imm54<<16) | (imm1310<<12) | (imm96<<4)| (1<<18 if direct else 0)
                     elif ifmt == "c" and direct:
-                        iword  = iword | (imm54<<16) | (imm96<<4)
+                        iword  = iword | (imm54<<16) | (imm96<<4) | (1<<18 if direct else 0)
                     elif ifmt == "c2" :
                         iword  = iword | (imm54<<16) | (imm1714 << 12) | (imm1310<<8) | (imm96<<4)
-                    elif ifmt == "d" and direct:
+                    elif ifmt == "d" :
                         iword  = iword | (imm54<<16) | (imm1514 << 18) | (imm1310<<8) | (imm96<<4)
                     elif ifmt == "e" and direct:
-                        iword  = iword | (imm54<<16) | (imm96<<4)
+                        iword  = iword | (imm54<<16) | (imm96<<4) | (1<<18 if direct else 0)
 
                     words=[ iword ]
                     (wordmem[nextmem:nextmem+len(words)], nextmem,wcount )  = (words, nextmem+len(words),wcount+len(words))
