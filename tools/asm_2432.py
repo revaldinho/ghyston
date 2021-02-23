@@ -102,7 +102,6 @@ op = {
     "jr"      : {"format":"c", "opcode": 16 ,"sext":False, "cond":True,  "operands":2, "sext": False, "min_imm":-512, "max_imm":511}, # COND field is optional in source code
     # Ret is a synonmym for JR AL RLINK,0
     "ret"     : {"format":"c", "opcode": 17 ,"sext":False, "cond":True,  "operands":2, "sext": False, "min_imm":0,    "max_imm":0},
-
     "bra"     : {"format":"c", "opcode": 16 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},
     "bcc"     : {"format":"c", "opcode": 16 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},
     "jrsr"    : {"format":"c", "opcode": 18 ,"sext":False, "cond":True,  "operands":2, "sext": False, "min_imm":-512, "max_imm":511},
@@ -122,7 +121,7 @@ op = {
     "asr"     : {"format":"e", "opcode": 44 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
     "lsr"     : {"format":"e", "opcode": 46 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
     "ror"     : {"format":"e", "opcode": 48 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
-    "lsl"     : {"format":"e", "opcode": 50 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
+    "asl"     : {"format":"e", "opcode": 50 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
     "rol"     : {"format":"e", "opcode": 52 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
     "bset"    : {"format":"e", "opcode": 54 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
     "bclr"    : {"format":"e", "opcode": 56 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
@@ -228,7 +227,7 @@ def assemble( filename, listingon=True):
                 # Check if the first of the opfields has a space separated condition code and extract it if it does
                 condfield = "al"
                 if ( op[inst]["cond"] and len(opfields)>0):
-                    tmp = opfields[0].split(" ")
+                    tmp = opfields[0].split()
                     if len(tmp) > 1:
                         condfield = tmp[0]
                         opfields[0] = tmp[1]
@@ -244,13 +243,13 @@ def assemble( filename, listingon=True):
                 # deal with RET synonym for JR CC Rlink,0                
                 if inst in ("ret" ):
                     if len(opfields) == 0:
-                        opfields.append("r13")
-                        words.append(13)
+                        opfields.append("r14")
+                        words.append(14)
                         opfields.append("0") 
                         words.append(0)                        
                     elif len(opfields) == 1 and (opfields[0]==''):
-                        opfields[0] = "r13"
-                        words.append(13)
+                        opfields[0] = "r14"
+                        words.append(14)
                         opfields.append("0") 
                         words.append(0)
                     elif len(opfields):
