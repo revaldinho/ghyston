@@ -6,12 +6,6 @@
 // to complete without slowing down the machine for all other instructions.
 //`define MUL32 1
 
-`define OP_ASR (opcode==`ASR)
-`define OP_ROR (opcode==`ROR)
-`define OP_ROL (opcode==`ROL)
-`define OP_ASL (opcode==`ASL)
-`define OP_LSR (opcode==`LSR)
-
 `define ROT16 ((distance & 5'b10000)!=0)
 `define ROT8  ((distance & 5'b01000)!=0)
 `define ROT4  ((distance & 5'b00100)!=0)
@@ -47,6 +41,7 @@ module alu(
                      .din(din_a),
                      .distance(din_b[4:0]),
                      .opcode(opcode),
+                     .cin(cin),
                      .dout(shifted_w),
                      .cout(shifted_c)
                      );
@@ -90,112 +85,65 @@ module alu(
       vout_r =  ( din_a[31] & !din_b[31] & !dout_r[31]) ||
                 ( !din_a[31] & din_b[31] & dout_r[31]) ;
     else if ( opcode==`MUL)
-      vout_r = !(din_a[31] ^ din_b[31] ^ dout_r[31]);    
+      vout_r = !(din_a[31] ^ din_b[31] ^ dout_r[31]);
   end
 
 endmodule // alu
 
 module barrel_shifter(
-                      input [31:0] din,
-                      input [4:0] distance,
-                      input [5:0] opcode,
-                      output [31:0] dout,
-                      output cout
+                      input [31:0]      din,
+                      input [4:0]       distance,
+                      input [5:0]       opcode,
+                      input             cin,
+                      output reg [31:0] dout,
+                      output reg        cout
                       );
 
-  wire [31:0] stg0;
-  wire [31:0] r_stg1, r_stg2, r_stg3, r_stg4, r_stg5;
-  wire [31:0] l_stg1, l_stg2, l_stg3, l_stg4, l_stg5;
-  wire [31:0] r_mask1, r_mask2, r_mask3, r_mask4, r_mask5;
-  wire [31:0] r_sign1, r_sign2, r_sign3, r_sign4, r_sign5;
-  wire [31:0] l_mask1, l_mask2, l_mask3, l_mask4, l_mask5;
-  reg [31:0] dout_r;
+  reg  [64:0] stg0;
 
-  assign stg0 = din;
-  assign dout = dout_r;
+  wire [64:0] l_stg1, r_stg1;
+  wire [64:0] l_stg2, r_stg2;
+  wire [64:0] l_stg3, r_stg3;
+  wire [64:0] l_stg4, r_stg4;
+  wire [64:0] l_stg5, r_stg5;
 
-  // ROR
-  // LSR - any bits wrapping around should be zeroed
-  // ASR - any bits wrapping around should be set to the original sign bit
-  assign r_stg1 = ( `ROT16 ) ? { stg0[15:0],  stg0[31:16]}  : stg0;
-  assign r_stg2 = ( `ROT8 ) ?  { r_stg1[7:0], r_stg1[31:8]} : r_stg1;
-  assign r_stg3 = ( `ROT4 ) ?  { r_stg2[3:0], r_stg2[31:4]} : r_stg2;
-  assign r_stg4 = ( `ROT2 ) ?  { r_stg3[1:0], r_stg3[31:2]} : r_stg3;
-  assign r_stg5 = ( `ROT1 ) ?  { r_stg4[0],   r_stg4[31:1]} : r_stg4;
-
-  assign r_mask1 = ( `ROT16 ) ? 32'h0000FFFF : 32'hFFFFFFFF;
-  assign r_mask2 = ( `ROT8 ) ?  {8'b0 ,r_mask1[31:8]} : r_mask1;
-  assign r_mask3 = ( `ROT4 ) ?  {4'b0 ,r_mask2[31:4]} : r_mask2;
-  assign r_mask4 = ( `ROT2 ) ?  {2'b0 ,r_mask3[31:2]} : r_mask3;
-  assign r_mask5 = ( `ROT1 ) ?  {1'b0 ,r_mask4[31:1]} : r_mask4;
-
-  assign r_sign1 = ( `ROT16 ) ? {{16{din[31]}}, 16'b0} : 32'b0;
-  assign r_sign2 = ( `ROT8 ) ?  {{8{din[31]}}, r_sign1[31:8]} : r_sign1;
-  assign r_sign3 = ( `ROT4 ) ?  {{4{din[31]}}, r_sign2[31:4]} : r_sign2;
-  assign r_sign4 = ( `ROT2 ) ?  {{2{din[31]}}, r_sign3[31:2]} : r_sign3;
-  assign r_sign5 = ( `ROT1 ) ?  {{1{din[31]}}, r_sign4[31:1]} : r_sign4;
-
-  // ROL without
-  // ASL without - any bits wrapping around should be zeroed
-  assign l_stg1 = ( `ROT16 ) ? { stg0[15:0],   stg0[31:16]}   : stg0;
-  assign l_stg2 = ( `ROT8 ) ?  { l_stg1[23:0], l_stg1[31:24]} : l_stg1;
-  assign l_stg3 = ( `ROT4 ) ?  { l_stg2[27:0], l_stg2[31:28]} : l_stg2;
-  assign l_stg4 = ( `ROT2 ) ?  { l_stg3[29:0], l_stg3[31:30]} : l_stg3;
-  assign l_stg5 = ( `ROT1 ) ?  { l_stg4[30:0], l_stg4[31]}    : l_stg4;
-
-  assign l_mask1 = ( `ROT16 ) ? 32'hFFFF0000: 32'hFFFFFFFF;
-  assign l_mask2 = ( `ROT8 ) ?  { l_mask1[23:0], 8'b0} : l_mask1;
-  assign l_mask3 = ( `ROT4 ) ?  { l_mask2[27:0], 4'b0} : l_mask2;
-  assign l_mask4 = ( `ROT2 ) ?  { l_mask3[29:0], 2'b0} : l_mask3;
-  assign l_mask5 = ( `ROT1 ) ?  { l_mask4[30:0], 1'b0} : l_mask4;
-
-  // Carry out is a copy of the last bit which would wrap around and re-enter the shifter
-  assign cout = ( `OP_ASL | `OP_ROL ) ? l_stg5[0] : r_stg5[31];
-
-  // Final stage to pick between left/right rotation and mask as required
   always @ ( * ) begin
-    case( opcode )
-      `ASR: dout_r = (r_stg5 & r_mask5 ) | r_sign5;
-      `LSR: dout_r = (r_stg5 & r_mask5 ) ;
-      `ROR: dout_r = r_stg5;
-      `ASL: dout_r = (l_stg5 & l_mask5 ) ;
-      `ROL: dout_r = l_stg5;
-      default: dout_r=din;
-    endcase
+    case ( opcode )
+      `ASL : begin
+        stg0 = {32'b0, cin, din};
+        {cout, dout } = {l_stg5[32:0]};
+      end
+      `ROL : begin
+        stg0 = {din, cin, din};
+        {dout, cout } = l_stg5[64:32];
+      end
+      `ROR : begin
+        stg0 = {din, cin, din};
+        {cout, dout } = r_stg5[32:0];
+      end
+      `ASR : begin
+        stg0 = { din, cin, {32{din[31]}}} ;        
+        {dout, cout} = { r_stg5[64:32]};
+      end
+      `LSR : begin
+        stg0 = { din, cin, 32'b0};        
+        {dout, cout} = { r_stg5[64:32]};
+      end
+    endcase // case ( opcode )
   end
 
-endmodule
+  // ROR - rotate through carry
+  assign r_stg1 = ( `ROT16 ) ? { stg0[15:0],  stg0[64:16]}  : stg0;
+  assign r_stg2 = ( `ROT8 ) ?  { r_stg1[7:0], r_stg1[64:8]} : r_stg1;
+  assign r_stg3 = ( `ROT4 ) ?  { r_stg2[3:0], r_stg2[64:4]} : r_stg2;
+  assign r_stg4 = ( `ROT2 ) ?  { r_stg3[1:0], r_stg3[64:2]} : r_stg3;
+  assign r_stg5 = ( `ROT1 ) ?  { r_stg4[0],   r_stg4[64:1]} : r_stg4;
 
-module barrel_shifter_nc(
-                         input [31:0] din,
-                         input [4:0] distance,
-                         input [5:0] opcode,
-                         output [31:0] dout
-                         );
-
-  wire [31:0] stg0;
-  wire [31:0] r_stg1, r_stg2, r_stg3, r_stg4, r_stg5;
-  wire [31:0] l_stg1, l_stg2, l_stg3, l_stg4, l_stg5;
-
-  assign stg0 = din;
-
-  // ROR
-  // LSR - any bits wrapping around should be zeroed
-  // ASR - any bits wrapping around should be set to the original sign bit
-  assign r_stg1 = ( `ROT16 ) ? { (`OP_ASR) ? {16{din[31]}}: (`OP_LSR) ? 16'b0: stg0[15:0],  stg0[31:16]}: stg0;
-  assign r_stg2 = ( `ROT8 ) ?  { (`OP_ASR) ? {8{din[31]}}: (`OP_LSR) ? 8'b0: r_stg1[7:0], r_stg1[31:8]} : r_stg1;
-  assign r_stg3 = ( `ROT4 ) ?  { (`OP_ASR) ? {4{din[31]}}: (`OP_LSR) ? 4'b0: r_stg2[3:0], r_stg2[31:4]} : r_stg2;
-  assign r_stg4 = ( `ROT2 ) ?  { (`OP_ASR) ? {2{din[31]}}: (`OP_LSR) ? 2'b0: r_stg3[1:0], r_stg3[31:2]} : r_stg3;
-  assign r_stg5 = ( `ROT1 ) ?  { (`OP_ASR) ? {1{din[31]}}: (`OP_LSR) ? 1'b0: r_stg4[0],   r_stg4[31:1]} : r_stg4;
-
-  // ROL without
-  // ASL without - any bits wrapping around should be zeroed
-  assign l_stg1 = ( `ROT16 ) ? { stg0[15:0],   (`OP_ASL) ? 16'b0 : stg0[31:16]}  : stg0;
-  assign l_stg2 = ( `ROT8 ) ?  { l_stg1[23:0], (`OP_ASL) ? 8'b0  :l_stg1[31:24]} : l_stg1;
-  assign l_stg3 = ( `ROT4 ) ?  { l_stg2[27:0], (`OP_ASL) ? 4'b0  :l_stg2[31:28]} : l_stg2;
-  assign l_stg4 = ( `ROT2 ) ?  { l_stg3[29:0], (`OP_ASL) ? 2'b0  :l_stg3[31:30]} : l_stg3;
-  assign l_stg5 = ( `ROT1 ) ?  { l_stg4[30],   (`OP_ASL) ? 1'b0  :l_stg4[31]}    : l_stg4;
-
-  assign dout = ( `OP_ROL || `OP_ASL ) ? l_stg5 : r_stg5;
+  // ROL - rotate through carry
+  assign l_stg1 = ( `ROT16 ) ? { stg0[48:0],   stg0[64:49]}   : stg0;
+  assign l_stg2 = ( `ROT8 ) ?  { l_stg1[56:0], l_stg1[64:57]} : l_stg1;
+  assign l_stg3 = ( `ROT4 ) ?  { l_stg2[60:0], l_stg2[64:61]} : l_stg2;
+  assign l_stg4 = ( `ROT2 ) ?  { l_stg3[62:0], l_stg3[64:63]} : l_stg3;
+  assign l_stg5 = ( `ROT1 ) ?  { l_stg4[63:0], l_stg4[64]}    : l_stg4;
 
 endmodule
