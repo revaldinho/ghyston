@@ -94,10 +94,12 @@ op = {
     "ld.b"    : {"format":"a", "opcode": 0 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "ld.h"    : {"format":"a", "opcode": 2 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "ld.w"    : {"format":"a", "opcode": 4 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
+    "ld"      : {"format":"a", "opcode": 4 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},    
     "mov"     : {"format":"a", "opcode": 6 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "sto.b"   : {"format":"b", "opcode": 8 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "sto.h"   : {"format":"b", "opcode": 10 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "sto.w"   : {"format":"b", "opcode": 12 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
+    "sto"     : {"format":"b", "opcode": 12 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},    
 #   ""        : {"format":"b", "opcode": 14 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":0},
     "jr"      : {"format":"c", "opcode": 16 ,"sext":False, "cond":True,  "operands":2, "sext": False, "min_imm":-512, "max_imm":511}, # COND field is optional in source code
     # Ret is a synonmym for JR AL RLINK,0
@@ -236,7 +238,10 @@ def assemble( filename, listingon=True):
                 if len(opfields) > 0 and not opfields[0]=='':
                     if ( not is_register(opfields[-1])):
                         direct=True
-                    words = [int(eval( f,globals(), symtab)) for f in opfields ]
+                    try:
+                        words = [int(eval( f,globals(), symtab)) for f in opfields ]
+                    except:
+                        (words,errors)=([0]*3,errors+["Error: illegal or undefined register name or expression in ...\n         %s" % line.strip() ])
                 else:
                     words = []
 
@@ -280,7 +285,7 @@ def assemble( filename, listingon=True):
                             rsrc1 = 15 # PC
                             if (direct):
                                 # Branch to a label
-                                imm = words[0] - (nextmem+1)
+                                imm = words[0] - (nextmem)
                             else:
                                 rsrc2 = words[0]
                         else:

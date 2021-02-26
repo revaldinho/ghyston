@@ -58,7 +58,7 @@ module system_tb() ;
 
 always @ ( posedge clk ) begin
   $display( "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ");  
-  $display( "P0: %10d: %02X : %02X : %d : %X %X %X %08X : %X : %d %d " , cycle,
+  $display( "P0: %10d: %02X : %02X : %d : %X %X %X %08X : %X : %d %d %d" , cycle,
             dut_0.cpu_0.p0_pc_q,
             dut_0.cpu_0.p0_opcode_q,
             dut_0.cpu_0.p0_ead_use_imm_q,
@@ -67,10 +67,11 @@ always @ ( posedge clk ) begin
             dut_0.cpu_0.p0_rsrc1_q,
             dut_0.cpu_0.p0_imm_q,
             dut_0.cpu_0.p0_cond_q,
+            dut_0.cpu_0.rstb_q,      
             dut_0.cpu_0.p0_moe_q,
             dut_0.cpu_0.p0_stage_valid_q );
 
-  $display( "P1: %10d: %02X : %02X : - : %X %X %X -------- : %X : - %d " , cycle,
+  $display( "P1: %10d: %02X : %02X : - : %X %X %X -------- : %X : - - %d " , cycle,
             dut_0.cpu_0.p1_pc_q,
             dut_0.cpu_0.p1_opcode_q,
             dut_0.cpu_0.p1_rdest_q,

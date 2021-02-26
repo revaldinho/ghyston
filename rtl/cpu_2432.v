@@ -18,8 +18,8 @@ module cpu_2432 (
   reg [31:0]                   psr_d, psr_q;
   reg [3:0]                    rf_wr_en_d;
   reg [31:0]                   p0_pc_d, p0_pc_q;
+  reg                          rstb_q;
   reg                          p0_stage_valid_d, p0_stage_valid_q;
-  reg                          pm1_stage_valid_d, pm1_stage_valid_q;
   reg [5:0]                    p0_opcode_d, p0_opcode_q;
   reg                          p0_ead_use_imm_d, p0_ead_use_imm_q;
   // ID the dest/source registers with additional one-hot bits for RZERO, PSR, PC + the original instr field
@@ -60,7 +60,7 @@ module cpu_2432 (
   wire [3:0]                   rf0_wen;
 
 
-  assign o_iaddr  = p0_pc_q[23:0];
+  assign o_iaddr  = p0_pc_d[23:0];
   assign o_daddr  = p1_ead_d[23:0];
   assign o_ram_rd = p1_ram_rd_d;
   assign o_ram_wr = p1_ram_wr_d;
@@ -177,21 +177,22 @@ module cpu_2432 (
   end
 
 
-  always @ (*) begin
-    pm1_stage_valid_d = !p2_jump_taken_d;
-    p0_stage_valid_d = p0_moe_d & pm1_stage_valid_q & !p2_jump_taken_d ; // invalidate any instruction behind a taken jump
+  always @ ( * ) begin
+    p0_stage_valid_d = rstb_q & p0_moe_d & (!(p2_jump_taken_d && p1_stage_valid_q)) ; // invalidate any instruction behind a taken jump
+  end
 
+  always @ ( * ) begin  
     // Check for back to back reg write/reads which need to stall for 1 cycle (and no more than one cycle)
     // rather than use a combinatorial bypass
 //`define BYPASS_EN_D 1
 `ifdef BYPASS_EN_D
-    p0_moe_d = 1;
+    p0_moe_d = rstb_q;  // rstb_q FF delays coming out of reset by 1 cycle
 `else
 //  `define HALF_RATE_D 1
   `ifdef HALF_RATE_D
     p0_moe_d = !p0_moe_q;
   `else
-    p0_moe_d = 1'b1;
+    p0_moe_d =  ;
 //    $display("%02X %d %X %d %02X %02X %02X", p0_opcode_d, p0_moe_q,rf0_wen, p0_stage_valid_q, p0_rdest_q, p0_rsrc0_d, p0_rsrc1_d);
     if ( p0_moe_q )
       if ((|rf0_wen) & !(|p0_rdest_q[5:4])) begin
@@ -218,7 +219,7 @@ module cpu_2432 (
         else
           p0_pc_d = p1_ead_q + p1_src0_data_q ;
     // If pipe0 is moving then increment PC
-    else if (p0_moe_d)
+    else if (p0_moe_d )
       p0_pc_d = p0_pc_q + 1;
     else
       p0_pc_d = p0_pc_q ;
@@ -227,28 +228,27 @@ module cpu_2432 (
   always @ ( * ) begin
     // default is to retain PSR
     psr_d = psr_q;
-    // default result to be from ALU
-    p0_result_d = alu_dout;
     // Compute the result ready for assigning to the RF and propagating forward to flags for calculation in next cycle
     // Need to present the byte in the correct location for writing to the register file
     if ( p1_opcode_q == `LD_B && p1_stage_valid_q ) begin
       p0_result_d = { 24'b0, (i_din >> p1_ead_q[1:0])};
       psr_d[`Z] = !(|p0_result_d);
-      psr_d[`S] = alu_dout[31];
+      psr_d[`S] = p0_result_d[7];
     end
     else if ( p1_opcode_q == `LD_H && p1_stage_valid_q ) begin
       p0_result_d = {16'b0, (i_din >> p1_ead_q[0])};
       psr_d[`Z] = !(|p0_result_d);
-      psr_d[`S] = alu_dout[31];
+      psr_d[`S] = p0_result_d[15];
     end
-    else if ( p1_opcode_q == `LD_W && p1_stage_valid_q ) begin
-      $display("LOAD INSTR, din = %08X addr=%06X", i_din, p1_ead_q);
+    if ( p1_opcode_q == `LD_W && p1_stage_valid_q ) begin
       p0_result_d = i_din ;
       psr_d[`Z] = !(|p0_result_d);
-      psr_d[`S] = alu_dout[31];
+      psr_d[`S] = p0_result_d[31];
     end
-    else if ( p1_rdest_q[5] )
+    else if ( p1_rdest_q[5] ) begin
+      p0_result_d = alu_dout;
       psr_d = alu_dout;
+    end
     else if ( p1_opcode_q == `STO_B ||
               p1_opcode_q == `STO_H ||
               p1_opcode_q == `STO_W ||
@@ -262,6 +262,7 @@ module cpu_2432 (
       p0_result_d = p2_pc_q;
     end
     else begin
+      p0_result_d = alu_dout;
       psr_d[`C] = alu_cout;
       psr_d[`V] = alu_vout;
       psr_d[`S] = alu_dout[31];
@@ -360,7 +361,6 @@ module cpu_2432 (
   always @ ( posedge i_clk or negedge i_rstb ) begin
     if ( !i_rstb ) begin
       psr_q            <= 0;
-      pm1_stage_valid_q<= 0;
       p0_pc_q          <= 0;
       p0_stage_valid_q <= 0;
       p0_opcode_q      <= 0;
@@ -371,7 +371,7 @@ module cpu_2432 (
       p0_imm_q         <= 0;
       p0_cond_q        <= 0;
       p0_rf_wr_q       <= 0;
-      p0_moe_q         <= 1;
+      p0_moe_q         <= 0;
       p1_pc_q          <= 0;
       p1_jump_taken_q  <= 0;
       p1_stage_valid_q <= 0;
@@ -386,12 +386,13 @@ module cpu_2432 (
       p1_cond_q        <= 0;
       p1_rf_wr_q       <= 0;
       p2_jump_taken_q  <= 0;
+      rstb_q           <= 0;
     end
     else
       if ( clk_en_w ) begin
+        rstb_q   <= i_rstb;
         p0_moe_q <= p0_moe_d;
         p0_stage_valid_q <= p0_stage_valid_d;
-        pm1_stage_valid_q <= pm1_stage_valid_d;
         psr_q <= psr_d;
         p0_pc_q <= p0_pc_d;
         p0_opcode_q <= p0_opcode_d;
@@ -419,7 +420,6 @@ module cpu_2432 (
 
         p2_pc_q <= p2_pc_d;
         p2_jump_taken_q <= p2_jump_taken_d;
-
       end
   end
 
