@@ -245,7 +245,7 @@ def assemble( filename, listingon=True):
                 else:
                     words = []
 
-                # deal with RET synonym for JR CC Rlink,0                
+                # deal with RET synonym for JR CC Rlink,1               
                 if inst in ("ret" ):
                     if len(opfields) == 0:
                         opfields.append("r14")
@@ -257,7 +257,7 @@ def assemble( filename, listingon=True):
                         words.append(14)
                         opfields.append("0") 
                         words.append(0)
-                    elif len(opfields):
+                    elif len(opfields) == 1:
                         opfields.append("0") 
                         words.append(0)
 

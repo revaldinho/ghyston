@@ -43,8 +43,8 @@ module system_tb() ;
     { clk, reset_b}  = 0;
     clken = 1'b1;
     cycle = 0;
-    #1005 reset_b = 1;
-    #50000 ;
+    #105 reset_b = 1;
+    #500000 ;
 `ifdef RAM_DUMP_FILE_D
     $writememh(RAM_DUMP_FILE, dut_0.dram_0.ram);
 `endif

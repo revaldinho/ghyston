@@ -13,28 +13,19 @@
 `define ROT1  ((distance & 5'b00001)!=0)
 
 module alu(
-           input [31:0]  din_a,
-           input [31:0]  din_b,
-           input         cin,
-           input         vin,
-           input [5:0]   opcode,
-           output [31:0] dout,
-           output        cout,
-           output        mcp_out,
-           output        vout
+           input [31:0]      din_a,
+           input [31:0]      din_b,
+           input             cin,
+           input             vin,
+           input [5:0]       opcode,
+           output reg [31:0] dout,
+           output reg        cout,
+           output reg        mcp_out,
+           output reg        vout
            );
 
-  reg [31:0]             dout_r;
-  reg                    vout_r;
-  reg                    cout_r;
-  reg                    mcp_out_r;
   wire [31:0]            shifted_w;
   wire                   shifted_c;
-
-  assign dout = dout_r;
-  assign cout = cout_r;
-  assign vout = vout_r;
-  assign mcp_out = mcp_out_r;
 
 
   barrel_shifter u0 (
@@ -47,45 +38,46 @@ module alu(
                      );
 
   always @(*) begin
-    cout_r = cin;
-    vout_r = vin;
-    mcp_out_r = 1'b0;
-
+    cout = cin;
+    vout = vin;
+    mcp_out = 1'b0;
+    dout = 32'bx;
+    
     case ( opcode )
       //MOVT will have the bits shifted to the top of the word before writing the regfile
-      `LMOVT      :{cout_r,dout_r} = {cin, din_b[15:0], din_a[15:0]} ;
-      `LMOV, `MOV :{cout_r,dout_r} = {cin, din_b} ;
-      `AND        :{cout_r,dout_r} = {1'b0,(din_a & din_b)};
-      `OR         :{cout_r,dout_r} = {1'b0,(din_a | din_b)};
-      `XOR        :{cout_r,dout_r} = {1'b0, din_a ^ din_b};
+      `LMOVT      :{cout,dout} = {cin, din_b[15:0], din_a[15:0]} ;
+      `LMOV, `MOV :{cout,dout} = {cin, din_b} ;
+      `AND        :{cout,dout} = {1'b0,(din_a & din_b)};
+      `OR         :{cout,dout} = {1'b0,(din_a | din_b)};
+      `XOR        :{cout,dout} = {1'b0, din_a ^ din_b};
 `ifdef MUL32
       // Wide multiply 32b x32b = 32b (truncated) uses 3 cycles and stretches the clock cycle to complete
-      `MUL        :{mcp_out_r,cout_r,dout_r} = {1'b1, din_a * din_b};
+      `MUL        :{mcp_out,cout,dout} = {1'b1, din_a * din_b};
 `else
       // Restrict multiplies to 18x18 to fit a single DSP slice on a Spartan 6 FPGA and single cycle execution
-      `MUL        :{cout_r,dout_r} = {din_a[17:0] * din_b[17:0]};
+      `MUL        :{cout,dout} = {din_a[17:0] * din_b[17:0]};
 `endif
-      //`DIV        :{cout_r,dout_r} = {din_a[17:0] / din_b[17:0]};
-      `ADD        :{cout_r,dout_r} = {din_a + din_b};
-      `SUB, `CMP  :{cout_r,dout_r} = {din_a - din_b};
-      `BTST       :{cout_r,dout_r} = {cin, din_a & (32'b1<<din_b[4:0])};
-      `BSET       :{cout_r,dout_r} = {cin, din_a | (32'b1<<din_b[4:0])};
-      `BCLR       :{cout_r,dout_r} = {cin, din_a & !(32'b1<<din_b[4:0])};
+      //`DIV        :{cout,dout} = {din_a[17:0] / din_b[17:0]};
+      `ADD        :{cout,dout} = {din_a + din_b};
+      `SUB, `CMP  :{cout,dout} = {din_a - din_b};
+      `BTST       :{cout,dout} = {cin, din_a & (32'b1<<din_b[4:0])};
+      `BSET       :{cout,dout} = {cin, din_a | (32'b1<<din_b[4:0])};
+      `BCLR       :{cout,dout} = {cin, din_a & !(32'b1<<din_b[4:0])};
       `ASR, `ROR, `LSR, `ASL, `ROL:
-        {cout_r,dout_r} = {shifted_c, shifted_w};
-      default :{cout_r,dout_r} = {cin,din_b} ;
+        {cout,dout} = {shifted_c, shifted_w};
+      default :{cout,dout} = {cin,din_b} ;
     endcase // case opcode
 
     if ( opcode==`ADD)
       // overflow if -ve + -ve = +ve  or +ve + +ve = -ve
-      vout_r =  ( din_a[31] & din_b[31] & !dout_r[31]) ||
-                ( !din_a[31] & !din_b[31] & dout_r[31]) ;
+      vout =  ( din_a[31] & din_b[31] & !dout[31]) ||
+                ( !din_a[31] & !din_b[31] & dout[31]) ;
     else if ( opcode==`SUB || opcode==`CMP)
       // overflow if -ve - +ve = +ve  or +ve - -ve = -ve
-      vout_r =  ( din_a[31] & !din_b[31] & !dout_r[31]) ||
-                ( !din_a[31] & din_b[31] & dout_r[31]) ;
+      vout =  ( din_a[31] & !din_b[31] & !dout[31]) ||
+                ( !din_a[31] & din_b[31] & dout[31]) ;
     else if ( opcode==`MUL)
-      vout_r = !(din_a[31] ^ din_b[31] ^ dout_r[31]);
+      vout = !(din_a[31] ^ din_b[31] ^ dout[31]);
   end
 
 endmodule // alu
@@ -129,6 +121,7 @@ module barrel_shifter(
         stg0 = { din, cin, 32'b0};        
         {dout, cout} = { r_stg5[64:32]};
       end
+      default: stg0=65'bx;      
     endcase // case ( opcode )
   end
 

@@ -259,7 +259,7 @@ module cpu_2432 (
     end
     else if (p1_opcode_q == `JSR || p1_opcode_q == `JRSRCC) begin
       // Value to put into link register and retain flags
-      p0_result_d = p2_pc_q;
+      p0_result_d = p2_pc_q+1; // should come through ALU or be part of RET instuction 
     end
     else begin
       p0_result_d = alu_dout;
