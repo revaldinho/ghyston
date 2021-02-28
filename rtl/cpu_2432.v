@@ -12,7 +12,7 @@ module cpu_2432 (
                  output [23:0] o_daddr,
                  output [31:0] o_dout,
                  output        o_ram_rd,
-                 output [3:0]  o_ram_wr
+                 output        o_ram_wr
                  );
 
   reg [31:0]                   psr_d, psr_q;
@@ -38,7 +38,7 @@ module cpu_2432 (
   reg [31:0]                   p1_ead_d, p1_ead_q;
   reg [31:0]                   p1_src0_data_d, p1_src0_data_q;
   reg                          p1_ram_rd_d, p1_ram_rd_q;
-  reg [3:0]                    p1_ram_wr_d, p1_ram_wr_q;
+  reg                          p1_ram_wr_d, p1_ram_wr_q;
   reg [5:0]                    p1_rdest_d, p1_rdest_q;
   reg [5:0]                    p1_rsrc0_d, p1_rsrc0_q;
   reg [5:0]                    p1_rsrc1_d, p1_rsrc1_q;
@@ -66,14 +66,14 @@ module cpu_2432 (
   assign o_ram_wr = p1_ram_wr_d;
   assign o_dout   = p1_ram_dout_d;
 
-  assign rf_wen = { (p1_rf_wr_q && p1_opcode_q != `LD_B &&  p1_opcode_q != `LD_H),
-                    (p1_rf_wr_q && p1_opcode_q != `LD_B &&  p1_opcode_q != `LD_H),
-                    (p1_rf_wr_q && p1_opcode_q != `LD_B &&  p1_opcode_q != `LMOVT),
+  assign rf_wen = { (p1_rf_wr_q ),
+                    (p1_rf_wr_q ),
+                    (p1_rf_wr_q && p1_opcode_q != `LMOVT),
                     (p1_rf_wr_q && p1_opcode_q != `LMOVT) };
 
-  assign rf0_wen = { (p0_rf_wr_q && p0_opcode_q != `LD_B &&  p0_opcode_q != `LD_H),
-                     (p0_rf_wr_q && p0_opcode_q != `LD_B &&  p0_opcode_q != `LD_H),
-                     (p0_rf_wr_q && p0_opcode_q != `LD_B &&  p0_opcode_q != `LMOVT),
+  assign rf0_wen = { (p0_rf_wr_q ),
+                     (p0_rf_wr_q ),
+                     (p0_rf_wr_q && p0_opcode_q != `LMOVT),
                      (p0_rf_wr_q && p0_opcode_q != `LMOVT) };
 
   // General Register File
@@ -163,11 +163,11 @@ module cpu_2432 (
         p0_rf_wr_d = 0;
       if (p0_ead_use_imm_d )
         p0_rsrc1_d = 6'b000000 ; // Unused set to RZero
-`ifdef INCLUDE_MUL      
+`ifdef INCLUDE_MUL
       if ( p0_opcode_d == `MUL || p0_opcode_d == `ADD || p0_opcode_d == `SUB)
 `else
       if ( p0_opcode_d == `ADD || p0_opcode_d == `SUB)
-`endif        
+`endif
         p0_imm_d = { {22{i_instr[7]}} ,i_instr[7:4], i_instr[17:16], i_instr[3:0] };
       else
         p0_imm_d = { 22'b0 ,i_instr[7:4], i_instr[17:16], i_instr[3:0] };
@@ -179,13 +179,13 @@ module cpu_2432 (
     p0_stage_valid_d = rstb_q & p0_moe_d & (!(p2_jump_taken_d && p1_stage_valid_q)) ; // invalidate any instruction behind a taken jump
   end
 
-  always @ ( * ) begin  
+  always @ ( * ) begin
     // Check for back to back reg write/reads which need to stall for 1 cycle (and no more than one cycle)
     // rather than use a combinatorial bypass
 //`define BYPASS_EN_D 1
 `ifdef BYPASS_EN_D
-    p0_moe_d = rstb_q & !((p0_opcode_q == `LD_B ||  p0_opcode_q == `LD_H || p0_opcode_q == `LD_W) &&
-                          (p0_opcode_d == `STO_B || p0_opcode_d == `STO_H || p0_opcode_q == `STO_W));  // rstb_q FF delays coming out of reset by 1 cycle    
+    p0_moe_d = rstb_q & !((p0_opcode_q == `LD_W) &&
+                          (p0_opcode_q == `STO_W));  // rstb_q FF delays coming out of reset by 1 cycle
 `else
 //  `define HALF_RATE_D 1
   `ifdef HALF_RATE_D
@@ -226,46 +226,30 @@ module cpu_2432 (
 
   always @ ( * ) begin
     // Compute the result ready for assigning to the RF
-    p0_result_d = alu_dout;    
+    p0_result_d = alu_dout;
     if ( p1_stage_valid_q ) begin
-      // Need to present the byte in the correct location for writing to the register file from loads
-      if ( p1_opcode_q == `LD_B )
-        p0_result_d = { 24'b0, (i_din >> p1_ead_q[1:0])};
-      else if ( p1_opcode_q == `LD_H )
-        p0_result_d = {16'b0, (i_din >> p1_ead_q[0])};
-      else if ( p1_opcode_q == `LD_W )
+      if ( p1_opcode_q == `LD_W )
         p0_result_d = i_din ;
       else if (p1_opcode_q == `JSR || p1_opcode_q == `JRSRCC)
         // Value to put into link register and retain flags
         p0_result_d = p2_pc_q+1; // should come through ALU or be part of RET instuction ie JR CC Rlink, +1
-    end // if ( p1_stage_valid_q )    
+    end // if ( p1_stage_valid_q )
   end
-  
+
   always @ ( * ) begin
     // Compute the flag result  - default is to retain PSR
     psr_d = psr_q;
     if ( p1_stage_valid_q ) begin
-        if ( p1_opcode_q == `LD_B ) begin
-          psr_d[`Z] = !(|p0_result_d);
-          psr_d[`S] = p0_result_d[7];
-        end
-        else if ( p1_opcode_q == `LD_H ) begin
-          psr_d[`Z] = !(|p0_result_d);
-          psr_d[`S] = p0_result_d[15];
-        end
-        else if ( p1_opcode_q == `LD_W ) begin
+        if ( p1_opcode_q == `LD_W ) begin
           psr_d[`Z] = !(|p0_result_d);
           psr_d[`S] = p0_result_d[31];
         end
         else if ( p1_rdest_q[5] ) begin
           psr_d = alu_dout;
         end
-        else if ( p1_opcode_q == `STO_B ||
-                  p1_opcode_q == `STO_H ||
-                  p1_opcode_q == `STO_W ||
-                  p1_opcode_q == `JRCC ||
+        else if ( p1_opcode_q == `JRCC ||
                   p1_opcode_q == `JMP  ||
-                  p1_opcode_q == `JSR || 
+                  p1_opcode_q == `JSR ||
                   p1_opcode_q == `JRSRCC) begin
           // Retain flags
           psr_d = psr_q;
@@ -275,14 +259,14 @@ module cpu_2432 (
           psr_d[`V] = alu_vout;
           psr_d[`S] = alu_dout[31];
           psr_d[`Z] = !(|alu_dout);
-        end // else: !if( p1_opcode_q == `STO_B ||...
-    end // if ( p1_stage_valid_q )    
+        end
+    end
   end
 
   // Pipe Stage 1
   always @(*) begin
     // Invalidate next stage if JUMP and condition true for two cycles
-    p1_ram_wr_d = 4'b0000;
+    p1_ram_wr_d = 1'b0;
     p1_ram_dout_d = p1_src0_data_d;
     p1_ram_rd_d = 1'b0;
     p1_cond_d = p0_cond_q;
@@ -291,19 +275,10 @@ module cpu_2432 (
     p2_pc_d = p1_pc_q;
 
     p1_stage_valid_d = p0_stage_valid_q & !p2_jump_taken_d ;  // invalidate any instruction behind a taken jump
-
     if ( p1_stage_valid_d ) begin
-      p1_ram_rd_d = ( p0_opcode_q == `LD_B || p0_opcode_q == `LD_H || p0_opcode_q == `LD_W );
-      if ( p0_opcode_q == `STO_B && p1_stage_valid_d) begin
-        p1_ram_wr_d   = 4'b0001 <<p1_ead_d[1:0] ;
-        p1_ram_dout_d = p1_src0_data_d << (p1_ead_d[1:0]*8);
-      end
-      else if ( p0_opcode_q == `STO_H ) begin
-        p1_ram_wr_d = 4'b0011 << p1_ead_d[0] ;
-        p1_ram_dout_d = p1_src0_data_d << (p1_ead_d[0]*16);
-      end
-      else if ( p0_opcode_q == `STO_W ) begin
-        p1_ram_wr_d = 4'b1111;
+      p1_ram_rd_d = (p0_opcode_q == `LD_W );
+      if ( p0_opcode_q == `STO_W ) begin
+        p1_ram_wr_d = 1'b1;
         p1_ram_dout_d = p1_src0_data_d;
       end
     end // if ( p1_stage_valid_d )
@@ -335,7 +310,7 @@ module cpu_2432 (
         endcase
       end // if ( p1_opcode_q==`JRCC || p1_opcode_q==`JRSRCC)
       else
-        p2_jump_taken_d = 1'b0;      
+        p2_jump_taken_d = 1'b0;
     end
 
     // Pass through expanded opcode and dest/source register Ids

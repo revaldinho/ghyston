@@ -10,7 +10,7 @@ module system(
   wire [23:0]               iaddr_w;
   wire [23:0]               cpu_daddr_w;
   wire                      ram_rd_w;
-  wire [3:0]                ram_wr_w;
+  wire                      ram_wr_w;
   wire [31:0]               ram_dout_w, cpu_din_w;
   wire [31:0]               cpu_dout_w;
   wire [3:0]                gpio0_irq_w;
@@ -62,7 +62,7 @@ module system(
                       .din(cpu_dout_w),
                       .dout(ram_dout_w),
                       .address(cpu_daddr_w[12:0]),
-                      .rnw(! (|ram_wr_w) ),
+                      .rnw( !ram_wr_w ),
                       .clk(i_clk),
                       .cs_b( !(ram_wr_w | ram_rd_w) )
                       );

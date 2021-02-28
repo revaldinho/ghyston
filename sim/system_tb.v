@@ -44,13 +44,25 @@ module system_tb() ;
     clken = 1'b1;
     cycle = 0;
     #105 reset_b = 1;
-    #5000000 ;
+    #50000000 ;
 `ifdef RAM_DUMP_FILE_D
     $writememh(RAM_DUMP_FILE, dut_0.dram_0.ram);
 `endif
     $finish;
   end
 
+  always @ ( posedge clk ) begin
+    if (dut_0.cpu_daddr_w == 24'h0FFFFFF &&
+        dut_0.ram_wr_w == 1'b1) begin
+      $display("Simulation terminated at time", $time);      
+`ifdef RAM_DUMP_FILE_D
+    $writememh(RAM_DUMP_FILE, dut_0.dram_0.ram);
+`endif      
+      $finish;
+    end
+  end
+  
+  
   always begin
     #10 clk = !clk;
     if (clk ) cycle = cycle+1;

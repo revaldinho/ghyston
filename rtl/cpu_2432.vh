@@ -42,12 +42,8 @@
 `define LMOVT  6'b011100
 
 // Define 5 MSBs only for these instructions where the LSB indicates direct or register source
-`define LD_B   6'b000000
-`define LD_H   6'b000010
 `define LD_W   6'b000100
 `define MOV    6'b000110
-`define STO_B  6'b001000
-`define STO_H  6'b001010
 `define STO_W  6'b001100
 `define JRCC   6'b010000 
 `define JRSRCC 6'b010010

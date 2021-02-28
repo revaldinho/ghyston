@@ -29,6 +29,12 @@ MACRO   WRDIG( _reg_or_data_ )
         jsr     oswrch
 ENDMACRO
 
+MACRO   HALT( )
+        movi    r0, 0xFFFF
+        movti   r0, 0x00FF
+        sto     r0, r0
+ENDMACRO
+
         # Register Map
         # (r15  = PC)
         # r14   = stack pointer
@@ -45,7 +51,7 @@ ENDMACRO
         # r1,r2 = temporary registers, parameters and return registers
         # (r0   =0)
 
-        EQU     digits,   4          # 16
+        EQU     digits,   16          # 16
         EQU     cols,     1+(digits*10//3)            # 1 + (digits * 10/3)
 
         mov     r13,r0                # Initialise r13 to stop PUSH/POP ever loading X's to stack for regression runs
@@ -70,11 +76,10 @@ start:
         mov     r6,0                    # zero nines counter
                                         # Initialise remainder/denominator array using temp vars
         mov     r2,2                    # r2=const 2 for initialisation, used as data for rem[] and increment val
-        mov     r3,cols                 # loop counter i starts at index = 1
-L1:     mov     r0, remain_minus_one
-        add     r0, r0, r3
-        sto.w   r2,r0                   # store remainder value to pointer
+        mov     r3,cols+remain-1        # loop counter i starts at index = 1
+L1:     sto.w   r2,r3                   # store remainder value to pointer
         sub     r3, r3, 1               # next loop counter
+        cmp     r3, remain-1
         bra nz  L1
 
         mov     r9,digits               # set up outer loop counter (digits)
@@ -102,7 +107,7 @@ L4:     ld.w    r2,r7                   # r2 <- *remptr = r[i]
         sub     r12, r12, 1             # decr loop counter
         bra  z  L10                     # break out if zero
 
-        mov     r2, r12                 # Q <- Q * i        
+        mov     r2, r12                 # Q <- Q * i
         mov     r1, r11
         jsr     qmul32b
         mov     r11,r1
@@ -150,7 +155,8 @@ L7b:
         WRCH    (10)                   # Print Newline to finish off
         WRCH    (13)
 
-END:
+
+END:    HALT ()
         bra     END
 
         # -----------------------------------------------------------------
@@ -173,7 +179,7 @@ END:
         # Register Usage
         # - R1 = Product Register
         # - R0 = holds first shifted copy of A
-        # ------------------------------------------------------------------        
+        # ------------------------------------------------------------------
 qmul32b:
         lsr      r0, r1, 1       # shift A into r0
         mov      r1, 0           # initialise product (preserve C)
@@ -236,7 +242,7 @@ udiv_1:
 	bra  mi udiv_2          # skip ahead if negative ..
 	sub     r3, r3, r2      # ..otherwise do subtract for real..
 	add     r1, r1, 1       # ..and increment quotient
-udiv_2: 
+udiv_2:
 	sub     r0, r0, 1       # dec loop counter
 	bra  nz udiv_1          # repeat 'til zero
 	and     r1, r1, r1      # clear carry
@@ -256,17 +262,15 @@ udiv_2:
         # ---------------------------------------------------------------
 oswrch:
 oswrch_loop:
-        ld.w    r0, output_ptr        
+        ld.w    r0, output_ptr
         sto.w   r1, r0
         add     r0, r0, 1
         sto.w   r0, output_ptr
         ret     r14
 
 
-        # DATA MEM defines 
+        # DATA MEM defines
         EQU     output_ptr,              0
         EQU     output_data,             1
         EQU     remain_minus_one,        0x100
         EQU     remain,                  0x101
-
-
