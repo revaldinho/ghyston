@@ -1,6 +1,6 @@
 module ram_8192x32 (
                      input [31:0]      din,
-                     output reg [31:0] dout,
+                     output [31:0] dout,
                      input [12:0]      address,
                      input             rnw,
                      input             clk,
@@ -8,6 +8,9 @@ module ram_8192x32 (
                      );
 
   reg [31:0]                           ram [0:8191];
+  reg [12:0]                           raddr_r;
+
+  assign dout = ram[raddr_r];  
 
   always @ ( posedge clk ) begin
     if (!cs_b[0] & !rnw)
@@ -21,10 +24,10 @@ module ram_8192x32 (
    end
 
   always @ (posedge clk ) begin
-    dout <= ram[address];
+    raddr_r = address;
   end
-  
 
-    
-    
+
+
+
 endmodule

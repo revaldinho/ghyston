@@ -15,11 +15,17 @@ module system(
   wire [31:0]               cpu_dout_w;
   wire [3:0]                gpio0_irq_w;
   wire [31:0]               gpio_dout_w;
-  
+
+
+  reg [23:0]                adr_q;
+
+  always @ (posedge i_clk ) begin
+    adr_q = cpu_daddr_w;
+  end
+
   // GPIO/RAM multiplexer
-  assign cpu_din_w = ( cpu_daddr_w[23]) ? gpio_dout_w:
-                     ram_dout_w;
-  
+  assign cpu_din_w = ( adr_q[23]) ? gpio_dout_w: ram_dout_w;
+
   cpu_2432  cpu_0 (
                    .i_instr(instr_w),
                    .i_clk(i_clk),

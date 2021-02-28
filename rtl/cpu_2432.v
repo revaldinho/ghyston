@@ -186,7 +186,8 @@ module cpu_2432 (
     // rather than use a combinatorial bypass
 //`define BYPASS_EN_D 1
 `ifdef BYPASS_EN_D
-    p0_moe_d = rstb_q;  // rstb_q FF delays coming out of reset by 1 cycle
+    p0_moe_d = rstb_q & !((p0_opcode_q == `LD_B ||  p0_opcode_q == `LD_H || p0_opcode_q == `LD_W) &&
+                          (p0_opcode_d == `STO_B || p0_opcode_d == `STO_H || p0_opcode_q == `STO_W));  // rstb_q FF delays coming out of reset by 1 cycle    
 `else
 //  `define HALF_RATE_D 1
   `ifdef HALF_RATE_D
@@ -226,49 +227,58 @@ module cpu_2432 (
   end
 
   always @ ( * ) begin
-    // default is to retain PSR
+    // Compute the result ready for assigning to the RF
+    p0_result_d = alu_dout;    
+    if ( p1_stage_valid_q ) begin
+      // Need to present the byte in the correct location for writing to the register file from loads
+      if ( p1_opcode_q == `LD_B )
+        p0_result_d = { 24'b0, (i_din >> p1_ead_q[1:0])};
+      else if ( p1_opcode_q == `LD_H )
+        p0_result_d = {16'b0, (i_din >> p1_ead_q[0])};
+      else if ( p1_opcode_q == `LD_W )
+        p0_result_d = i_din ;
+      else if (p1_opcode_q == `JSR || p1_opcode_q == `JRSRCC)
+        // Value to put into link register and retain flags
+        p0_result_d = p2_pc_q+1; // should come through ALU or be part of RET instuction ie JR CC Rlink, +1
+    end // if ( p1_stage_valid_q )    
+  end
+  
+  always @ ( * ) begin
+    // Compute the flag result  - default is to retain PSR
     psr_d = psr_q;
-    // Compute the result ready for assigning to the RF and propagating forward to flags for calculation in next cycle
-    // Need to present the byte in the correct location for writing to the register file
-    if ( p1_opcode_q == `LD_B && p1_stage_valid_q ) begin
-      p0_result_d = { 24'b0, (i_din >> p1_ead_q[1:0])};
-      psr_d[`Z] = !(|p0_result_d);
-      psr_d[`S] = p0_result_d[7];
-    end
-    else if ( p1_opcode_q == `LD_H && p1_stage_valid_q ) begin
-      p0_result_d = {16'b0, (i_din >> p1_ead_q[0])};
-      psr_d[`Z] = !(|p0_result_d);
-      psr_d[`S] = p0_result_d[15];
-    end
-    if ( p1_opcode_q == `LD_W && p1_stage_valid_q ) begin
-      p0_result_d = i_din ;
-      psr_d[`Z] = !(|p0_result_d);
-      psr_d[`S] = p0_result_d[31];
-    end
-    else if ( p1_rdest_q[5] ) begin
-      p0_result_d = alu_dout;
-      psr_d = alu_dout;
-    end
-    else if ( p1_opcode_q == `STO_B ||
-              p1_opcode_q == `STO_H ||
-              p1_opcode_q == `STO_W ||
-              p1_opcode_q == `JRCC ||
-              p1_opcode_q == `JMP ) begin
-      // No flag setting for these instructions
-      p0_result_d = alu_dout;
-    end
-    else if (p1_opcode_q == `JSR || p1_opcode_q == `JRSRCC) begin
-      // Value to put into link register and retain flags
-      p0_result_d = p2_pc_q+1; // should come through ALU or be part of RET instuction 
-    end
-    else begin
-      p0_result_d = alu_dout;
-      psr_d[`C] = alu_cout;
-      psr_d[`V] = alu_vout;
-      psr_d[`S] = alu_dout[31];
-      psr_d[`Z] = !(|alu_dout);
-      p0_result_d = alu_dout;
-    end
+    if ( p1_stage_valid_q ) begin
+        if ( p1_opcode_q == `LD_B ) begin
+          psr_d[`Z] = !(|p0_result_d);
+          psr_d[`S] = p0_result_d[7];
+        end
+        else if ( p1_opcode_q == `LD_H ) begin
+          psr_d[`Z] = !(|p0_result_d);
+          psr_d[`S] = p0_result_d[15];
+        end
+        else if ( p1_opcode_q == `LD_W ) begin
+          psr_d[`Z] = !(|p0_result_d);
+          psr_d[`S] = p0_result_d[31];
+        end
+        else if ( p1_rdest_q[5] ) begin
+          psr_d = alu_dout;
+        end
+        else if ( p1_opcode_q == `STO_B ||
+                  p1_opcode_q == `STO_H ||
+                  p1_opcode_q == `STO_W ||
+                  p1_opcode_q == `JRCC ||
+                  p1_opcode_q == `JMP  ||
+                  p1_opcode_q == `JSR || 
+                  p1_opcode_q == `JRSRCC) begin
+          // Retain flags
+          psr_d = psr_q;
+        end
+        else begin
+          psr_d[`C] = alu_cout;
+          psr_d[`V] = alu_vout;
+          psr_d[`S] = alu_dout[31];
+          psr_d[`Z] = !(|alu_dout);
+        end // else: !if( p1_opcode_q == `STO_B ||...
+    end // if ( p1_stage_valid_q )    
   end
 
   // Pipe Stage 1
@@ -329,13 +339,12 @@ module cpu_2432 (
     end
 
     // Pass through expanded opcode and dest/source register Ids
-    p1_opcode_d = p0_opcode_q;
+    p1_opcode_d = p0_opcode_q ;
     p1_rdest_d = p0_rdest_q;
     p1_rsrc0_d = p0_rsrc0_q;
     p1_rsrc1_d = p0_rsrc1_q;
 
     // Pick source, immediate and EAD data from the instruction format
-
     if ( p0_ead_use_imm_q )
       p1_ead_d = p0_imm_q;
     else
