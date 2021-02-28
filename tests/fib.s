@@ -1,7 +1,8 @@
         ORG 0000
 
 ## Start Vector
-        jmp START
+        jmp START1
+        
 ## Interrupt vectors
 L1:     WORD 00
         WORD 00
@@ -10,6 +11,10 @@ L1:     WORD 00
         WORD 00
         WORD 00
 
+START1:
+        jmp START
+
+        ORG 0x100
 START:
         # NB Data RAM is BYTE addressed
         mov  r1, RESULTS

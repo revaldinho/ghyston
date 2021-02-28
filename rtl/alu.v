@@ -4,7 +4,6 @@
 // this then needs multiple DSP slices and the final structure reduces the max clock speed by
 // around a half. A multi-cycle flag is provided to allow an extra cycle for these long multiplies
 // to complete without slowing down the machine for all other instructions.
-//`define MUL32 1
 
 `define ROT16 ((distance & 5'b10000)!=0)
 `define ROT8  ((distance & 5'b01000)!=0)
@@ -50,12 +49,14 @@ module alu(
       `AND        :{cout,dout} = {1'b0,(din_a & din_b)};
       `OR         :{cout,dout} = {1'b0,(din_a | din_b)};
       `XOR        :{cout,dout} = {1'b0, din_a ^ din_b};
+`ifdef INCLUDE_MUL      
 `ifdef MUL32
       // Wide multiply 32b x32b = 32b (truncated) uses 3 cycles and stretches the clock cycle to complete
       `MUL        :{mcp_out,cout,dout} = {1'b1, din_a * din_b};
 `else
       // Restrict multiplies to 18x18 to fit a single DSP slice on a Spartan 6 FPGA and single cycle execution
       `MUL        :{cout,dout} = {din_a[17:0] * din_b[17:0]};
+`endif
 `endif
       //`DIV        :{cout,dout} = {din_a[17:0] / din_b[17:0]};
       `ADD        :{cout,dout} = {din_a + din_b};
@@ -76,8 +77,10 @@ module alu(
       // overflow if -ve - +ve = +ve  or +ve - -ve = -ve
       vout =  ( din_a[31] & !din_b[31] & !dout[31]) ||
                 ( !din_a[31] & din_b[31] & dout[31]) ;
+`ifdef INCLUDE_MUL    
     else if ( opcode==`MUL)
       vout = !(din_a[31] ^ din_b[31] ^ dout[31]);
+`endif    
   end
 
 endmodule // alu

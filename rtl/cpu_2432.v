@@ -66,12 +66,6 @@ module cpu_2432 (
   assign o_ram_wr = p1_ram_wr_d;
   assign o_dout   = p1_ram_dout_d;
 
-  always @ (posedge i_clk) begin
-    if ( |o_ram_wr) begin
-      $display ("RAM write %08X to addr %04X" , o_dout, o_daddr);
-    end
-  end
-
   assign rf_wen = { (p1_rf_wr_q && p1_opcode_q != `LD_B &&  p1_opcode_q != `LD_H),
                     (p1_rf_wr_q && p1_opcode_q != `LD_B &&  p1_opcode_q != `LD_H),
                     (p1_rf_wr_q && p1_opcode_q != `LD_B &&  p1_opcode_q != `LMOVT),
@@ -113,7 +107,7 @@ module cpu_2432 (
   always @( * ) begin
     // defaults
     p0_rf_wr_d = 1'b1;           // default is for result to be written to reg file
-    p0_cond_d = 4'b0;            // default cond field to be 'unconditional'
+    p0_cond_d = 4'hF;            // default cond field to be 'unconditional'
     // Reg     =   PSR               PC                   RF Addr
     p0_rdest_d = { 1'b0, i_instr[`RDST_RNG]==`RPC , i_instr[`RDST_RNG] };
     p0_rsrc0_d = { 1'b0, i_instr[`RSRC0_RNG]==`RPC, i_instr[`RSRC0_RNG] };
@@ -169,7 +163,11 @@ module cpu_2432 (
         p0_rf_wr_d = 0;
       if (p0_ead_use_imm_d )
         p0_rsrc1_d = 6'b000000 ; // Unused set to RZero
+`ifdef INCLUDE_MUL      
       if ( p0_opcode_d == `MUL || p0_opcode_d == `ADD || p0_opcode_d == `SUB)
+`else
+      if ( p0_opcode_d == `ADD || p0_opcode_d == `SUB)
+`endif        
         p0_imm_d = { {22{i_instr[7]}} ,i_instr[7:4], i_instr[17:16], i_instr[3:0] };
       else
         p0_imm_d = { 22'b0 ,i_instr[7:4], i_instr[17:16], i_instr[3:0] };
@@ -314,10 +312,10 @@ module cpu_2432 (
   always @(*) begin
     // Set JMP bits if a jump/branch is to be taken
     p2_jump_taken_d = 0;
-
     if ( p1_stage_valid_q ) begin
-      p2_jump_taken_d = (p1_opcode_q == `JMP || p1_opcode_q == `JSR );
-      if ( p1_opcode_q==`JRCC || p1_opcode_q==`JRSRCC) begin
+      if (p1_opcode_q == `JMP || p1_opcode_q == `JSR )
+        p2_jump_taken_d = 1'b1;
+      else if ( p1_opcode_q==`JRCC || p1_opcode_q==`JRSRCC) begin
         case (p1_cond_q)
 	  `EQ: p2_jump_taken_d = (psr_q[`Z]==1);    // Equal
 	  `NE: p2_jump_taken_d = (psr_q[`Z]==0);    // Not equal
@@ -335,7 +333,9 @@ module cpu_2432 (
 	  `LE: p2_jump_taken_d = ((psr_q[`Z]==1) || (psr_q[`S]!=psr_q[`V])); // Signed less than or equal.
 	  default: p2_jump_taken_d = 1'b1 ;            // Always - unconditional
         endcase
-      end
+      end // if ( p1_opcode_q==`JRCC || p1_opcode_q==`JRSRCC)
+      else
+        p2_jump_taken_d = 1'b0;      
     end
 
     // Pass through expanded opcode and dest/source register Ids

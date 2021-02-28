@@ -54,7 +54,9 @@
 `define AND    6'b100000
 `define OR     6'b100010
 `define XOR    6'b100100
-`define MUL    6'b100110
+`ifdef INCLUDE_MUL
+  `define MUL    6'b100110
+`endif
 `define ADD    6'b101000
 `define SUB    6'b101010
 `define ASR    6'b101100
@@ -72,6 +74,9 @@
 `define JMP    6'b010110
 `define JSR    6'b010111
 
-
+// Including single cycle MUL18x18 limits clock speed to ~60MHz
+//`define INCLUDE_MUL 1
+// Making full 32x32 MUL slows clock speed down further
+//`define MUL32 1
 `define BYPASS_EN_D 1
 //`define HALF_RATE_D 1
