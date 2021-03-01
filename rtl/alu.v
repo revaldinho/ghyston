@@ -5,7 +5,12 @@
 // around a half. A multi-cycle flag is provided to allow an extra cycle for these long multiplies
 // to complete without slowing down the machine for all other instructions.
 
-`define ROT16 ((distance & 5'b10000)!=0)
+`ifdef SHIFT16
+  `define ROT16 ((distance & 5'b10000)!=0)
+`else
+  `define ROT16 1'b0
+`endif
+
 `define ROT8  ((distance & 5'b01000)!=0)
 `define ROT4  ((distance & 5'b00100)!=0)
 `define ROT2  ((distance & 5'b00010)!=0)
@@ -136,6 +141,7 @@ module barrel_shifter(
 
   // ROR - rotate through carry
   assign r_stg1 = ( `ROT16 ) ? { stg0[15:0],  stg0[64:16]}  : stg0;
+  assign r_stg1 = ( `ROT16 ) ? { stg0[15:0],  stg0[64:16]}  : stg0;  
   assign r_stg2 = ( `ROT8 ) ?  { r_stg1[7:0], r_stg1[64:8]} : r_stg1;
   assign r_stg3 = ( `ROT4 ) ?  { r_stg2[3:0], r_stg2[64:4]} : r_stg2;
   assign r_stg4 = ( `ROT2 ) ?  { r_stg3[1:0], r_stg3[64:2]} : r_stg3;
