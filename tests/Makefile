@@ -7,8 +7,11 @@ DUMPS = $(patsubst %.s,%.dump,$(SRCS))
 pyexec ?= python3
 assembler ?= ../tools/asm_2432.py
 
+# Use CPP on the .s file first to expand ifdefs
 %.hex %.lst : %.s
-	${pyexec} ${assembler} -f $< -o $*.hex -z 8192 > $*.lst
+	filepp -d -ds -dpre ';' $< > $*.spp
+	${pyexec} ${assembler} -f $*.spp -o $*.hex -z 8192 > $*.lst
+	rm $*.spp
 
 all: ${HEXS}
 
