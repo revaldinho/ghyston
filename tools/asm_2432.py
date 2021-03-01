@@ -145,7 +145,7 @@ def expand_macro(line, macro, mnum):  # recursively expand macros, passing on in
     (text,mobj)=([line],re.match("^(?P<label>\w*\:)?\s*(?P<name>\w+)\s*?\((?P<params>.*?)\)",line))
     if mobj and mobj.groupdict()["name"] in macro:
         (label,instname,paramstr)= (mobj.groupdict()["label"],mobj.groupdict()["name"],mobj.groupdict()["params"])
-        (text, instparams,mnum,nextmnum) = (["#%s" % line], [x.strip() for x in paramstr.split(",")],nextmnum,nextmnum+1)
+        (text, instparams,mnum,nextmnum) = ([";%s" % line], [x.strip() for x in paramstr.split(",")],nextmnum,nextmnum+1)
         if label:
             text.append("%s%s"% (label, ":" if (label != "" and label != "None" and not (label.endswith(":"))) else ""))
         for newline in macro[instname][1]:
@@ -163,10 +163,10 @@ def preprocess( filename ) :
         if mobj:
             (macroname,macro[macroname])=(mobj.groupdict()["name"],([x.strip() for x in (mobj.groupdict()["params"]).split(",")],[]))
         elif re.match("\s*?ENDMACRO.*", line, re.IGNORECASE):
-            (macroname, line) = (None, '# ' + line)
+            (macroname, line) = (None, '; ' + line)
         elif macroname:
             macro[macroname][1].append(line)
-        newtext.extend(expand_macro(('' if not macroname else '# ') + line, macro, mnum))
+        newtext.extend(expand_macro(('' if not macroname else '; ') + line, macro, mnum))
     return newtext
 
 def assemble( filename, listingon=True):
@@ -181,7 +181,7 @@ def assemble( filename, listingon=True):
     for iteration in range (0,2): # Two pass assembly
         (wcount,nextmem) = (0,0)
         for line in newtext:
-            mobj = re.match('^(?:(?P<label>\w+)\:)?(\s*)?(?P<inst>\w[\w\.]+)?\s*(?P<operands>.*)',re.sub("#.*","",line))
+            mobj = re.match('^(?:(?P<label>\w+)\:)?(\s*)?(?P<inst>\w[\w\.]+)?\s*(?P<operands>.*)',re.sub("(;.*|#.*)","",line))
             (label, inst, operands) = [ mobj.groupdict()[item] for item in ("label", "inst","operands")]
             (opfields,words, memptr) = ([ x.strip() for x in operands.split(",")],[], nextmem)
             if (iteration==0 and (label and label != "None") or (inst=="EQU")):
