@@ -6,6 +6,8 @@ module system_tb() ;
   reg         clk, reset_b, clken;
   wire [31:0] gpio_w;
   integer     cycle;
+  integer     instr_count;
+    
 
   parameter   VCD_FILE="", RAM_DUMP_FILE="";
 
@@ -40,11 +42,12 @@ module system_tb() ;
     $dumpfile(VCD_FILE);
     $dumpvars;
 `endif
+    instr_count = 0;    
     { clk, reset_b}  = 0;
     clken = 1'b1;
     cycle = 0;
-    #105 reset_b = 1;
-    #50000000 ;
+    #3005 reset_b = 1;
+    #500000000 ;
 `ifdef RAM_DUMP_FILE_D
     $writememh(RAM_DUMP_FILE, dut_0.dram_0.ram);
 `endif
@@ -52,9 +55,13 @@ module system_tb() ;
   end
 
   always @ ( posedge clk ) begin
-    if (dut_0.cpu_daddr_w == 24'h0FFFFFF &&
+    if ( dut_0.cpu_0.p1_stage_valid_d )
+      instr_count = instr_count+1;       
+    if (dut_0.cpu_daddr_w == 24'hFFFFFF &&
         dut_0.ram_wr_w == 1'b1) begin
-      $display("Simulation terminated at time", $time);      
+      $display("Simulation terminated at time", $time); 
+      $display("Executed %d instructions ", instr_count); 
+     
 `ifdef RAM_DUMP_FILE_D
     $writememh(RAM_DUMP_FILE, dut_0.dram_0.ram);
 `endif      
@@ -64,21 +71,15 @@ module system_tb() ;
   
   
   always begin
-    #10 clk = !clk;
+    #500 clk = !clk;
     if (clk ) cycle = cycle+1;
   end
 
 always @ ( posedge clk ) begin
   $display( "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ");  
-  $display( "P0: %10d: %02X : %02X : %d : %X %X %X %08X : %X : %d %d %d" , cycle,
+  $display( "P0: %10d: %02X : %08X : %d : %d %d " , cycle,
             dut_0.cpu_0.p0_pc_q,
-            dut_0.cpu_0.p0_opcode_q,
-            dut_0.cpu_0.p0_ead_use_imm_q,
-            dut_0.cpu_0.p0_rdest_q,
-            dut_0.cpu_0.p0_rsrc0_q,
-            dut_0.cpu_0.p0_rsrc1_q,
-            dut_0.cpu_0.p0_imm_q,
-            dut_0.cpu_0.p0_cond_q,
+            dut_0.cpu_0.p0_instr_q,
             dut_0.cpu_0.rstb_q,      
             dut_0.cpu_0.p0_moe_q,
             dut_0.cpu_0.p0_stage_valid_q );
@@ -118,7 +119,19 @@ always @ ( posedge clk ) begin
            dut_0.cpu_0.u0.rf_q[13],
            dut_0.cpu_0.u0.rf_q[14],
            dut_0.cpu_0.u0.rf_q[15]);
+
+  $display("p0_pc_d=%08x p0_pc_q=%08x (%d)  p1_pc_q=%08x (%d) p2_jump_taken_d=%d  p2_pc_q=%08x",
+            dut_0.cpu_0.p0_pc_d,           
+            dut_0.cpu_0.p0_pc_q,
+            dut_0.cpu_0.p0_stage_valid_q,                                  
+            dut_0.cpu_0.p1_pc_q,
+            dut_0.cpu_0.p1_stage_valid_q,                       
+           dut_0.cpu_0.p2_jump_taken_d,
+           dut_0.cpu_0.p2_pc_q
+           
+);
   
+           
 end
 
 

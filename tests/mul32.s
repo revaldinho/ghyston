@@ -1,3 +1,8 @@
+MACRO   HALT( )
+        movi    r0, 0xFFFF
+        movti   r0, 0x00FF
+        sto     r0, r0
+ENDMACRO
         
 
 
@@ -9,17 +14,23 @@
         ORG     0x100
 START:
         movi   r3, RESULTS
-        movi   r1, 0x0101
-        movi   r2, 0x0010
+        movi   r1, 0x0002
+        movi   r2, 0x0003
         jsr     qmul32b
         sto.w   r1, r3
-        add     r3, r3,4
-        movi   r1, 0x0100
-        movi   r2, 0x0110
+        add     r3, r3,1
+        movi   r1, 0x0002
+        movi   r2, 0x0003
         jsr     qmul32b
         sto.w   r1, r3
-        add     r3, r3,4
+        add     r3, r3,1
+        movi   r1, 0x0003
+        movi   r2, 0x0002
+        jsr     qmul32b
+        sto.w   r1, r3
+        add     r3, r3,1
 END:
+        HALT ()
         bra     END
         
 
@@ -60,6 +71,5 @@ qm32_2b:
         ret      r14             # return
 
         # DATA MEMORY
-        ORG 0
-RESULTS:
+        EQU     RESULTS, 0
         

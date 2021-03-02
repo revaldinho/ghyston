@@ -8,19 +8,9 @@
         ;; Translated from the OPC7 version.
 
         ;; define this to optimize for hardware multiplier but limited to 18x18 operation
-#define MUL18X18 1
-        
-
-MACRO PRINTNINES ( _ninesreg_, _value_ )
-        cmp     _ninesreg_,0
-        bcc     z @cont
-@l1:    mov     r1, 48
-        add     r1, r1, _value_
-        jsr     oswrch
-        sub     _ninesreg_,_ninesreg_,1
-        bcc     nz @l1
-@cont:
-ENDMACRO
+        ;; #define MUL18X18 1
+        ;; #define UNROLL_UDIV2 1
+        ;; #define UNROLL_UDIV4 1
 
 MACRO   WRCH( _reg_or_data_ )
         mov     r1, _reg_or_data_
@@ -104,33 +94,30 @@ L4:     ld.w    r2,r7                   ; r2 <- *remptr = r[i]
         asl     r2, r2, 3
         add     r1,r1,r2
 #endif
-        
-        add     r11,r11,r1              ; Q <- Q + (r[i]*10)
-        sub     r10, r10, 2             ; next denominator
-        mov     r1,r11                  ; Compute Q % denom, Q // denom
+        sub     r10, r10, 2             ; next denominator        
+        add     r1,r11,r1               ; Q <- Q + (r[i]*10)
         mov     r2,r10
-        jsr     udiv32
+        jsr     udiv32                  ; Compute Q % denom, Q // denom
         mov     r11,r1                  ; Q<- Quotient
         sto.w   r2, r7                  ; rem[i] <- r2
         sub     r7, r7, 1               ; dec remptr
         sub     r12, r12, 1             ; decr loop counter
         bra  z  L10                     ; break out if zero
 
-#ifdef MUL18X18        
-        mul     r11, r11, r12                 ; Q <- Q * i
-#else 
-        mov     r2, r12                 ; Q <- Q * i
-        mov     r1, r11
-        jsr     qmul32b
-        mov     r11,r1
-#endif
+;#ifdef MUL18X18        
+        mul     r11, r11, r12           ; Q <- Q * i
+;#else 
+;        mov     r2, r12                 ; Q <- Q * i
+;        mov     r1, r11
+;        jsr     qmul32b
+;        mov     r11,r1
+;#endif
         bra     L4                      ; loop again
 
 L10:    mov     r1,r11                  ; result (Q) = C + Q//10
         mov     r2,10
         jsr     udiv32
-        mov     r11,r1                  ; result (Q) = quotient + C
-        add     r11,r11,r5              ; add C
+        add     r11,r1,r5               ; result (Q) = quotient + C
         mov     r5,r2                   ; (new) C = remainder from division
 
         cmp     r11,9                   ; Is result a 9 ?
@@ -143,14 +130,15 @@ L4b:    cmp     r11,10                  ; Is result 10 and needing correction?
         add     r8, r8, 1               ; increment predigit
         mov     r11,0                   ; Zero result
         WRDIG   (r8)                    ; write predigit as ASCII
-
-        PRINTNINES (r6,0)               ; Now write out any nines as 0s
+        cmp     r6, 0        
+        bsr  nz PRINTZEROES             ; Now write out any nines as 0s
         bra     SDCL6b
 
 SDCL5:  cmp     r9,digits
         bra z   SDCL6a                  ; if first digit nothing to print yet
 SDCL8:  WRDIG   (r8)                    ; write predigit as ASCII
-        PRINTNINES (r6, 9)              ; Now write out any nines
+        cmp     r6, 0
+        bsr  nz PRINTNINES              ; Now write out any nines
 
 SDCL6a: cmp     r9,digits-1             ; Print the decimal point if this is the first digit printed
         bra nz  SDCL6b
@@ -161,8 +149,8 @@ SDCL6:  sub     r9, r9, 1               ; dec loop counter
         bra nz  L3
 
 SDCL7:  WRDIG    (r8)                    ; Print last predigit (ASCII) and any nines we are holding
-
-        PRINTNINES (r6,9)
+        cmp     r6, 0
+        bsr  nz PRINTNINES
 
 L7b:
         WRCH    (10)                   ; Print Newline to finish off
@@ -172,6 +160,36 @@ L7b:
 END:    HALT ()
         bra     END
 
+        
+        ; -----------------------------------------------------------------
+        ;
+        ; PRINTZEROES/PRINTNINES
+        ;
+        ; Print a string of nines or zeroes depending on the entry point.
+        ; The number of digits is given by the value in r6 on entry.
+        ;
+        ; Entry
+        ; - R6 holds a non-zero number of digits to print
+        ; - R14 holds return address
+        ;
+        ; Exit
+        ; - R6 holds zero
+        ; - R2, R1, R0 used as workspace and trashed (inc by oswrch)
+        ; - all other registers preserved
+        ; ------------------------------------------------------------------
+PRINTZEROES:
+        mov     r2, 48
+        bra     PZN0
+PRINTNINES:
+        mov     r2, 48+9
+PZN0:   mov     r3, r14         ; save return address before nested calls to oswrch        
+PZN1:   mov     r1, r2
+        jsr     oswrch
+        sub     r6,r6,1
+        ret  z  r3
+        bra     PZN1
+        
+#ifndef MUL18X18        
         ; -----------------------------------------------------------------
         ;
         ; qmul32
@@ -206,7 +224,7 @@ qm32_2b:
         ret  nc  r14             ; return if no carry
         add      r1, r1, r2      ; Add last copy of multiplicand into acc if carry was set
         ret      r14             ; return
-
+#endif
 	; -----------------------------------------------------------------
 	;
 	; udiv32 (udiv16)
@@ -245,9 +263,9 @@ udiv16:
 	movi    r0,16           ; loop counter
 	asl     r1, r1, 16      ; Move N into R1 upper half word/zero lower half
 udiv:
-	movi     r3,0           ; Initialise R
-	cmp      r2,0           ; check D != 0
-	ret  z   r14            ; bail out if zero (and carry will be set also)
+	movi    r3,0           ; Initialise R
+	cmp     r2,0           ; check D != 0
+	ret  z  r14            ; bail out if zero (and carry will be set also)
 udiv_1:
 	asl     r1, r1, 1       ; left shift N with MSB exiting into carry
 	rol     r3, r3, 1       ; left shift R and import carry into LSB
@@ -255,13 +273,50 @@ udiv_1:
 	bra  mi udiv_2          ; skip ahead if negative ..
 	sub     r3, r3, r2      ; ..otherwise do subtract for real..
 	add     r1, r1, 1       ; ..and increment quotient
+#ifdef UNROLL_UDIV2
+udiv_2:
+	asl     r1, r1, 1       ; left shift N with MSB exiting into carry
+	rol     r3, r3, 1       ; left shift R and import carry into LSB
+	cmp     r3, r2          ; compare R with D
+	bra  mi udiv_3          ; skip ahead if negative ..
+	sub     r3, r3, r2      ; ..otherwise do subtract for real..
+	add     r1, r1, 1       ; ..and increment quotient
+udiv_3: 
+	sub     r0, r0, 2       ; dec loop counter
+#else
+#ifdef UNROLL_UDIV4
+udiv_2:
+	asl     r1, r1, 1       ; left shift N with MSB exiting into carry
+	rol     r3, r3, 1       ; left shift R and import carry into LSB
+	cmp     r3, r2          ; compare R with D
+	bra  mi udiv_3          ; skip ahead if negative ..
+	sub     r3, r3, r2      ; ..otherwise do subtract for real..
+	add     r1, r1, 1       ; ..and increment quotient
+udiv_3:
+	asl     r1, r1, 1       ; left shift N with MSB exiting into carry
+	rol     r3, r3, 1       ; left shift R and import carry into LSB
+	cmp     r3, r2          ; compare R with D
+	bra  mi udiv_4          ; skip ahead if negative ..
+	sub     r3, r3, r2      ; ..otherwise do subtract for real..
+	add     r1, r1, 1       ; ..and increment quotient
+udiv_4:
+	asl     r1, r1, 1       ; left shift N with MSB exiting into carry
+	rol     r3, r3, 1       ; left shift R and import carry into LSB
+	cmp     r3, r2          ; compare R with D
+	bra  mi udiv_5          ; skip ahead if negative ..
+	sub     r3, r3, r2      ; ..otherwise do subtract for real..
+	add     r1, r1, 1       ; ..and increment quotient
+udiv_5: 
+	sub     r0, r0, 4       ; dec loop counter        
+#else
 udiv_2:
 	sub     r0, r0, 1       ; dec loop counter
+#endif
+#endif        
 	bra  nz udiv_1          ; repeat until zero
 	and     r1, r1, r1      ; clear carry
 	mov     r2, r3          ; put remainder into r2 for return
 	ret     r14
-
         ; --------------------------------------------------------------
         ;
         ; oswrch
