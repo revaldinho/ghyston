@@ -1,6 +1,5 @@
 `include "cpu_2432.vh"
 
-
 module cpu_2432 (
                  input [23:0]  i_instr,
                  input         i_clk,

@@ -8,9 +8,9 @@
         ;; Translated from the OPC7 version.
 
         ;; define this to optimize for hardware multiplier but limited to 18x18 operation
-#define MUL18X18 1
+        ;; #define MUL18X18 1
         ;; #define UNROLL_UDIV2 1
-#define UNROLL_UDIV4 1
+        ;; #define UNROLL_UDIV4 1
 
 MACRO   WRCH( _reg_or_data_ )
         mov     r1, _reg_or_data_
