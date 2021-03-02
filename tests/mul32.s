@@ -62,6 +62,11 @@ qmul32b:
 qm32_1b:
         bra  nc  qm32_2b
         add      r1, r1, r2      # add B into acc if carry
+        mov      r10,0
+        mov      r10,0
+        mov      r10,0
+        mov      r10,0        
+        
 qm32_2b:
         asl      r2, r2, 1       # multiply B x 2
         lsr      r0, r0, 1       # shift A to check LSB

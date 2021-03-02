@@ -8,9 +8,9 @@
         ;; Translated from the OPC7 version.
 
         ;; define this to optimize for hardware multiplier but limited to 18x18 operation
-        ;; #define MUL18X18 1
+#define MUL18X18 1
         ;; #define UNROLL_UDIV2 1
-        ;; #define UNROLL_UDIV4 1
+#define UNROLL_UDIV4 1
 
 MACRO   WRCH( _reg_or_data_ )
         mov     r1, _reg_or_data_
@@ -104,14 +104,14 @@ L4:     ld.w    r2,r7                   ; r2 <- *remptr = r[i]
         sub     r12, r12, 1             ; decr loop counter
         bra  z  L10                     ; break out if zero
 
-;#ifdef MUL18X18        
+#ifdef MUL18X18        
         mul     r11, r11, r12           ; Q <- Q * i
-;#else 
-;        mov     r2, r12                 ; Q <- Q * i
-;        mov     r1, r11
-;        jsr     qmul32b
-;        mov     r11,r1
-;#endif
+#else 
+        mov     r2, r12                 ; Q <- Q * i
+        mov     r1, r11
+        jsr     qmul32b
+        mov     r11,r1
+#endif
         bra     L4                      ; loop again
 
 L10:    mov     r1,r11                  ; result (Q) = C + Q//10
