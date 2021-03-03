@@ -1,3 +1,8 @@
+MACRO   HALT( )
+        movi    r0, 0xFFFF
+        movti   r0, 0x00FF
+        sto     r0, r0
+ENDMACRO
         
 
 
@@ -9,17 +14,23 @@
         ORG     0x100
 START:
         movi   r3, RESULTS
-        movi   r1, 0x0101
-        movi   r2, 0x0010
+        movi   r1, 0x0002
+        movi   r2, 0x0003
         jsr     qmul32b
         sto.w   r1, r3
-        add     r3, r3,4
-        movi   r1, 0x0100
-        movi   r2, 0x0110
+        add     r3, r3,1
+        movi   r1, 0x0002
+        movi   r2, 0x0003
         jsr     qmul32b
         sto.w   r1, r3
-        add     r3, r3,4
+        add     r3, r3,1
+        movi   r1, 0x0003
+        movi   r2, 0x0002
+        jsr     qmul32b
+        sto.w   r1, r3
+        add     r3, r3,1
 END:
+        HALT ()
         bra     END
         
 
@@ -51,6 +62,11 @@ qmul32b:
 qm32_1b:
         bra  nc  qm32_2b
         add      r1, r1, r2      # add B into acc if carry
+        mov      r10,0
+        mov      r10,0
+        mov      r10,0
+        mov      r10,0        
+        
 qm32_2b:
         asl      r2, r2, 1       # multiply B x 2
         lsr      r0, r0, 1       # shift A to check LSB
@@ -60,6 +76,5 @@ qm32_2b:
         ret      r14             # return
 
         # DATA MEMORY
-        ORG 0
-RESULTS:
+        EQU     RESULTS, 0
         

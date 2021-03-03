@@ -94,12 +94,12 @@ op = {
     "spare3"    : {"format":"a", "opcode": 0 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "spare4"    : {"format":"a", "opcode": 2 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "ld.w"    : {"format":"a", "opcode": 4 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
-    "ld"      : {"format":"a", "opcode": 4 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},    
+    "ld"      : {"format":"a", "opcode": 4 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "mov"     : {"format":"a", "opcode": 6 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "spare1"   : {"format":"b", "opcode": 8 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "spare2"   : {"format":"b", "opcode": 10 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "sto.w"   : {"format":"b", "opcode": 12 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
-    "sto"     : {"format":"b", "opcode": 12 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},    
+    "sto"     : {"format":"b", "opcode": 12 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
 #   ""        : {"format":"b", "opcode": 14 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":0},
     "jr"      : {"format":"c", "opcode": 16 ,"sext":False, "cond":True,  "operands":2, "sext": False, "min_imm":-512, "max_imm":511}, # COND field is optional in source code
     # Ret is a synonmym for JR AL RLINK,0
@@ -107,7 +107,7 @@ op = {
     "bra"     : {"format":"c", "opcode": 16 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},
     "bcc"     : {"format":"c", "opcode": 16 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},
     "jrsr"    : {"format":"c", "opcode": 18 ,"sext":False, "cond":True,  "operands":2, "sext": False, "min_imm":-512, "max_imm":511},
-    "bsr"     : {"format":"c", "opcode": 18 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},    
+    "bsr"     : {"format":"c", "opcode": 18 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},
     "reti"    : {"format":"c", "opcode": 21 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":0,    "max_imm":0},
     "jmp"     : {"format":"c2","opcode": 22 ,"sext":False, "cond":False, "operands":1, "sext": False, "min_imm":0,    "max_imm":262143},
     "jsr"     : {"format":"c2","opcode": 23 ,"sext":False, "cond":False, "operands":1, "sext": False, "min_imm":0,    "max_imm":262143},
@@ -145,7 +145,7 @@ def expand_macro(line, macro, mnum):  # recursively expand macros, passing on in
     (text,mobj)=([line],re.match("^(?P<label>\w*\:)?\s*(?P<name>\w+)\s*?\((?P<params>.*?)\)",line))
     if mobj and mobj.groupdict()["name"] in macro:
         (label,instname,paramstr)= (mobj.groupdict()["label"],mobj.groupdict()["name"],mobj.groupdict()["params"])
-        (text, instparams,mnum,nextmnum) = (["#%s" % line], [x.strip() for x in paramstr.split(",")],nextmnum,nextmnum+1)
+        (text, instparams,mnum,nextmnum) = ([";%s" % line], [x.strip() for x in paramstr.split(",")],nextmnum,nextmnum+1)
         if label:
             text.append("%s%s"% (label, ":" if (label != "" and label != "None" and not (label.endswith(":"))) else ""))
         for newline in macro[instname][1]:
@@ -163,10 +163,10 @@ def preprocess( filename ) :
         if mobj:
             (macroname,macro[macroname])=(mobj.groupdict()["name"],([x.strip() for x in (mobj.groupdict()["params"]).split(",")],[]))
         elif re.match("\s*?ENDMACRO.*", line, re.IGNORECASE):
-            (macroname, line) = (None, '# ' + line)
+            (macroname, line) = (None, '; ' + line)
         elif macroname:
             macro[macroname][1].append(line)
-        newtext.extend(expand_macro(('' if not macroname else '# ') + line, macro, mnum))
+        newtext.extend(expand_macro(('' if not macroname else '; ') + line, macro, mnum))
     return newtext
 
 def assemble( filename, listingon=True):
@@ -181,7 +181,7 @@ def assemble( filename, listingon=True):
     for iteration in range (0,2): # Two pass assembly
         (wcount,nextmem) = (0,0)
         for line in newtext:
-            mobj = re.match('^(?:(?P<label>\w+)\:)?(\s*)?(?P<inst>\w[\w\.]+)?\s*(?P<operands>.*)',re.sub("#.*","",line))
+            mobj = re.match('^(?:(?P<label>\w+)\:)?(\s*)?(?P<inst>\w[\w\.]+)?\s*(?P<operands>.*)',re.sub("(;.*|#.*)","",line))
             (label, inst, operands) = [ mobj.groupdict()[item] for item in ("label", "inst","operands")]
             (opfields,words, memptr) = ([ x.strip() for x in operands.split(",")],[], nextmem)
             if (iteration==0 and (label and label != "None") or (inst=="EQU")):
@@ -245,20 +245,20 @@ def assemble( filename, listingon=True):
                 else:
                     words = []
 
-                # deal with RET synonym for JR CC Rlink,1               
+                # deal with RET synonym for JR CC Rlink,1
                 if inst in ("ret" ):
                     if len(opfields) == 0:
                         opfields.append("r14")
                         words.append(14)
-                        opfields.append("0") 
-                        words.append(0)                        
+                        opfields.append("0")
+                        words.append(0)
                     elif len(opfields) == 1 and (opfields[0]==''):
                         opfields[0] = "r14"
                         words.append(14)
-                        opfields.append("0") 
+                        opfields.append("0")
                         words.append(0)
                     elif len(opfields) == 1:
-                        opfields.append("0") 
+                        opfields.append("0")
                         words.append(0)
 
                 if ( op[inst]["operands"] != len(words)):
@@ -337,7 +337,7 @@ def assemble( filename, listingon=True):
                     imm1714  = ((imm & 0b00111100000000000000) >> 14)
 
                     # Populate standard fields first
-                    iword = (op[inst]["opcode"]<<18)| ((rdest | cond ) << 12) | ((rsrc1 ) << 8) | ((rsrc2 ) << 4) | imm30 
+                    iword = (op[inst]["opcode"]<<18)| ((rdest | cond ) << 12) | ((rsrc1 ) << 8) | ((rsrc2 ) << 4) | imm30
                     # Now fit in immediate segments
                     if ifmt == "a" and direct:
                         iword  = iword | (imm54<<16) | (imm1310<<8) | (imm96<<4)| (1<<18 if direct else 0)
@@ -383,7 +383,7 @@ if __name__ == "__main__":
     start_adr = 0
     size = 0
     try:
-        opts, args = getopt.getopt( sys.argv[1:], "f:o:g:s:z:hn", ["filename=","output=","format=","start_adr=","size=","help","nolisting"])
+        opts, args = getopt.getopt( sys.argv[1:], "f:o:g:s:z:hn", ["filename=","output=","format=","start_adr=","size=", "help","nolisting"])
     except getopt.GetoptError as  err:
         print(err)
         usage()

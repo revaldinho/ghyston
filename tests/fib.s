@@ -1,3 +1,11 @@
+
+MACRO   HALT( )
+        movi    r0, 0xFFFF
+        movti   r0, 0x00FF
+        sto     r0, r0
+ENDMACRO
+
+
         ORG 0000
 
 ## Start Vector
@@ -16,21 +24,20 @@ START1:
 
         ORG 0x100
 START:
-        # NB Data RAM is BYTE addressed
         mov  r1, RESULTS
         mov  r5,r1
         mov  r1, 0
         mov  r2, 1
         mov  r3, 10
         sto.w r1, r5
-        add   r5, r5, 4
+        add   r5, r5, 1
 LOOP:
         sto.w r2, r5
         add   r4, r1, r2
         mov   r1, r2
         mov   r0, r0
         mov   r2, r4
-        add   r5, r5, 4
+        add   r5, r5, 1
         sub   r3, r3, 1
         bcc   nz LOOP
         # these instructions will get fetched but should NOT complete 'til
@@ -40,6 +47,7 @@ LOOP:
         mov   r5,r0
 
 END:
+        HALT ()
         bra END
 
 END2:

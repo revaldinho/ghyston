@@ -1,7 +1,5 @@
 `include "cpu_2432.vh"
 
-`define DEBUG_D 1
-
 module cpu_2432 (
                  input [23:0]  i_instr,
                  input         i_clk,
@@ -17,21 +15,15 @@ module cpu_2432 (
 
   reg [31:0]                   psr_d, psr_q;
   reg [3:0]                    rf_wr_en_d;
-  reg [31:0]                   p0_pc_d, p0_pc_q;
   reg                          rstb_q;
+  reg [31:0]                   p0_pc_d, p0_pc_q;
+  reg [23:0]                   p0_instr_q;
   reg                          p0_stage_valid_d, p0_stage_valid_q;
-  reg [5:0]                    p0_opcode_d, p0_opcode_q;
-  reg                          p0_ead_use_imm_d, p0_ead_use_imm_q;
-  // ID the dest/source registers with additional one-hot bits for RZERO, PSR, PC + the original instr field
-  reg [5:0]                    p0_rdest_d, p0_rdest_q;
-  reg [5:0]                    p0_rsrc0_d, p0_rsrc0_q;
-  reg [5:0]                    p0_rsrc1_d, p0_rsrc1_q;
-  // Pre-assembled from whichever instruction format is in use, sign extended to 32b
-  reg [31:0]                   p0_imm_d, p0_imm_q;
-  reg [3:0]                    p0_cond_d, p0_cond_q;
   reg [31:0]                   p0_result_d ;
-  reg                          p0_rf_wr_d, p0_rf_wr_q;
   reg                          p0_moe_d, p0_moe_q;
+
+  reg                          p1_ead_use_imm_d, p1_ead_use_imm_q;
+  reg [31:0]                   p1_imm_d, p1_imm_q;
   reg [31:0]                   p1_pc_d, p1_pc_q;
   reg                          p1_jump_taken_d, p1_jump_taken_q;
   reg                          p1_stage_valid_d, p1_stage_valid_q;
@@ -57,8 +49,17 @@ module cpu_2432 (
   wire [31:0]                  rf_dout_0;
   wire [31:0]                  rf_dout_1;
   wire [3:0]                   rf_wen;
-  wire [3:0]                   rf0_wen;
+  wire [23:0]                  raw_instr_w;
 
+`ifdef TWO_STAGE_PIPE
+  assign raw_instr_w = i_instr;
+`else
+  assign raw_instr_w = p0_instr_q;
+`endif
+
+`ifndef BYPASS_EN_D
+  wire [3:0]                   rf0_wen;
+`endif
 
   assign o_iaddr  = p0_pc_d[23:0];
   assign o_daddr  = p1_ead_d[23:0];
@@ -71,18 +72,20 @@ module cpu_2432 (
                     (p1_rf_wr_q && p1_opcode_q != `LMOVT),
                     (p1_rf_wr_q && p1_opcode_q != `LMOVT) };
 
-  assign rf0_wen = { (p0_rf_wr_q ),
-                     (p0_rf_wr_q ),
-                     (p0_rf_wr_q && p0_opcode_q != `LMOVT),
-                     (p0_rf_wr_q && p0_opcode_q != `LMOVT) };
+`ifndef BYPASS_EN_D
+  assign rf0_wen = { (p1_rf_wr_d ),
+                     (p1_rf_wr_d ),
+                     (p1_rf_wr_d && p1_opcode_d != `LMOVT),
+                     (p1_rf_wr_d && p1_opcode_d != `LMOVT) };
+`endif
 
   // General Register File
   grf1w2r u0(
              .i_waddr(p1_rdest_q[3:0]),
              .i_cs_b ( !(p1_stage_valid_q &&  !(|(p1_rdest_q[5:4])))),
              .i_wen(rf_wen),
-             .i_raddr_0(p0_rsrc0_q[3:0]),
-             .i_raddr_1(p0_rsrc1_q[3:0]),
+             .i_raddr_0(p1_rsrc0_d[3:0]),
+             .i_raddr_1(p1_rsrc1_d[3:0]),
              .i_din(p0_result_d),
              .i_clk(i_clk),
              .i_clk_en(clk_en_w),
@@ -103,74 +106,74 @@ module cpu_2432 (
           .vout( alu_vout )
           );
 
-  // Pipe Stage 0
+  // Pipe Stage 1
   always @( * ) begin
     // defaults
-    p0_rf_wr_d = 1'b1;           // default is for result to be written to reg file
-    p0_cond_d = 4'hF;            // default cond field to be 'unconditional'
+    p1_rf_wr_d = 1'b1;           // default is for result to be written to reg file
+    p1_cond_d = 4'hF;            // default cond field to be 'unconditional'
     // Reg     =   PSR               PC                   RF Addr
-    p0_rdest_d = { 1'b0, i_instr[`RDST_RNG]==`RPC , i_instr[`RDST_RNG] };
-    p0_rsrc0_d = { 1'b0, i_instr[`RSRC0_RNG]==`RPC, i_instr[`RSRC0_RNG] };
-    p0_rsrc1_d = { 1'b0, i_instr[`RSRC1_RNG]==`RPC, i_instr[`RSRC1_RNG] };
+    p1_rdest_d = { 1'b0, raw_instr_w[`RDST_RNG]==`RPC , raw_instr_w[`RDST_RNG] };
+    p1_rsrc0_d = { 1'b0, raw_instr_w[`RSRC0_RNG]==`RPC, raw_instr_w[`RSRC0_RNG] };
+    p1_rsrc1_d = { 1'b0, raw_instr_w[`RSRC1_RNG]==`RPC, raw_instr_w[`RSRC1_RNG] };
 
     // Most instructions use 5 MSBs as instruction and 1 bit as direct flag
-    p0_opcode_d = { i_instr[23:19], 1'b0};      // Blank out LSB
-    p0_ead_use_imm_d = i_instr[18];
-    p0_imm_d = 32'b000000;
+    p1_opcode_d = { raw_instr_w[23:19], 1'b0};      // Blank out LSB
+    p1_ead_use_imm_d = raw_instr_w[18];
+    p1_imm_d = 32'b000000;
     // Expand or pad the opcode, unpack immediates and update any implied register source/dests
-    if (i_instr[23:21] == 3'b000 ) begin // Format A
-      p0_imm_d = { 18'b0, i_instr[11:4], i_instr[17:16], i_instr[3:0]};
-      p0_rsrc0_d = 6'b000000 ; // Unused set to RZero
+    if (raw_instr_w[23:21] == 3'b000 ) begin // Format A
+      p1_imm_d = { 18'b0, raw_instr_w[11:4], raw_instr_w[17:16], raw_instr_w[3:0]};
+      p1_rsrc0_d = 6'b000000 ; // Unused set to RZero
     end
-    else if (i_instr[23:21] == 3'b001 ) begin // Format B
-      p0_rf_wr_d = 0; // no register writes from a STO
-      p0_rdest_d = 6'b000000 ; // Unused set to RZero
-      p0_imm_d = { 18'b0, i_instr[15:12], i_instr[7:4], i_instr[17:16], i_instr[3:0]};
+    else if (raw_instr_w[23:21] == 3'b001 ) begin // Format B
+      p1_rf_wr_d = 0; // no register writes from a STO
+      p1_rdest_d = 6'b000000 ; // Unused set to RZero
+      p1_imm_d = { 18'b0, raw_instr_w[15:12], raw_instr_w[7:4], raw_instr_w[17:16], raw_instr_w[3:0]};
     end
-    else if (i_instr[23:21] == 3'b010 ) begin // Format C
-      p0_rf_wr_d = 0; // default is no RF write for format C
-      p0_rdest_d = 6'b000000 ;
-      p0_ead_use_imm_d = i_instr[18] || ( p0_opcode_d== `JMP || p0_opcode_d==`JSR);
-      if ( p0_opcode_d == `JMP || p0_opcode_d == `JSR ) begin // C2
-        p0_opcode_d = { i_instr[`OPCODE_RNG] };
-        if (  p0_opcode_d == `JSR)
-          p0_rf_wr_d = 1;
-          p0_rdest_d = 6'b001110 ; // Rlink= R14
-        p0_imm_d = { 14'b0, i_instr[15:4], i_instr[17:16], i_instr[3:0]};
-        p0_rsrc0_d = 6'b000000 ; // Unused set to RZero
-        p0_rsrc1_d = 6'b000000 ; // Unused set to RZero
+    else if (raw_instr_w[23:21] == 3'b010 ) begin // Format C
+      p1_rf_wr_d = 0; // default is no RF write for format C
+      p1_rdest_d = 6'b000000 ;
+      p1_ead_use_imm_d = raw_instr_w[18] || ( p1_opcode_d== `JMP || p1_opcode_d==`JSR);
+      if ( p1_opcode_d == `JMP || p1_opcode_d == `JSR ) begin // C2
+        p1_opcode_d = { raw_instr_w[`OPCODE_RNG] };
+        if ( p1_opcode_d == `JSR)
+          p1_rf_wr_d = 1;
+          p1_rdest_d = 6'b001110 ; // Rlink= R14
+        p1_imm_d = { 14'b0, raw_instr_w[15:4], raw_instr_w[17:16], raw_instr_w[3:0]};
+        p1_rsrc0_d = 6'b000000 ; // Unused set to RZero
+        p1_rsrc1_d = 6'b000000 ; // Unused set to RZero
       end
       else begin
-        if ( p0_opcode_d == `JRSRCC)
-          p0_rf_wr_d = 1;
-          p0_rdest_d = 6'b001110 ; // Rlink= R14
+        if ( p1_opcode_d == `JRSRCC)
+          p1_rf_wr_d = 1;
+          p1_rdest_d = 6'b001110 ; // Rlink= R14
         // Sign extend immediates
-        p0_imm_d = { {22{i_instr[7]}}, i_instr[7:4], i_instr[17:16], i_instr[3:0]};
-        p0_cond_d = i_instr[`RDST_RNG];
+        p1_imm_d = { {22{raw_instr_w[7]}}, raw_instr_w[7:4], raw_instr_w[17:16], raw_instr_w[3:0]};
+        p1_cond_d = raw_instr_w[`RDST_RNG];
       end
     end
-    else if (i_instr[23:21] == 3'b011 ) begin // Format D - Blank out two LSBs
-      p0_opcode_d = { i_instr[23:20], 2'b00};
+    else if (raw_instr_w[23:21] == 3'b011 ) begin // Format D - Blank out two LSBs
+      p1_opcode_d = { raw_instr_w[23:20], 2'b00};
       // No need to read reg for MOVT - dealt with by byte enables
-      p0_rsrc0_d = 6'b000000 ; // Unused set to RZero
-      p0_rsrc1_d = 6'b000000 ; // Unused set to RZero
-      p0_imm_d = { 16'b0, i_instr[19:18], i_instr[11:4], i_instr[17:16], i_instr[3:0] };
-      p0_ead_use_imm_d = 1'b1;
+      p1_rsrc0_d = 6'b000000 ; // Unused set to RZero
+      p1_rsrc1_d = 6'b000000 ; // Unused set to RZero
+      p1_imm_d = { 16'b0, raw_instr_w[19:18], raw_instr_w[11:4], raw_instr_w[17:16], raw_instr_w[3:0] };
+      p1_ead_use_imm_d = 1'b1;
     end
     else begin // Format E
       // Sign extended data for arithmetic operations
-      if ( p0_opcode_d == `CMP || p0_opcode_d== `BTST )
-        p0_rf_wr_d = 0;
-      if (p0_ead_use_imm_d )
-        p0_rsrc1_d = 6'b000000 ; // Unused set to RZero
+      if ( p1_opcode_d == `CMP || p1_opcode_d== `BTST )
+        p1_rf_wr_d = 0;
+      if (p1_ead_use_imm_d )
+        p1_rsrc1_d = 6'b000000 ; // Unused set to RZero
 `ifdef INCLUDE_MUL
-      if ( p0_opcode_d == `MUL || p0_opcode_d == `ADD || p0_opcode_d == `SUB)
+      if ( p1_opcode_d == `MUL || p1_opcode_d == `ADD || p1_opcode_d == `SUB)
 `else
-      if ( p0_opcode_d == `ADD || p0_opcode_d == `SUB)
+      if ( p1_opcode_d == `ADD || p1_opcode_d == `SUB)
 `endif
-        p0_imm_d = { {22{i_instr[7]}} ,i_instr[7:4], i_instr[17:16], i_instr[3:0] };
+        p1_imm_d = { {22{raw_instr_w[7]}} ,raw_instr_w[7:4], raw_instr_w[17:16], raw_instr_w[3:0] };
       else
-        p0_imm_d = { 22'b0 ,i_instr[7:4], i_instr[17:16], i_instr[3:0] };
+        p1_imm_d = { 22'b0 ,raw_instr_w[7:4], raw_instr_w[17:16], raw_instr_w[3:0] };
     end
   end
 
@@ -184,19 +187,19 @@ module cpu_2432 (
     // rather than use a combinatorial bypass
 //`define BYPASS_EN_D 1
 `ifdef BYPASS_EN_D
-    p0_moe_d = rstb_q & !((p0_opcode_q == `LD_W) &&
-                          (p0_opcode_q == `STO_W));  // rstb_q FF delays coming out of reset by 1 cycle
+    p0_moe_d = rstb_q & !((p1_opcode_d == `LD_W) &&
+                          (p1_opcode_d == `STO_W));  // rstb_q FF delays coming out of reset by 1 cycle
 `else
 //  `define HALF_RATE_D 1
   `ifdef HALF_RATE_D
     p0_moe_d = !p0_moe_q;
   `else
     p0_moe_d =  ;
-//    $display("%02X %d %X %d %02X %02X %02X", p0_opcode_d, p0_moe_q,rf0_wen, p0_stage_valid_q, p0_rdest_q, p0_rsrc0_d, p0_rsrc1_d);
+//    $display("%02X %d %X %d %02X %02X %02X", p0_opcode_d, p0_moe_q,rf0_wen, p0_stage_valid_q, p1_rdest_d, p0_rsrc0_d, p0_rsrc1_d);
     if ( p0_moe_q )
-      if ((|rf0_wen) & !(|p0_rdest_q[5:4])) begin
-        if ( (p0_rdest_q == p0_rsrc0_d) || (p0_rdest_q == p0_rsrc1_d) ) begin
-          $display("Delay one cycle or write-through for R%d", p0_rdest_q[3:0]);
+      if ((|rf0_wen) & !(|p1_rdest_d[5:4])) begin
+        if ( (p1_rdest_d == p0_rsrc0_d) || (p1_rdest_d == p0_rsrc1_d) ) begin
+          $display("Delay one cycle or write-through for R%d", p1_rdest_d[3:0]);
           p0_moe_d = 1'b0;
         end
       end
@@ -210,16 +213,20 @@ module cpu_2432 (
     if ( p2_jump_taken_d && p1_stage_valid_q)
       if ( p1_opcode_q == `JMP || p1_opcode_q == `JSR )
         p0_pc_d = p1_ead_q;
-      else
+      else // BRAnch
         // need to read the PC associated with the jump instruction
         // and ensure that stalling is accounted for
         if (p1_rsrc0_q[3:0]==4'b1111)
-          p0_pc_d = p1_ead_q + p2_pc_q;
+`ifdef TWO_STAGE_PIPE          
+          p0_pc_d = p1_ead_q + p1_pc_q ;
+`else    
+          p0_pc_d = p1_ead_q + p2_pc_q ;
+`endif    
         else
           p0_pc_d = p1_ead_q + p1_src0_data_q ;
     // If pipe0 is moving then increment PC
     else if (p0_moe_d )
-      p0_pc_d = p0_pc_q + 1;
+      p0_pc_d = p0_pc_q + 1 ;
     else
       p0_pc_d = p0_pc_q ;
   end
@@ -232,7 +239,11 @@ module cpu_2432 (
         p0_result_d = i_din ;
       else if (p1_opcode_q == `JSR || p1_opcode_q == `JRSRCC)
         // Value to put into link register and retain flags
+`ifdef TWO_STAGE_PIPE
+        p0_result_d = p1_pc_q+1; // should come through ALU or be part of RET instuction ie JR CC Rlink, +1        
+`else 
         p0_result_d = p2_pc_q+1; // should come through ALU or be part of RET instuction ie JR CC Rlink, +1
+`endif      
     end // if ( p1_stage_valid_q )
   end
 
@@ -269,15 +280,17 @@ module cpu_2432 (
     p1_ram_wr_d = 1'b0;
     p1_ram_dout_d = p1_src0_data_d;
     p1_ram_rd_d = 1'b0;
-    p1_cond_d = p0_cond_q;
     p1_pc_d = p0_pc_q;
-    p1_rf_wr_d = p0_rf_wr_q;
     p2_pc_d = p1_pc_q;
 
+`ifdef TWO_STAGE_PIPE
+    p1_stage_valid_d = rstb_q & p0_moe_d & !p2_jump_taken_d ;  // invalidate any instruction behind a taken jump
+`else
     p1_stage_valid_d = p0_stage_valid_q & !p2_jump_taken_d ;  // invalidate any instruction behind a taken jump
+`endif
     if ( p1_stage_valid_d ) begin
-      p1_ram_rd_d = (p0_opcode_q == `LD_W );
-      if ( p0_opcode_q == `STO_W ) begin
+      p1_ram_rd_d = (p1_opcode_d == `LD_W );
+      if ( p1_opcode_d == `STO_W ) begin
         p1_ram_wr_d = 1'b1;
         p1_ram_dout_d = p1_src0_data_d;
       end
@@ -313,22 +326,16 @@ module cpu_2432 (
         p2_jump_taken_d = 1'b0;
     end
 
-    // Pass through expanded opcode and dest/source register Ids
-    p1_opcode_d = p0_opcode_q ;
-    p1_rdest_d = p0_rdest_q;
-    p1_rsrc0_d = p0_rsrc0_q;
-    p1_rsrc1_d = p0_rsrc1_q;
-
     // Pick source, immediate and EAD data from the instruction format
-    if ( p0_ead_use_imm_q )
-      p1_ead_d = p0_imm_q;
+    if ( p1_ead_use_imm_d )
+      p1_ead_d = p1_imm_d;
     else
-      p1_ead_d =  ((p0_rsrc1_q[5]) ? psr_q:
-                   (p0_rsrc1_q[4]) ? p0_pc_q:
+      p1_ead_d =  ((p1_rsrc1_d[5]) ? psr_q:
+                   (p1_rsrc1_d[4]) ? p0_pc_q:
                    rf_dout_1 );
 
-    p1_src0_data_d = ((p0_rsrc0_q[5]) ? psr_q:
-                      (p0_rsrc0_q[4]) ? p0_pc_q:
+    p1_src0_data_d = ((p1_rsrc0_d[5]) ? psr_q:
+                      (p1_rsrc0_d[4]) ? p0_pc_q:
                       rf_dout_0);
   end
 
@@ -347,15 +354,10 @@ module cpu_2432 (
       psr_q            <= 0;
       p0_pc_q          <= 0;
       p0_stage_valid_q <= 0;
-      p0_opcode_q      <= 0;
-      p0_ead_use_imm_q <= 0;
-      p0_rdest_q       <= 0;
-      p0_rsrc0_q       <= 0;
-      p0_rsrc1_q       <= 0;
-      p0_imm_q         <= 0;
-      p0_cond_q        <= 0;
-      p0_rf_wr_q       <= 0;
       p0_moe_q         <= 0;
+`ifndef TWO_STAGE_PIPE
+      p0_instr_q       <= 0;
+`endif
       p1_pc_q          <= 0;
       p1_jump_taken_q  <= 0;
       p1_stage_valid_q <= 0;
@@ -376,17 +378,12 @@ module cpu_2432 (
       if ( clk_en_w ) begin
         rstb_q   <= i_rstb;
         p0_moe_q <= p0_moe_d;
+`ifndef TWO_STAGE_PIPE
+        p0_instr_q <= i_instr;
+`endif
         p0_stage_valid_q <= p0_stage_valid_d;
         psr_q <= psr_d;
         p0_pc_q <= p0_pc_d;
-        p0_opcode_q <= p0_opcode_d;
-        p0_ead_use_imm_q <= p0_ead_use_imm_d;
-        p0_rdest_q <= p0_rdest_d;
-        p0_rsrc0_q <= p0_rsrc0_d;
-        p0_rsrc1_q <= p0_rsrc1_d;
-        p0_imm_q <= p0_imm_d;
-        p0_cond_q <= p0_cond_d;
-        p0_rf_wr_q <= p0_rf_wr_d;
 
         p1_pc_q <= p1_pc_d;
         p1_cond_q <= p1_cond_d;
@@ -401,7 +398,6 @@ module cpu_2432 (
         p1_rsrc1_q <= p1_rsrc1_d;
         p1_opcode_q <= p1_opcode_d;
         p1_rf_wr_q <= p1_rf_wr_d;
-
         p2_pc_q <= p2_pc_d;
         p2_jump_taken_q <= p2_jump_taken_d;
       end
