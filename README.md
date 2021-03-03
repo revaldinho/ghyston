@@ -1,1 +1,1 @@
-# ghyston
+# Ghyston & Goram
