@@ -2,7 +2,7 @@
         ;; Program to generate Pi using the Spigot Algorithm from
         ;;
         ;; http://web.archive.org/web/20110716080608/http://www.mathpropress.com/stan/bibliography/spigot.pdf
-        ;;      
+        ;;
         ;; Full 32b version, with collect-9s algorithm for correcting pre-digit overflow
         ;;
         ;; Translated from the OPC7 version.
@@ -94,7 +94,7 @@ L4:     ld.w    r2,r7                   ; r2 <- *remptr = r[i]
         asl     r2, r2, 3
         add     r1,r1,r2
 #endif
-        sub     r10, r10, 2             ; next denominator        
+        sub     r10, r10, 2             ; next denominator
         add     r1,r11,r1               ; Q <- Q + (r[i]*10)
         mov     r2,r10
         jsr     udiv32                  ; Compute Q % denom, Q // denom
@@ -104,9 +104,9 @@ L4:     ld.w    r2,r7                   ; r2 <- *remptr = r[i]
         sub     r12, r12, 1             ; decr loop counter
         bra  z  L10                     ; break out if zero
 
-#ifdef MUL18X18        
+#ifdef MUL18X18
         mul     r11, r11, r12           ; Q <- Q * i
-#else 
+#else
         mov     r2, r12                 ; Q <- Q * i
         mov     r1, r11
         jsr     qmul32b
@@ -130,7 +130,7 @@ L4b:    cmp     r11,10                  ; Is result 10 and needing correction?
         add     r8, r8, 1               ; increment predigit
         mov     r11,0                   ; Zero result
         WRDIG   (r8)                    ; write predigit as ASCII
-        cmp     r6, 0        
+        cmp     r6, 0
         bsr  nz PRINTZEROES             ; Now write out any nines as 0s
         bra     SDCL6b
 
@@ -160,7 +160,7 @@ L7b:
 END:    HALT ()
         bra     END
 
-        
+
         ; -----------------------------------------------------------------
         ;
         ; PRINTZEROES/PRINTNINES
@@ -182,14 +182,14 @@ PRINTZEROES:
         bra     PZN0
 PRINTNINES:
         mov     r2, 48+9
-PZN0:   mov     r3, r14         ; save return address before nested calls to oswrch        
+PZN0:   mov     r3, r14         ; save return address before nested calls to oswrch
 PZN1:   mov     r1, r2
         jsr     oswrch
         sub     r6,r6,1
         ret  z  r3
         bra     PZN1
-        
-#ifndef MUL18X18        
+
+#ifndef MUL18X18
         ; -----------------------------------------------------------------
         ;
         ; qmul32
@@ -281,7 +281,7 @@ udiv_2:
 	bra  mi udiv_3          ; skip ahead if negative ..
 	sub     r3, r3, r2      ; ..otherwise do subtract for real..
 	add     r1, r1, 1       ; ..and increment quotient
-udiv_3: 
+udiv_3:
 	sub     r0, r0, 2       ; dec loop counter
 #else
 #ifdef UNROLL_UDIV4
@@ -306,13 +306,13 @@ udiv_4:
 	bra  mi udiv_5          ; skip ahead if negative ..
 	sub     r3, r3, r2      ; ..otherwise do subtract for real..
 	add     r1, r1, 1       ; ..and increment quotient
-udiv_5: 
-	sub     r0, r0, 4       ; dec loop counter        
+udiv_5:
+	sub     r0, r0, 4       ; dec loop counter
 #else
 udiv_2:
 	sub     r0, r0, 1       ; dec loop counter
 #endif
-#endif        
+#endif
 	bra  nz udiv_1          ; repeat until zero
 	and     r1, r1, r1      ; clear carry
 	mov     r2, r3          ; put remainder into r2 for return

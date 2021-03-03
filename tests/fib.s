@@ -10,7 +10,7 @@ ENDMACRO
 
 ## Start Vector
         jmp START1
-        
+
 ## Interrupt vectors
 L1:     WORD 00
         WORD 00

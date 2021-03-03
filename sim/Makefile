@@ -1,10 +1,21 @@
+
 #!/bin/csh -fv
 
 SRCDIR=../rtl
+TSTDIR=../tests
 SRCS= $(wildcard $(SRCDIR)/*.v)
 HDRS= $(wildcard $(SRCDIR)/*.vh)
+TESTS= $(wildcard $(TSTDIR)/*.s)
 
-VPATH=${SRCDIR}
+testname ?= pi-spigot-rev
+
+VPATH=${SRCDIR}:${TSTDIR}
+
+${testname}.hex: ${testname}.s
+	cd ${TSTDIR} && make all
+
+test1.hex : ${testname}.hex
+	cp ${TSTDIR}/${testname}.hex test1.hex
 
 system_tb.exe: ${HDRS} ${SRCS} system_tb.v 
 	iverilog -I${SRCDIR} -o system_tb.exe \
@@ -23,7 +34,7 @@ system_tb.exe: ${HDRS} ${SRCS} system_tb.v
 test1.vcd: system_tb.exe test1.hex
 	./system_tb.exe
 
-all: test1.vcd
+all: ${testname}.hex test1.hex test1.vcd
 
 clean:
 	rm -f *.vcd *.exe *~ *dump
