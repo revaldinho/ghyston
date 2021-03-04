@@ -8,7 +8,7 @@
         ;; Translated from the OPC7 version.
 
         ;; define this to optimize for hardware multiplier but limited to 18x18 operation
-        ;; #define MUL18X18 1
+#define MUL18X18 1
         ;; #define UNROLL_UDIV2 1
         ;; #define UNROLL_UDIV4 1
 
@@ -256,12 +256,12 @@ qm32_2b:
 	; Routine returns on divide by zero with carry flag set.
 	;
 	; ------------------------------------------------------------------
-udiv32:
-	movi    r0,32           ; loop counter
-	bra     udiv
 udiv16:
 	movi    r0,16           ; loop counter
 	asl     r1, r1, 16      ; Move N into R1 upper half word/zero lower half
+	bra     udiv
+udiv32:
+	movi    r0,32           ; loop counter
 udiv:
 	movi    r3,0           ; Initialise R
 	cmp     r2,0           ; check D != 0

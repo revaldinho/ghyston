@@ -70,7 +70,7 @@
 `define JMP    6'b010110
 `define JSR    6'b010111
 
-`define TWO_STAGE_PIPE 1
+//`define TWO_STAGE_PIPE 1
 // Including single cycle MUL18x18 limits clock speed to ~60MHz
 `define INCLUDE_MUL 1
 // Making full 32x32 MUL slows clock speed down further
