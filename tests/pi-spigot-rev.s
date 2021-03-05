@@ -9,8 +9,12 @@
 
         ;; define this to optimize for hardware multiplier but limited to 18x18 operation
 #define MUL18X18 1
+        ;; Need to define one and only one of the following defines for the division      
+        ;; #define NOUNROLL_UDIV
         ;; #define UNROLL_UDIV2 1
         ;; #define UNROLL_UDIV4 1
+#define UNROLL_UDIV8 1        
+        ;; #define UNROLL_UDIV16 1
 
 MACRO   WRCH( _reg_or_data_ )
         mov     r1, _reg_or_data_
@@ -225,37 +229,48 @@ qm32_2b:
         add      r1, r1, r2      ; Add last copy of multiplicand into acc if carry was set
         ret      r14             ; return
 #endif
-	; -----------------------------------------------------------------
-	;
-	; udiv32 (udiv16)
-	;
-	; Divide 32(16) bit N by 32(16) bit D and return integer dividend and remainder
-	;
-	; Entry
-	; - R1 holds N (in lower 16b for udiv 16)
-	; - R2 holds D
-	; - R14 holds return address
-	;
-	; Exit
-	; - R1 holds Quotient
-	; - R2 holds remainder
-	; - C = 0 if successful ; C = 1 if divide by zero
-	; - R3,R0 used as workspace and trashed
-	; - all other registers preserved
-	;
-	; Register Usage
-	; - R1 = N:Quotient (N shifts out of LHS/Q in from RHS)
-	; - R2 = Divisor
-	; - R3 = Remainder
-	; - R0 = loop counter
-	; -----------------------------------------------------------------
-	;
-	; For 16b operation, N must be moved to the upper 16 bits of R1 to
-	; start so that left shifts immediately move valid bits into the carry.
-	;
-	; Routine returns on divide by zero with carry flag set.
-	;
-	; ------------------------------------------------------------------
+	;; -----------------------------------------------------------------
+	;;
+	;; udiv32 (udiv16)
+	;;
+	;; Divide 32(16) bit N by 32(16) bit D and return integer dividend and remainder
+	;;
+	;; Entry
+	;; - R1 holds N (in lower 16b for udiv 16)
+	;; - R2 holds D
+	;; - R14 holds return address
+	;;
+	;; Exit
+	;; - R1 holds Quotient
+	;; - R2 holds remainder
+	;; - C = 0 if successful ; C = 1 if divide by zero
+	;; - R3,R0 used as workspace and trashed
+	;; - all other registers preserved
+	;;
+	;; Register Usage
+	;; - R1 = N:Quotient (N shifts out of LHS/Q in from RHS)
+	;; - R2 = Divisor
+	;; - R3 = Remainder
+	;; - R0 = loop counter
+	;; -----------------------------------------------------------------
+	;;
+	;; For 16b operation, N must be moved to the upper 16 bits of R1 to
+	;; start so that left shifts immediately move valid bits into the carry.
+	;;
+	;; Routine returns on divide by zero with carry flag set.
+	;;
+	;; ------------------------------------------------------------------
+
+MACRO  DIVSTEP ( )
+	asl     r1, r1, 1       ; left shift N with MSB exiting into carry
+	rol     r3, r3, 1       ; left shift R and import carry into LSB
+	cmp     r3, r2          ; compare R with D
+	bra  mi @next           ; skip ahead if negative ..
+	sub     r3, r3, r2      ; ..otherwise do subtract for real..
+	add     r1, r1, 1       ; ..and increment quotient
+@next:        
+ENDMACRO        
+        
 udiv16:
 	movi    r0,16           ; loop counter
 	asl     r1, r1, 16      ; Move N into R1 upper half word/zero lower half
@@ -267,52 +282,52 @@ udiv:
 	cmp     r2,0           ; check D != 0
 	ret  z  r14            ; bail out if zero (and carry will be set also)
 udiv_1:
-	asl     r1, r1, 1       ; left shift N with MSB exiting into carry
-	rol     r3, r3, 1       ; left shift R and import carry into LSB
-	cmp     r3, r2          ; compare R with D
-	bra  mi udiv_2          ; skip ahead if negative ..
-	sub     r3, r3, r2      ; ..otherwise do subtract for real..
-	add     r1, r1, 1       ; ..and increment quotient
+#ifdef NOUNROLL_UDIV
+        DIVSTEP ()
+	sub     r0, r0, 1       ; dec loop counter        
+#endif
 #ifdef UNROLL_UDIV2
-udiv_2:
-	asl     r1, r1, 1       ; left shift N with MSB exiting into carry
-	rol     r3, r3, 1       ; left shift R and import carry into LSB
-	cmp     r3, r2          ; compare R with D
-	bra  mi udiv_3          ; skip ahead if negative ..
-	sub     r3, r3, r2      ; ..otherwise do subtract for real..
-	add     r1, r1, 1       ; ..and increment quotient
-udiv_3:
+        DIVSTEP ()
 	sub     r0, r0, 2       ; dec loop counter
-#else
+#endif
 #ifdef UNROLL_UDIV4
-udiv_2:
-	asl     r1, r1, 1       ; left shift N with MSB exiting into carry
-	rol     r3, r3, 1       ; left shift R and import carry into LSB
-	cmp     r3, r2          ; compare R with D
-	bra  mi udiv_3          ; skip ahead if negative ..
-	sub     r3, r3, r2      ; ..otherwise do subtract for real..
-	add     r1, r1, 1       ; ..and increment quotient
-udiv_3:
-	asl     r1, r1, 1       ; left shift N with MSB exiting into carry
-	rol     r3, r3, 1       ; left shift R and import carry into LSB
-	cmp     r3, r2          ; compare R with D
-	bra  mi udiv_4          ; skip ahead if negative ..
-	sub     r3, r3, r2      ; ..otherwise do subtract for real..
-	add     r1, r1, 1       ; ..and increment quotient
-udiv_4:
-	asl     r1, r1, 1       ; left shift N with MSB exiting into carry
-	rol     r3, r3, 1       ; left shift R and import carry into LSB
-	cmp     r3, r2          ; compare R with D
-	bra  mi udiv_5          ; skip ahead if negative ..
-	sub     r3, r3, r2      ; ..otherwise do subtract for real..
-	add     r1, r1, 1       ; ..and increment quotient
-udiv_5:
+        DIVSTEP ()
+        DIVSTEP ()
+        DIVSTEP ()
+        DIVSTEP ()
 	sub     r0, r0, 4       ; dec loop counter
-#else
-udiv_2:
-	sub     r0, r0, 1       ; dec loop counter
 #endif
+#ifdef UNROLL_UDIV8
+        DIVSTEP ()
+        DIVSTEP ()
+        DIVSTEP ()
+        DIVSTEP ()
+        DIVSTEP ()        
+        DIVSTEP ()
+        DIVSTEP ()
+        DIVSTEP ()
+	sub     r0, r0, 8       ; dec loop counter
 #endif
+#ifdef UNROLL_UDIV16
+        DIVSTEP ()
+        DIVSTEP ()
+        DIVSTEP ()
+        DIVSTEP ()
+        DIVSTEP ()
+        DIVSTEP ()
+        DIVSTEP ()
+        DIVSTEP ()
+        DIVSTEP ()
+        DIVSTEP ()
+        DIVSTEP ()
+        DIVSTEP ()
+        DIVSTEP ()
+        DIVSTEP ()
+        DIVSTEP ()
+        DIVSTEP ()
+	sub     r0, r0, 16       ; dec loop counter
+#endif
+        
 	bra  nz udiv_1          ; repeat until zero
 	and     r1, r1, r1      ; clear carry
 	mov     r2, r3          ; put remainder into r2 for return

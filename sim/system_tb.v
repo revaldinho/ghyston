@@ -54,7 +54,7 @@ module system_tb() ;
     $finish;
   end
 
-  always @ ( posedge clk ) begin
+  always @ ( negedge clk ) begin
     if ( dut_0.cpu_0.p1_stage_valid_d )
       instr_count = instr_count+1;       
     if (dut_0.cpu_daddr_w == 24'hFFFFFF &&
@@ -75,7 +75,7 @@ module system_tb() ;
     if (clk ) cycle = cycle+1;
   end
 
-always @ ( posedge clk ) begin
+always @ ( negedge clk ) begin
   $display( "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ");  
   $display( "P0: %10d: %02X : %08X : %d : %d %d " , cycle,
             dut_0.cpu_0.p0_pc_q,
