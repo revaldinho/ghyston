@@ -9,13 +9,16 @@
 
         ;; define this to optimize for hardware multiplier but limited to 18x18 operation
 #define MUL18X18 1
-        ;; Need to define one and only one of the following defines for the division      
+        ;; Need to define one and only one of the following defines for the division
         ;; #define NOUNROLL_UDIV
         ;; #define UNROLL_UDIV2 1
         ;; #define UNROLL_UDIV4 1
-#define UNROLL_UDIV8 1        
+#define UNROLL_UDIV8 1
         ;; #define UNROLL_UDIV16 1
-
+        ;;  Define this if full 0-31 place shifts are implemented
+        ;; #define SHIFT_32
+        ;; Define this if native DJNZ is implemented
+        ;; #define DJNZ 1
 MACRO   WRCH( _reg_or_data_ )
         mov     r1, _reg_or_data_
         jsr     oswrch
@@ -33,6 +36,14 @@ MACRO   HALT( )
         sto     r0, r0
 ENDMACRO
 
+MACRO   DJNZ ( _reg_, _label_)
+#ifdef DJNZ
+        djnz    _reg_, _reg_, _label_
+#else
+        sub     _reg_, _reg_, 1
+        bra nz  _label_
+#endif
+ENDMACRO
         ; Register Map
         ; (r15  = PC)
         ; r14   = stack pointer
@@ -101,7 +112,7 @@ L4:     ld.w    r2,r7                   ; r2 <- *remptr = r[i]
         sub     r10, r10, 2             ; next denominator
         add     r1,r11,r1               ; Q <- Q + (r[i]*10)
         mov     r2,r10
-        jsr     udiv32                  ; Compute Q % denom, Q // denom
+        jsr     udiv1632                ; Compute Q % denom, Q // denom
         mov     r11,r1                  ; Q<- Quotient
         sto.w   r2, r7                  ; rem[i] <- r2
         sub     r7, r7, 1               ; dec remptr
@@ -120,7 +131,7 @@ L4:     ld.w    r2,r7                   ; r2 <- *remptr = r[i]
 
 L10:    mov     r1,r11                  ; result (Q) = C + Q//10
         mov     r2,10
-        jsr     udiv32
+        jsr     udiv1632
         add     r11,r1,r5               ; result (Q) = quotient + C
         mov     r5,r2                   ; (new) C = remainder from division
 
@@ -189,9 +200,9 @@ PRINTNINES:
 PZN0:   mov     r3, r14         ; save return address before nested calls to oswrch
 PZN1:   mov     r1, r2
         jsr     oswrch
-        sub     r6,r6,1
-        ret  z  r3
-        bra     PZN1
+        DJNZ    (r6, PZN1)
+        ret     r3
+
 
 #ifndef MUL18X18
         ; -----------------------------------------------------------------
@@ -268,47 +279,68 @@ MACRO  DIVSTEP ( )
 	bra  mi @next           ; skip ahead if negative ..
 	sub     r3, r3, r2      ; ..otherwise do subtract for real..
 	add     r1, r1, 1       ; ..and increment quotient
-@next:        
-ENDMACRO        
-        
-udiv16:
-	movi    r0,16           ; loop counter
-	asl     r1, r1, 16      ; Move N into R1 upper half word/zero lower half
-	bra     udiv
+@next:
+ENDMACRO
+
 udiv32:
 	movi    r0,32           ; loop counter
-udiv:
+        bra     udiv_0
+        ;; Determine whether to use 16 or 32 bit division depending on whether
+        ;; any bits in the upper half-word of either operatnd are set
+udiv1632:
+        or      r0, r1, r2
+#ifdef SHIFT_32
+        lsr     r0, r0, 16
+#else
+        lsr     r0, r0, 8
+        lsr     r0, r0, 8
+#endif
+        bra  nz udiv32
+udiv16:
+	movi    r0,16           ; loop counter
+#ifdef SHIFT_32
+	asl     r1, r1, 16      ; Move N into R1 upper half word/zero lower half
+#else
+        asl     r1, r1, 8
+        asl     r1, r1, 8
+#endif
+udiv_0:
 	movi    r3,0           ; Initialise R
 	cmp     r2,0           ; check D != 0
 	ret  z  r14            ; bail out if zero (and carry will be set also)
-udiv_1:
 #ifdef NOUNROLL_UDIV
+udiv_1:
         DIVSTEP ()
-	sub     r0, r0, 1       ; dec loop counter        
 #endif
 #ifdef UNROLL_UDIV2
+        lsr     r0,r0,1         ; divide loop counter by 2
+udiv_1:
         DIVSTEP ()
-	sub     r0, r0, 2       ; dec loop counter
+        DIVSTEP ()
 #endif
 #ifdef UNROLL_UDIV4
+        lsr     r0,r0,2         ; divide loop counter by 4
+udiv_1:
         DIVSTEP ()
         DIVSTEP ()
         DIVSTEP ()
         DIVSTEP ()
-	sub     r0, r0, 4       ; dec loop counter
 #endif
 #ifdef UNROLL_UDIV8
+        lsr     r0,r0,3         ; divide loop counter by 8
+udiv_1:
         DIVSTEP ()
         DIVSTEP ()
         DIVSTEP ()
         DIVSTEP ()
-        DIVSTEP ()        
         DIVSTEP ()
         DIVSTEP ()
         DIVSTEP ()
-	sub     r0, r0, 8       ; dec loop counter
+        DIVSTEP ()
 #endif
 #ifdef UNROLL_UDIV16
+        lsr     r0,r0,4         ; divide loop counter by 16
+udiv_1:
         DIVSTEP ()
         DIVSTEP ()
         DIVSTEP ()
@@ -325,10 +357,8 @@ udiv_1:
         DIVSTEP ()
         DIVSTEP ()
         DIVSTEP ()
-	sub     r0, r0, 16       ; dec loop counter
 #endif
-        
-	bra  nz udiv_1          ; repeat until zero
+        DJNZ    (r0,udiv_1)
 	and     r1, r1, r1      ; clear carry
 	mov     r2, r3          ; put remainder into r2 for return
 	ret     r14
@@ -356,4 +386,4 @@ oswrch_loop:
         EQU     output_ptr,              0
         EQU     output_data,             1
         EQU     remain_minus_one,        0x100
-        EQU     remain,                  0x101
+        EQU     remain,             
