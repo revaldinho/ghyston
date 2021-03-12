@@ -386,4 +386,6 @@ oswrch_loop:
         EQU     output_ptr,              0
         EQU     output_data,             1
         EQU     remain_minus_one,        0x100
-        EQU     remain,             
+        EQU     remain,                  0x101
+
+
