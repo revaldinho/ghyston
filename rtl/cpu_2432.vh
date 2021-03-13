@@ -11,7 +11,7 @@
 // Define this to allow shifts of 16-31bits in one instruction, otherwise limited to 0-15
 //`define SHIFT16 1
 // Define this to enable DJNZ instruction
-//`define DJNZ_INSTR 1
+`define DJNZ_INSTR 1
 `define BYPASS_EN_D 1
 //`define HALF_RATE_D 1
 

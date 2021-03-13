@@ -49,16 +49,13 @@ module alu(
                          opcode==`ASL ||
                          opcode==`ROL) ? {shifted_c, shifted_w} : { alu_cout, alu_dout};
 
-
-  always @ (*) begin
-    qnzout = |alu_dout;
-  end
-
   always @(*) begin
     alu_cout = cin;
     vout = vin;
     mcp_out = 1'b0;
     alu_dout = 32'bx;
+    qnzout = 1'b0;
+    
     case ( opcode )
       //MOVT will have the bits shifted to the top of the word before writing the regfile
       `LMOVT      :{alu_cout,alu_dout} = {cin, din_b[15:0], din_a[15:0]} ;
@@ -77,7 +74,10 @@ module alu(
 `endif
       `ADD              :{alu_cout,alu_dout} = {din_a + din_b};
 `ifdef DJNZ_INSTR
-      `DJNZ              :{alu_cout,alu_dout} = {din_a + din_b};
+      `DJNZ              :begin
+        {alu_cout,alu_dout} = {din_a + din_b};
+        qnzout = |alu_dout;
+      end      
 `endif
       `SUB, `CMP        :{alu_cout,alu_dout} = {din_a - din_b};
       `BTST             :{alu_cout,alu_dout} = {cin, din_a & (32'b1<<din_b[4:0])};

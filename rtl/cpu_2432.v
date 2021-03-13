@@ -247,8 +247,10 @@ module cpu_2432 (
       else
         p0_pc_d = p1_ead_q + p1_src0_data_q ;
     // If pipe0 is moving then increment PC
+    else if (p0_moe_d)
+      p0_pc_d = p0_pc_q + 1;
     else
-      p0_pc_d = p0_pc_q + p0_moe_d ;
+      p0_pc_d = p0_pc_q;
   end
 
   always @ ( * ) begin
