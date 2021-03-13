@@ -109,6 +109,7 @@ op = {
     "jrsr"    : {"format":"c", "opcode": 18 ,"sext":False, "cond":True,  "operands":2, "sext": False, "min_imm":-512, "max_imm":511},
     "bsr"     : {"format":"c", "opcode": 18 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},
     "reti"    : {"format":"c", "opcode": 21 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":0,    "max_imm":0},
+    "djnz"    : {"format":"c", "opcode": 21 ,"sext":True,  "cond":True,  "operands":3, "sext": False, "min_imm":-512, "max_imm":511},
     "jmp"     : {"format":"c2","opcode": 22 ,"sext":False, "cond":False, "operands":1, "sext": False, "min_imm":0,    "max_imm":262143},
     "jsr"     : {"format":"c2","opcode": 23 ,"sext":False, "cond":False, "operands":1, "sext": False, "min_imm":0,    "max_imm":262143},
     ## Next two opcodes take up 4 opcodes each, with 2 LSBs used as additional immediate bits
@@ -260,7 +261,6 @@ def assemble( filename, listingon=True):
                     elif len(opfields) == 1:
                         opfields.append("0")
                         words.append(0)
-
                 if ( op[inst]["operands"] != len(words)):
                     errors.append("Error: wrong number of operands for instruction %s\n on line %s" % (inst, line.strip()))
                 else:
@@ -280,20 +280,25 @@ def assemble( filename, listingon=True):
                             rsrc2 = words[1]
                     # Format C - branch and return instructions
                     elif ifmt == "c":
-                        cond = cond_codes[condfield]
-                        if (inst in ("bra","bsr","bcc")):
-                            rsrc1 = 15 # PC
-                            if (direct):
-                                # Branch to a label
-                                imm = words[0] - (nextmem)
-                            else:
-                                rsrc2 = words[0]
-                        else:
+                        if ( inst == "djnz" ) :
+                            imm = words[0] - (nextmem)
                             rsrc1 = words[0]
-                            if (direct):
-                                imm = words[1]
+                            rsrc2 = words[1]
+                        else:
+                            cond = cond_codes[condfield]
+                            if (inst in ("bra","bsr","bcc")):
+                                rsrc1 = 15 # PC
+                                if (direct):
+                                    # Branch to a label
+                                    imm = words[0] - (nextmem)
+                                else:
+                                    rsrc2 = words[0]
                             else:
-                                rsrc2 = words[1]
+                                rsrc1 = words[0]
+                                if (direct):
+                                    imm = words[1]
+                                else:
+                                    rsrc2 = words[1]
                     # Format C2 - Jump instructions
                     elif ifmt == "c2":
                         imm = words[0]
