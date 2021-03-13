@@ -24,6 +24,7 @@ module alu(
            input [5:0]   opcode,
            output [31:0] dout,
            output        cout,
+           output reg    qnzout,
            output reg    mcp_out,
            output reg    vout
            );
@@ -47,6 +48,10 @@ module alu(
                          opcode==`LSR ||
                          opcode==`ASL ||
                          opcode==`ROL) ? {shifted_c, shifted_w} : { alu_cout, alu_dout};
+
+  always @ ( *) begin
+    qnzout = |alu_dout;        
+  end
   
   always @(*) begin
     alu_cout = cin;
@@ -70,12 +75,12 @@ module alu(
       `MUL        :{alu_cout,alu_dout} = {din_a[17:0] * din_b[17:0]};
 `endif
 `endif
-      `ADD        :{alu_cout,alu_dout} = {din_a + din_b};
-      `SUB, `CMP  :{alu_cout,alu_dout} = {din_a - din_b};
-      `BTST       :{alu_cout,alu_dout} = {cin, din_a & (32'b1<<din_b[4:0])};
-      `BSET       :{alu_cout,alu_dout} = {cin, din_a | (32'b1<<din_b[4:0])};
-      `BCLR       :{alu_cout,alu_dout} = {cin, din_a & !(32'b1<<din_b[4:0])};
-      default     :{alu_cout,alu_dout} = {cin,din_b} ;
+      `ADD              :{alu_cout,alu_dout} = {din_a + din_b};
+      `SUB, `CMP, `DJNZ :{alu_cout,alu_dout} = {din_a - din_b};
+      `BTST             :{alu_cout,alu_dout} = {cin, din_a & (32'b1<<din_b[4:0])};
+      `BSET             :{alu_cout,alu_dout} = {cin, din_a | (32'b1<<din_b[4:0])};
+      `BCLR             :{alu_cout,alu_dout} = {cin, din_a & !(32'b1<<din_b[4:0])};
+      default           :{alu_cout,alu_dout} = {cin,din_b} ;
     endcase // case opcode
 
     if ( opcode==`ADD)

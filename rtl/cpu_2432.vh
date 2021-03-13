@@ -1,3 +1,21 @@
+/*
+ * General configuration
+ * 
+ */
+
+`define TWO_STAGE_PIPE 1
+// Including single cycle MUL18x18 limits clock speed to ~60MHz
+`define INCLUDE_MUL 1
+// Making full 32x32 MUL slows clock speed down further
+//`define MUL32 1
+// Define this to allow shifts of 16-31bits in one instruction, otherwise limited to 0-15
+//`define SHIFT16 1
+`define BYPASS_EN_D 1
+//`define HALF_RATE_D 1
+
+/* ****************************** */
+
+
 // PSR register bits
 `define Z        0
 `define C        1
@@ -66,16 +84,8 @@
 `define CMP    6'b111100
 
 // These instructions need to use all 6 opcode bits
-`define RETI   6'b010101
+`define RETI   6'b010100
+`define DJNZ   6'b010101
 `define JMP    6'b010110
 `define JSR    6'b010111
 
-`define TWO_STAGE_PIPE 1
-// Including single cycle MUL18x18 limits clock speed to ~60MHz
-//`define INCLUDE_MUL 1
-// Making full 32x32 MUL slows clock speed down further
-//`define MUL32 1
-// Define this to allow shifts of 16-31bits in one instruction, otherwise limited to 0-15
-//`define SHIFT16 1
-`define BYPASS_EN_D 1
-//`define HALF_RATE_D 1

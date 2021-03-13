@@ -281,9 +281,10 @@ def assemble( filename, listingon=True):
                     # Format C - branch and return instructions
                     elif ifmt == "c":
                         if ( inst == "djnz" ) :
-                            imm = words[0] - (nextmem)
-                            rsrc1 = words[0]
-                            rsrc2 = words[1]
+                            cond = 0                            
+                            imm = words[2] - (nextmem)
+                            rdest = words[0]
+                            rsrc1 = words[1]
                         else:
                             cond = cond_codes[condfield]
                             if (inst in ("bra","bsr","bcc")):
