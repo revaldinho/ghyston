@@ -29,7 +29,7 @@ module cpu_2432 (
   reg                          p1_stage_valid_d, p1_stage_valid_q;
   reg [31:0]                   p1_ead_d, p1_ead_q;
   reg [31:0]                   p1_src0_data_d, p1_src0_data_q;
-  reg [31:0]                   p1_src1_data_d, p1_src1_data_q;
+  reg [31:0]                   p1_src1_data_d, p1_src1_data_q;    
   reg                          p1_ram_rd_d, p1_ram_rd_q;
   reg                          p1_ram_wr_d, p1_ram_wr_q;
   reg [5:0]                    p1_rdest_d, p1_rdest_q;
@@ -134,9 +134,10 @@ module cpu_2432 (
       p1_imm_d = { 18'b0, raw_instr_w[15:12], raw_instr_w[7:4], raw_instr_w[17:16], raw_instr_w[3:0]};
     end
     else if (raw_instr_w[23:21] == 3'b010 ) begin // Format C
+      // Sign extend immediates
+      p1_imm_d = { {22{raw_instr_w[7]}}, raw_instr_w[7:4], raw_instr_w[17:16], raw_instr_w[3:0]};      
       if ( raw_instr_w[23:18] == `DJNZ ) begin
         p1_ead_use_imm_d = 1;
-        p1_imm_d = { {22{raw_instr_w[7]}}, raw_instr_w[7:4], raw_instr_w[17:16], raw_instr_w[3:0]};
         p1_opcode_d =  raw_instr_w[23:18]; // use full opcode
       end
       else begin
@@ -156,8 +157,6 @@ module cpu_2432 (
           if ( p1_opcode_d == `JRSRCC)
             p1_rf_wr_d = 1;
             p1_rdest_d = 6'b001110 ; // Rlink= R14
-          // Sign extend immediates
-          p1_imm_d = { {22{raw_instr_w[7]}}, raw_instr_w[7:4], raw_instr_w[17:16], raw_instr_w[3:0]};
           p1_cond_d = raw_instr_w[`RDST_RNG];
         end // else: !if( p1_opcode_d == `JMP || p1_opcode_d == `JSR )
       end // else: !if(raw_instr_w[23:21] == 3'b010 )
@@ -223,28 +222,20 @@ module cpu_2432 (
     if ( p2_jump_taken_d && p1_stage_valid_q)
       if ( p1_opcode_q == `JMP || p1_opcode_q == `JSR )
         p0_pc_d = p1_ead_q;
-      else if ( p1_opcode_q == `DJNZ )
-`ifdef TWO_STAGE_PIPE
-          p0_pc_d = p1_ead_q + p1_pc_q ;
-`else
-          p0_pc_d = p1_ead_q + p2_pc_q ;
-`endif
-      else // BRAnch
+      else if (p1_rsrc0_q[3:0]==4'b1111 || p1_opcode_q == `DJNZ )
+        // BRAnch or DJNZ
         // need to read the PC associated with the jump instruction
         // and ensure that stalling is accounted for
-        if (p1_rsrc0_q[3:0]==4'b1111)
 `ifdef TWO_STAGE_PIPE
           p0_pc_d = p1_ead_q + p1_pc_q ;
 `else
           p0_pc_d = p1_ead_q + p2_pc_q ;
 `endif
-        else
-          p0_pc_d = p1_ead_q + p1_src0_data_q ;
+      else
+        p0_pc_d = p1_ead_q + p1_src0_data_q ;
     // If pipe0 is moving then increment PC
-    else if (p0_moe_d )
-      p0_pc_d = p0_pc_q + 1 ;
     else
-      p0_pc_d = p0_pc_q ;
+      p0_pc_d = p0_pc_q + p0_moe_d ;
   end
 
   always @ ( * ) begin
@@ -319,9 +310,8 @@ module cpu_2432 (
     if ( p1_stage_valid_q ) begin
       if (p1_opcode_q == `JMP || p1_opcode_q == `JSR )
         p2_jump_taken_d = 1'b1;
-      else if ( p1_opcode_q==`DJNZ ) begin
+      else if ( p1_opcode_q==`DJNZ )
         p2_jump_taken_d = qnz_w;        
-      end
       else if ( p1_opcode_q==`JRCC || p1_opcode_q==`JRSRCC) begin
         case (p1_cond_q)
 	  `EQ: p2_jump_taken_d = (psr_q[`Z]==1);    // Equal
@@ -356,8 +346,8 @@ module cpu_2432 (
     p1_src0_data_d = ((p1_rsrc0_d[5]) ? psr_q:
                       (p1_rsrc0_d[4]) ? p0_pc_q:
                       rf_dout_0);
-    p1_src1_data_d = (p1_opcode_d==`DJNZ) ? 32'h000000001 : p1_ead_d;
-
+    // For DJNZ make second input to ALU -1 - ie all 0xF's
+    p1_src1_data_d = p1_ead_d | {32{(p1_opcode_d == `DJNZ)}};
   end
 
   // Special MCP control for 32x32 multiplications
@@ -412,7 +402,7 @@ module cpu_2432 (
         p1_stage_valid_q <= p1_stage_valid_d;
         p1_ead_q <= p1_ead_d;
         p1_src0_data_q <= p1_src0_data_d;
-        p1_src1_data_q <= p1_src1_data_d;
+        p1_src1_data_q <= p1_src1_data_d;        
         p1_ram_rd_q <= p1_ram_rd_d;
         p1_ram_wr_q <= p1_ram_wr_d;
         p1_rdest_q <= p1_rdest_d;

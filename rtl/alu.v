@@ -30,7 +30,7 @@ module alu(
            );
 
   reg [31:0]             alu_dout;
-  reg                    alu_cout;  
+  reg                    alu_cout;
   wire [31:0]            shifted_w;
   wire                   shifted_c;
 
@@ -49,8 +49,9 @@ module alu(
                          opcode==`ASL ||
                          opcode==`ROL) ? {shifted_c, shifted_w} : { alu_cout, alu_dout};
 
-  always @ ( *) begin
-    qnzout = |alu_dout;        
+
+  always @ (*) begin
+    qnzout = |alu_dout;
   end
   
   always @(*) begin
@@ -58,7 +59,6 @@ module alu(
     vout = vin;
     mcp_out = 1'b0;
     alu_dout = 32'bx;
-    
     case ( opcode )
       //MOVT will have the bits shifted to the top of the word before writing the regfile
       `LMOVT      :{alu_cout,alu_dout} = {cin, din_b[15:0], din_a[15:0]} ;
@@ -66,7 +66,7 @@ module alu(
       `AND        :{alu_cout,alu_dout} = {1'b0,(din_a & din_b)};
       `OR         :{alu_cout,alu_dout} = {1'b0,(din_a | din_b)};
       `XOR        :{alu_cout,alu_dout} = {1'b0, din_a ^ din_b};
-`ifdef INCLUDE_MUL      
+`ifdef INCLUDE_MUL
 `ifdef MUL32
       // Wide multiply 32b x32b = 32b (truncated) uses 3 cycles and stretches the clock cycle to complete
       `MUL        :{mcp_out,alu_cout,alu_dout} = {1'b1, din_a * din_b};
@@ -75,8 +75,8 @@ module alu(
       `MUL        :{alu_cout,alu_dout} = {din_a[17:0] * din_b[17:0]};
 `endif
 `endif
-      `ADD              :{alu_cout,alu_dout} = {din_a + din_b};
-      `SUB, `CMP, `DJNZ :{alu_cout,alu_dout} = {din_a - din_b};
+      `ADD, `DJNZ       :{alu_cout,alu_dout} = {din_a + din_b};
+      `SUB, `CMP        :{alu_cout,alu_dout} = {din_a - din_b};
       `BTST             :{alu_cout,alu_dout} = {cin, din_a & (32'b1<<din_b[4:0])};
       `BSET             :{alu_cout,alu_dout} = {cin, din_a | (32'b1<<din_b[4:0])};
       `BCLR             :{alu_cout,alu_dout} = {cin, din_a & !(32'b1<<din_b[4:0])};
@@ -91,10 +91,10 @@ module alu(
       // overflow if -ve - +ve = +ve  or +ve - -ve = -ve
       vout =  ( din_a[31] & !din_b[31] & !dout[31]) ||
                 ( !din_a[31] & din_b[31] & dout[31]) ;
-`ifdef INCLUDE_MUL    
+`ifdef INCLUDE_MUL
     else if ( opcode==`MUL)
       vout = !(din_a[31] ^ din_b[31] ^ dout[31]);
-`endif    
+`endif
   end
 
 endmodule // alu
@@ -115,10 +115,10 @@ module barrel_shifter(
   wire [64:0] l_stg3, r_stg3;
   wire [64:0] l_stg4, r_stg4;
   wire [64:0] l_stg5, r_stg5;
-    
+
   always @ ( * ) begin
     dout = 32'bx;
-    cout = cin;    
+    cout = cin;
     case ( opcode )
       `ASL : begin
         stg0 = {32'b0, cin, din};
@@ -133,20 +133,20 @@ module barrel_shifter(
         {cout, dout } = r_stg5[32:0];
       end
       `ASR : begin
-        stg0 = { din, cin, {32{din[31]}}} ;        
+        stg0 = { din, cin, {32{din[31]}}} ;
         {dout, cout} = { r_stg5[64:32]};
       end
       `LSR : begin
-        stg0 = { din, cin, 32'b0};        
+        stg0 = { din, cin, 32'b0};
         {dout, cout} = { r_stg5[64:32]};
       end
-      default: stg0=65'bx;      
+      default: stg0=65'bx;
     endcase // case ( opcode )
   end
 
   // ROR - rotate through carry
   assign r_stg1 = ( `ROT16 ) ? { stg0[15:0],  stg0[64:16]}  : stg0;
-  assign r_stg1 = ( `ROT16 ) ? { stg0[15:0],  stg0[64:16]}  : stg0;  
+  assign r_stg1 = ( `ROT16 ) ? { stg0[15:0],  stg0[64:16]}  : stg0;
   assign r_stg2 = ( `ROT8 ) ?  { r_stg1[7:0], r_stg1[64:8]} : r_stg1;
   assign r_stg3 = ( `ROT4 ) ?  { r_stg2[3:0], r_stg2[64:4]} : r_stg2;
   assign r_stg4 = ( `ROT2 ) ?  { r_stg3[1:0], r_stg3[64:2]} : r_stg3;
