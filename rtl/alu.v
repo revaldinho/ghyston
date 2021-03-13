@@ -54,7 +54,7 @@ module alu(
     vout = vin;
     mcp_out = 1'b0;
     alu_dout = 32'bx;
-    qnzout = 1'b0;
+    qnzout = 1'bx;
     
     case ( opcode )
       //MOVT will have the bits shifted to the top of the word before writing the regfile
