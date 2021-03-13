@@ -18,7 +18,7 @@
         ;;  Define this if full 0-31 place shifts are implemented
         ;; #define SHIFT_32
         ;; Define this if native DJNZ is implemented
-#define DJNZ 1
+        ;; #define DJNZ 1
 MACRO   WRCH( _reg_or_data_ )
         mov     r1, _reg_or_data_
         jsr     oswrch

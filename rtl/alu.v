@@ -53,7 +53,7 @@ module alu(
   always @ (*) begin
     qnzout = |alu_dout;
   end
-  
+
   always @(*) begin
     alu_cout = cin;
     vout = vin;
@@ -75,7 +75,10 @@ module alu(
       `MUL        :{alu_cout,alu_dout} = {din_a[17:0] * din_b[17:0]};
 `endif
 `endif
-      `ADD, `DJNZ       :{alu_cout,alu_dout} = {din_a + din_b};
+      `ADD              :{alu_cout,alu_dout} = {din_a + din_b};
+`ifdef DJNZ_INSTR
+      `DJNZ              :{alu_cout,alu_dout} = {din_a + din_b};
+`endif
       `SUB, `CMP        :{alu_cout,alu_dout} = {din_a - din_b};
       `BTST             :{alu_cout,alu_dout} = {cin, din_a & (32'b1<<din_b[4:0])};
       `BSET             :{alu_cout,alu_dout} = {cin, din_a | (32'b1<<din_b[4:0])};
