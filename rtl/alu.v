@@ -55,7 +55,7 @@ module alu(
     mcp_out = 1'b0;
     alu_dout = 32'bx;
     qnzout = 1'bx;
-    
+
     case ( opcode )
       //MOVT will have the bits shifted to the top of the word before writing the regfile
       `LMOVT      :{alu_cout,alu_dout} = {cin, din_b[15:0], din_a[15:0]} ;
@@ -66,38 +66,42 @@ module alu(
 `ifdef INCLUDE_MUL
 `ifdef MUL32
       // Wide multiply 32b x32b = 32b (truncated) uses 3 cycles and stretches the clock cycle to complete
-      `MUL        :{mcp_out,alu_cout,alu_dout} = {1'b1, din_a * din_b};
+      `MUL        : begin
+        {mcp_out,alu_cout,alu_dout} = {1'b1, din_a * din_b};
+        vout = !(din_a[31] ^ din_b[31] ^ alu_dout[31]);
+      end
 `else
       // Restrict multiplies to 18x18 to fit a single DSP slice on a Spartan 6 FPGA and single cycle execution
-      `MUL        :{alu_cout,alu_dout} = {din_a[17:0] * din_b[17:0]};
+      `MUL        : begin
+        {alu_cout,alu_dout} = {din_a[17:0] * din_b[17:0]};
+        vout = !(din_a[31] ^ din_b[31] ^ alu_dout[31]);
+      end
 `endif
 `endif
-      `ADD              :{alu_cout,alu_dout} = {din_a + din_b};
+      `ADD              : begin
+        // overflow if -ve + -ve = +ve  or +ve + +ve = -ve
+        {alu_cout,alu_dout} = {din_a + din_b};
+        vout =  ( din_a[31] & din_b[31] & !alu_dout[31]) ||
+                ( !din_a[31] & !din_b[31] & alu_dout[31]) ;
+      end
 `ifdef DJNZ_INSTR
       `DJNZ              :begin
         {alu_cout,alu_dout} = {din_a + din_b};
         qnzout = |alu_dout;
-      end      
+      end
 `endif
-      `SUB, `CMP        :{alu_cout,alu_dout} = {din_a - din_b};
+      `SUB, `CMP        : begin
+        {alu_cout,alu_dout} = {din_a - din_b};
+        // overflow if -ve - +ve = +ve  or +ve - -ve = -ve
+        vout =  ( din_a[31] & !din_b[31] & !alu_dout[31]) ||
+                ( !din_a[31] & din_b[31] & alu_dout[31]) ;
+      end
+
       `BTST             :{alu_cout,alu_dout} = {cin, din_a & (32'b1<<din_b[4:0])};
       `BSET             :{alu_cout,alu_dout} = {cin, din_a | (32'b1<<din_b[4:0])};
       `BCLR             :{alu_cout,alu_dout} = {cin, din_a & !(32'b1<<din_b[4:0])};
       default           :{alu_cout,alu_dout} = {cin,din_b} ;
     endcase // case opcode
-
-    if ( opcode==`ADD)
-      // overflow if -ve + -ve = +ve  or +ve + +ve = -ve
-      vout =  ( din_a[31] & din_b[31] & !dout[31]) ||
-                ( !din_a[31] & !din_b[31] & dout[31]) ;
-    else if ( opcode==`SUB || opcode==`CMP)
-      // overflow if -ve - +ve = +ve  or +ve - -ve = -ve
-      vout =  ( din_a[31] & !din_b[31] & !dout[31]) ||
-                ( !din_a[31] & din_b[31] & dout[31]) ;
-`ifdef INCLUDE_MUL
-    else if ( opcode==`MUL)
-      vout = !(din_a[31] ^ din_b[31] ^ dout[31]);
-`endif
   end
 
 endmodule // alu
