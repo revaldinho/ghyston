@@ -76,14 +76,21 @@ module system_tb() ;
   end
 
 always @ ( negedge clk ) begin
-  $display( "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ");  
+  $display( "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ");
+`ifdef TWO_STAGE_PIPE
+  $display( "P0: %10d: %02X : %08X : %d : %d " , cycle,
+            dut_0.cpu_0.p0_pc_q,
+            dut_0.cpu_0.raw_instr_w,
+            dut_0.cpu_0.rstb_q,      
+            dut_0.cpu_0.p0_moe_q );
+`else  
   $display( "P0: %10d: %02X : %08X : %d : %d %d " , cycle,
             dut_0.cpu_0.p0_pc_q,
             dut_0.cpu_0.p0_instr_q,
             dut_0.cpu_0.rstb_q,      
             dut_0.cpu_0.p0_moe_q,
             dut_0.cpu_0.p0_stage_valid_q );
-
+`endif
   $display( "P1: %10d: %02X : %02X : - : %X %X %X -------- : %X : - - %d " , cycle,
             dut_0.cpu_0.p1_pc_q,
             dut_0.cpu_0.p1_opcode_q,
@@ -120,15 +127,10 @@ always @ ( negedge clk ) begin
            dut_0.cpu_0.u0.rf_q[14],
            dut_0.cpu_0.u0.rf_q[15]);
 
-  $display("p0_pc_d=%08x p0_pc_q=%08x (%d)  p1_pc_q=%08x (%d) p2_jump_taken_d=%d  p2_pc_q=%08x",
+  $display("p0_pc_d=%08x p0_pc_q=%08x p2_jump_taken_d=%d",
             dut_0.cpu_0.p0_pc_d,           
             dut_0.cpu_0.p0_pc_q,
-            dut_0.cpu_0.p0_stage_valid_q,                                  
-            dut_0.cpu_0.p1_pc_q,
-            dut_0.cpu_0.p1_stage_valid_q,                       
-           dut_0.cpu_0.p2_jump_taken_d,
-           dut_0.cpu_0.p2_pc_q
-           
+           dut_0.cpu_0.p2_jump_taken_d           
 );
   
            
