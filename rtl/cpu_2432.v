@@ -17,8 +17,11 @@ module cpu_2432 (
   reg [3:0]                    rf_wr_en_d;
   reg                          rstb_q;
   reg [31:0]                   p0_pc_d, p0_pc_q;
+  reg                          p0_stage_valid_d;
+`ifndef TWO_STAGE_PIPE
   reg [23:0]                   p0_instr_q;
-  reg                          p0_stage_valid_d, p0_stage_valid_q;
+  reg                          p0_stage_valid_q;
+`endif
   reg [31:0]                   p0_result_d ;
   reg                          p0_moe_d, p0_moe_q;
 
@@ -383,10 +386,10 @@ module cpu_2432 (
     if ( !i_rstb ) begin
       psr_q            <= 0;
       p0_pc_q          <= 0;
-      p0_stage_valid_q <= 0;
       p0_moe_q         <= 0;
 `ifndef TWO_STAGE_PIPE
       p0_instr_q       <= 0;
+      p0_stage_valid_q <= 0;
 `endif
       p1_pc_q          <= 0;
       p1_jump_taken_q  <= 0;
@@ -410,8 +413,8 @@ module cpu_2432 (
         p0_moe_q <= p0_moe_d;
 `ifndef TWO_STAGE_PIPE
         p0_instr_q <= i_instr;
-`endif
         p0_stage_valid_q <= p0_stage_valid_d;
+`endif
         psr_q <= psr_d;
         p0_pc_q <= p0_pc_d;
 
