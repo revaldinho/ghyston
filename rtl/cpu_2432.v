@@ -443,7 +443,4 @@ module cpu_2432 (
         p2_jump_taken_q <= p2_jump_taken_d;
       end
   end
-
-
-
 endmodule
