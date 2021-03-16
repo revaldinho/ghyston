@@ -12,13 +12,13 @@
         ;; Need to define one and only one of the following defines for the division
         ;; #define NOUNROLL_UDIV
         ;; #define UNROLL_UDIV2 1
-        ;; #define UNROLL_UDIV4 1
-#define UNROLL_UDIV8 1
+#define UNROLL_UDIV4 1
+        ;; #define UNROLL_UDIV8 1
         ;; #define UNROLL_UDIV16 1
         ;;  Define this if full 0-31 place shifts are implemented
         ;; #define SHIFT_32
         ;; Define this if native DJNZ is implemented
-        ;; #define DJNZ 1
+#define DJNZ_INSTR 1
 MACRO   WRCH( _reg_or_data_ )
         mov     r1, _reg_or_data_
         jsr     oswrch
@@ -37,7 +37,7 @@ MACRO   HALT( )
 ENDMACRO
 
 MACRO   DJNZ ( _reg_, _label_)
-#ifdef DJNZ
+#ifdef DJNZ_INSTR
         djnz    _reg_, _reg_, _label_
 #else
         sub     _reg_, _reg_, 1
@@ -100,8 +100,16 @@ L3:     mov     r11,0                   ; r11 = Q
         mov     r7,remain+cols-1
         mov     r10,(cols-1)*2 + 1      ; initial denominator at furthest column + 2 (pre decrement before use)
 
-L4:     ld.w    r2,r7                   ; r2 <- *remptr = r[i]
-
+L4:
+#ifdef MUL18X18
+        mul     r11, r11, r12           ; Q <- Q * i
+#else
+        mov     r2, r12                 ; Q <- Q * i
+        mov     r1, r11
+        jsr     qmul32b
+        mov     r11,r1
+#endif
+        ld.w    r2,r7                   ; r2 <- *remptr = r[i]
 #ifdef MUL18X18
         mul     r1, r2, 10
 #else
@@ -116,18 +124,7 @@ L4:     ld.w    r2,r7                   ; r2 <- *remptr = r[i]
         mov     r11,r1                  ; Q<- Quotient
         sto.w   r2, r7                  ; rem[i] <- r2
         sub     r7, r7, 1               ; dec remptr
-        sub     r12, r12, 1             ; decr loop counter
-        bra  z  L10                     ; break out if zero
-
-#ifdef MUL18X18
-        mul     r11, r11, r12           ; Q <- Q * i
-#else
-        mov     r2, r12                 ; Q <- Q * i
-        mov     r1, r11
-        jsr     qmul32b
-        mov     r11,r1
-#endif
-        bra     L4                      ; loop again
+        DJNZ    (r12, L4)               ; decr loop counter and loop again if not zero
 
 L10:    mov     r1,r11                  ; result (Q) = C + Q//10
         mov     r2,10
@@ -274,16 +271,30 @@ qm32_2b:
 
 MACRO  DIVSTEP ( )
 	asl     r1, r1, 1       ; left shift N with MSB exiting into carry
-	rol     r3, r3, 1       ; left shift R and import carry into LSB
-	cmp     r3, r2          ; compare R with D
+	rol     r2, r2, 1       ; left shift R and import carry into LSB
+	cmp     r2, r3          ; compare R with D
 	bra  mi @next           ; skip ahead if negative ..
-	sub     r3, r3, r2      ; ..otherwise do subtract for real..
+	sub     r2, r2, r3      ; ..otherwise do subtract for real..
 	add     r1, r1, 1       ; ..and increment quotient
 @next:
 ENDMACRO
 
 udiv32:
+#ifdef NOUNROLL_UDIV
 	movi    r0,32           ; loop counter
+#endif
+#ifdef UNROLL_UDIV2
+	movi    r0,16           ; loop counter
+#endif
+#ifdef UNROLL_UDIV4
+	movi    r0,8           ; loop counter
+#endif
+#ifdef UNROLL_UDIV8
+	movi    r0,4           ; loop counter
+#endif
+#ifdef UNROLL_UDIV16
+	movi    r0,2           ; loop counter
+#endif
         bra     udiv_0
         ;; Determine whether to use 16 or 32 bit division depending on whether
         ;; any bits in the upper half-word of either operatnd are set
@@ -297,7 +308,21 @@ udiv1632:
 #endif
         bra  nz udiv32
 udiv16:
+#ifdef NOUNROLL_UDIV
 	movi    r0,16           ; loop counter
+#endif
+#ifdef UNROLL_UDIV2
+	movi    r0,8           ; loop counter
+#endif
+#ifdef UNROLL_UDIV4
+	movi    r0,4           ; loop counter
+#endif
+#ifdef UNROLL_UDIV8
+	movi    r0,2           ; loop counter
+#endif
+#ifdef UNROLL_UDIV16
+	movi    r0,1           ; loop counter
+#endif
 #ifdef SHIFT_32
 	asl     r1, r1, 16      ; Move N into R1 upper half word/zero lower half
 #else
@@ -305,21 +330,19 @@ udiv16:
         asl     r1, r1, 8
 #endif
 udiv_0:
-	movi    r3,0           ; Initialise R
-	cmp     r2,0           ; check D != 0
+	mov     r3, r2         ; copy D to R3 and check != 0
 	ret  z  r14            ; bail out if zero (and carry will be set also)
+	movi    r2,0           ; Initialise R
 #ifdef NOUNROLL_UDIV
 udiv_1:
         DIVSTEP ()
 #endif
 #ifdef UNROLL_UDIV2
-        lsr     r0,r0,1         ; divide loop counter by 2
 udiv_1:
         DIVSTEP ()
         DIVSTEP ()
 #endif
 #ifdef UNROLL_UDIV4
-        lsr     r0,r0,2         ; divide loop counter by 4
 udiv_1:
         DIVSTEP ()
         DIVSTEP ()
@@ -327,7 +350,6 @@ udiv_1:
         DIVSTEP ()
 #endif
 #ifdef UNROLL_UDIV8
-        lsr     r0,r0,3         ; divide loop counter by 8
 udiv_1:
         DIVSTEP ()
         DIVSTEP ()
@@ -339,7 +361,6 @@ udiv_1:
         DIVSTEP ()
 #endif
 #ifdef UNROLL_UDIV16
-        lsr     r0,r0,4         ; divide loop counter by 16
 udiv_1:
         DIVSTEP ()
         DIVSTEP ()
@@ -360,7 +381,6 @@ udiv_1:
 #endif
         DJNZ    (r0,udiv_1)
 	and     r1, r1, r1      ; clear carry
-	mov     r2, r3          ; put remainder into r2 for return
 	ret     r14
         ; --------------------------------------------------------------
         ;
@@ -387,5 +407,3 @@ oswrch_loop:
         EQU     output_data,             1
         EQU     remain_minus_one,        0x100
         EQU     remain,                  0x101
-
-
