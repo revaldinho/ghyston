@@ -14,7 +14,6 @@
         ;; #define UNROLL_UDIV2 1
 #define UNROLL_UDIV4 1
         ;; #define UNROLL_UDIV8 1
-        ;; #define UNROLL_UDIV16 1
         ;;  Define this if full 0-31 place shifts are implemented
         ;; #define SHIFT_32
         ;; Define this if native DJNZ is implemented
@@ -292,9 +291,6 @@ udiv32:
 #ifdef UNROLL_UDIV8
 	movi    r0,4           ; loop counter
 #endif
-#ifdef UNROLL_UDIV16
-	movi    r0,2           ; loop counter
-#endif
         bra     udiv_0
         ;; Determine whether to use 16 or 32 bit division depending on whether
         ;; any bits in the upper half-word of either operatnd are set
@@ -320,9 +316,6 @@ udiv16:
 #ifdef UNROLL_UDIV8
 	movi    r0,2           ; loop counter
 #endif
-#ifdef UNROLL_UDIV16
-	movi    r0,1           ; loop counter
-#endif
 #ifdef SHIFT_32
 	asl     r1, r1, 16      ; Move N into R1 upper half word/zero lower half
 #else
@@ -333,43 +326,21 @@ udiv_0:
 	mov     r3, r2         ; copy D to R3 and check != 0
 	ret  z  r14            ; bail out if zero (and carry will be set also)
 	movi    r2,0           ; Initialise R
-#ifdef NOUNROLL_UDIV
 udiv_1:
+#ifdef NOUNROLL_UDIV
         DIVSTEP ()
 #endif
 #ifdef UNROLL_UDIV2
-udiv_1:
         DIVSTEP ()
         DIVSTEP ()
 #endif
 #ifdef UNROLL_UDIV4
-udiv_1:
         DIVSTEP ()
         DIVSTEP ()
         DIVSTEP ()
         DIVSTEP ()
 #endif
 #ifdef UNROLL_UDIV8
-udiv_1:
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-#endif
-#ifdef UNROLL_UDIV16
-udiv_1:
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
         DIVSTEP ()
         DIVSTEP ()
         DIVSTEP ()
