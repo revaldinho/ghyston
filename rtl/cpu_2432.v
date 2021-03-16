@@ -287,7 +287,11 @@ module cpu_2432 (
         else if ( p1_opcode_q == `JRCC ||
                   p1_opcode_q == `JMP  ||
                   p1_opcode_q == `JSR ||
-                  p1_opcode_q == `JRSRCC) begin
+                  p1_opcode_q == `JRSRCC
+`ifdef DJNZ_INSTR
+                  || pi_opcode_q == `DJNZ
+`endif
+                  ) begin
           // Retain flags
           psr_d = psr_q;
         end
