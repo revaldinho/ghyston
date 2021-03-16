@@ -1,11 +1,12 @@
-#
-# Program to generate E using the Spigot Algorithm from
-#
-# http://web.archive.org/web/20110716080608/http://www.mathpropress.com/stan/bibliography/spigot.pdf
-#
-# Translated from the OPC7 version
+;;
+;; Program to generate E using the Spigot Algorithm from
+;;
+;; http://web.archive.org/web/20110716080608/http://www.mathpropress.com/stan/bibliography/spigot.pdf
+;;
+;; Translated from the OPC7 version
 
 #define MUL18X18
+        ;; #define SHIFT_32
 #define DJNZ_INSTR
 
 MACRO   WRCH( _reg_or_data_ )
@@ -34,22 +35,18 @@ MACRO   DJNZ ( _reg_, _label_)
 #endif
 ENDMACRO
 
-
         # r14 = link register
         # r12 = inner loop counter
         # r11 = Q
         # r10 = (i+1) value in main loop
         # r9  = outer loop counter
-        # r8  = next e output digit pointer
         # r4,5,6,7 = unused
         # r1..r3  = local registers
 
-        EQU     digits,   16            # Digits to be printed
-        EQU     saved_digits, 8        # Max digits to be save in memory (for regression)
+        EQU     digits,   32            # Digits to be printed
         EQU     cols,     digits+2      # Needs a few more columns than digits to avoid occasional errors in last digit or few
 
         ORG 0
-        movi    r8, my_e+1
         mov     r0, output_data       ; setup a variable to point to the output data area
         sto.w   r0, output_ptr
         ;; trivial banner + first digit and decimal point
@@ -98,10 +95,6 @@ L4:
 
 L6:     WRDIG   (r11)                   # Convert quotient into ASCII digit
 
-        cmp     r9,saved_digits         # Need to save a digit ?
-        bra pl  L7
-        sto     r11,r8                  # Yes
-        add     r8,r8,1                 # and increment the pointer
 L7:
         DJNZ    (r9, L3)                # dec loop counter and jump back to main program
 
@@ -159,13 +152,21 @@ udiv32:
         ;; any bits in the upper half-word of either operatnd are set
 udiv1632:
         or      r0, r1, r2
+#ifdef SHIFT_32
+        lsr     r0, r0, 16
+#else
         lsr     r0, r0, 8       ; assume shifts limited to 0-15 places
         lsr     r0, r0, 8
+#endif
         bra  nz udiv32
 udiv16:
 	movi    r0,4           ; loop counter (unrolled 4 times)
+#ifdef SHIFT_32
+        asl     r1, r1, 16
+#else
         asl     r1, r1, 8
         asl     r1, r1, 8
+#endif
 udiv_0:
 	mov     r3, r2         ; copy D to R3 and check != 0
 	ret  z  r14            ; bail out if zero (and carry will be set also)
@@ -192,6 +193,8 @@ udiv_1:
 oswrch:
 oswrch_loop:
         ld.w    r0, output_ptr
+        cmp     r0, output_data_limit
+        ret  pl r14
         sto.w   r1, r0
         add     r0, r0, 1
         sto.w   r0, output_ptr
@@ -200,5 +203,5 @@ oswrch_loop:
         ; DATA MEM defines
         EQU     output_ptr,             0
         EQU     output_data,            1
-        EQU     my_e,                   output_data + 0x100
-        EQU     remain,                 my_e + saved_digits + 2
+        EQU     output_data_limit,      0x100
+        EQU     remain,                 output_data_limit
