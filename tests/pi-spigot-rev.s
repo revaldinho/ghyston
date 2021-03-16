@@ -134,7 +134,7 @@ L10:    mov     r1,r11                  ; result (Q) = C + Q//10
         cmp     r11,9                   ; Is result a 9 ?
         bra nz  L4b                     ; No, move on
         add     r6, r6, 1               ; Yes, increment 9s counter
-        bra     SDCL6                   ; and continue with loop
+        DJNZ    (r9, L3)                ; dec loop counter and loop again if non zero
 
 L4b:    cmp     r11,10                  ; Is result 10 and needing correction?
         bra nz  SDCL5                   ; if no correction needed then continue else start corrections
@@ -143,10 +143,11 @@ L4b:    cmp     r11,10                  ; Is result 10 and needing correction?
         WRDIG   (r8)                    ; write predigit as ASCII
         cmp     r6, 0
         bsr  nz PRINTZEROES             ; Now write out any nines as 0s
-        bra     SDCL6b
+        mov     r8,r11                  ; set predigit = Q
+        DJNZ    (r9, L3)                ; dec loop counter and loop again if non zero
 
 SDCL5:  cmp     r9,digits
-        bra z   SDCL6a                  ; if first digit nothing to print yet
+        bra z   SDCL6b                  ; if first digit nothing to print yet
 SDCL8:  WRDIG   (r8)                    ; write predigit as ASCII
         cmp     r6, 0
         bsr  nz PRINTNINES              ; Now write out any nines
@@ -154,24 +155,17 @@ SDCL8:  WRDIG   (r8)                    ; write predigit as ASCII
 SDCL6a: cmp     r9,digits-1             ; Print the decimal point if this is the first digit printed
         bra nz  SDCL6b
         WRCH    (46)
-
 SDCL6b: mov     r8,r11                  ; set predigit = Q
-SDCL6:  sub     r9, r9, 1               ; dec loop counter
-        bra nz  L3
+        DJNZ    (r9, L3)                ; dec loop counter and loop again if non zero
 
 SDCL7:  WRDIG    (r8)                    ; Print last predigit (ASCII) and any nines we are holding
         cmp     r6, 0
         bsr  nz PRINTNINES
-
 L7b:
         WRCH    (10)                   ; Print Newline to finish off
         WRCH    (13)
-
-
 END:    HALT ()
         bra     END
-
-
         ; -----------------------------------------------------------------
         ;
         ; PRINTZEROES/PRINTNINES
