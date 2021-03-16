@@ -289,7 +289,7 @@ module cpu_2432 (
                   p1_opcode_q == `JSR ||
                   p1_opcode_q == `JRSRCC
 `ifdef DJNZ_INSTR
-                  || pi_opcode_q == `DJNZ
+                  || p1_opcode_q == `DJNZ
 `endif
                   ) begin
           // Retain flags
