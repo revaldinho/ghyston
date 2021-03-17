@@ -47,8 +47,6 @@ ENDMACRO
         EQU     cols,     digits+2      # Needs a few more columns than digits to avoid occasional errors in last digit or few
 
         ORG 0
-        mov     r0, output_data       ; setup a variable to point to the output data area
-        sto.w   r0, output_ptr
         ;; trivial banner + first digit and decimal point
         ;; trivial banner
         WRCH    (0x4f)
@@ -198,7 +196,4 @@ oswrch_loop:
         ret     r14
 
         ; DATA MEM defines
-        EQU     output_ptr,             0
-        EQU     output_data,            1
-        EQU     output_data_limit,      0x100
-        EQU     remain,                 output_data_limit
+        EQU     remain,                0

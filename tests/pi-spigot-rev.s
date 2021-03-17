@@ -64,9 +64,6 @@ ENDMACRO
 
         mov     r13,r0                ; Initialise r13 to stop PUSH/POP ever loading Xs to stack for regression runs
         mov     r14, 0x0FFE           ; Set stack to grow down from here for monitor
-        mov     r0, output_data       ; setup a variable to point to the output data area
-        sto.w   r0, output_ptr
-
         jmp     start                ; Program start at 0x1000 for use with monitor/copro
 
         ORG     0x100
@@ -367,7 +364,5 @@ oswrch_loop:
 
 
         ; DATA MEM defines
-        EQU     output_ptr,              0
-        EQU     output_data,             1
-        EQU     remain_minus_one,        0x100
-        EQU     remain,                  0x101
+        EQU     remain_minus_one,        0x0
+        EQU     remain,                  0x1

@@ -92,10 +92,8 @@ MACRO   POPALL()
 ENDMACRO
 
         ORG     0x0000
-        EQU   MAX, 70                         # set max number to sift through
+        EQU   MAX, 1024                    # set max number to sift through
 
-        mov     r0, output
-        sto     r0, output_ptr
         movi    r12, stack_top
         jsr     pd_init
         # Initialise registers to stop PUSHALL/POPALL ever loading X's to stack for regression runs
@@ -107,7 +105,6 @@ ENDMACRO
         mov     r6,0
         mov     r5,0
         mov     r9, MAX
-
 
         # Zero all entries first
         mov     r1,0
@@ -254,7 +251,7 @@ pd32_l3:
         ; Entry:
         ;       r1 is the character to output
         ; Exit:
-        ;       r2 used as temporary
+        ;       r0 used as temporary
         ; ---------------------------------------------------------------
 oswrch:
 oswrch_loop:
@@ -275,9 +272,7 @@ newline:
         ret     r14
 
         # data Section
-        EQU     output_ptr, 0
         EQU     stack_top, 0x03F
         EQU     pd32_table, 0x040
         EQU     pd32_table_sz, 10
         EQU     results, pd32_table + pd32_table_sz + 1
-        EQU     output, 0x200
