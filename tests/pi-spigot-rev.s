@@ -360,10 +360,9 @@ udiv_1:
         ; ---------------------------------------------------------------
 oswrch:
 oswrch_loop:
-        ld.w    r0, output_ptr
+        movi    r0, 0xFFFE
+        movti   r0, 0x00FF
         sto.w   r1, r0
-        add     r0, r0, 1
-        sto.w   r0, output_ptr
         ret     r14
 
 

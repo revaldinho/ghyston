@@ -67,17 +67,17 @@ import sys, re, codecs, getopt
 
 cond_codes = {
     "eq": 0x0, ## equal
-    "z":  0x0,  ## equal
+    "z":  0x0, ## equal
     "ne": 0x1, ## not equal
     "nz": 0x1, ## not equal
     "cs": 0x2, ## unsigned higher or same (or carry set).
-    "c":  0x2,  ## unsigned higher or same (or carry set).
+    "c":  0x2, ## unsigned higher or same (or carry set).
     "cc": 0x3, ## unsigned lower (or carry clear).
     "nc": 0x3, ## unsigned lower (or carry clear).
     "mi": 0x4, ## negative. the mnemonic stands for "minus".
     "pl": 0x5, ## positive or zero. the mnemonic stands for "plus".
     "vs": 0x6, ## signed overflow. the mnemonic stands for "v set".
-    "v":  0x6,  ## signed overflow. the mnemonic stands for "v set".
+    "v":  0x6, ## signed overflow. the mnemonic stands for "v set".
     "vc": 0x7, ## no signed overflow. the mnemonic stands for "v clear".
     "nv": 0x7, ## no signed overflow. the mnemonic stands for "v clear".
     "hi": 0x8, ## unsigned higher.

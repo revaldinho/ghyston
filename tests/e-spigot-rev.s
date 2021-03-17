@@ -192,12 +192,9 @@ udiv_1:
         ; ---------------------------------------------------------------
 oswrch:
 oswrch_loop:
-        ld.w    r0, output_ptr
-        cmp     r0, output_data_limit
-        ret  pl r14
+        movi    r0, 0xFFFE
+        movti   r0, 0x00FF
         sto.w   r1, r0
-        add     r0, r0, 1
-        sto.w   r0, output_ptr
         ret     r14
 
         ; DATA MEM defines
