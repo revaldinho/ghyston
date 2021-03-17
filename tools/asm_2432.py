@@ -126,9 +126,9 @@ op = {
     "ror"     : {"format":"e", "opcode": 48 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
     "asl"     : {"format":"e", "opcode": 50 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
     "rol"     : {"format":"e", "opcode": 52 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
-    "bset"    : {"format":"e", "opcode": 54 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
-    "bclr"    : {"format":"e", "opcode": 56 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
-    "btst"    : {"format":"e", "opcode": 58 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
+    "bset"    : {"format":"e", "opcode": 54 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":31},
+    "bclr"    : {"format":"e", "opcode": 56 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":31},
+    "btst"    : {"format":"e", "opcode": 58 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":31},
     "cmp"     : {"format":"e", "opcode": 60 ,"sext":True,  "cond":False, "operands":2, "sext": True,  "min_imm":-512, "max_imm":512},
 #    ""       : {"format":"a", "opcode": 62 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":0},
 }
@@ -281,7 +281,7 @@ def assemble( filename, listingon=True):
                     # Format C - branch and return instructions
                     elif ifmt == "c":
                         if ( inst == "djnz" ) :
-                            cond = 0                            
+                            cond = 0
                             imm = words[2] - (nextmem)
                             rdest = words[0]
                             rsrc1 = words[1]
@@ -311,7 +311,7 @@ def assemble( filename, listingon=True):
                         imm = words[1]
                     # Format E - arith and logic instructions
                     elif ifmt == "e":
-                        if inst == "cmp":
+                        if inst in( "cmp", "btst") :
                             words.insert(0,0)
                         rdest = words[0]
                         rsrc1 = words[1]

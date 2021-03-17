@@ -97,9 +97,9 @@ module alu(
                 ( !din_a[31] & din_b[31] & alu_dout[31]) ;
       end
 
-      `BTST             :{alu_cout,alu_dout} = {cin, din_a & (32'b1<<din_b[4:0])};
-      `BSET             :{alu_cout,alu_dout} = {cin, din_a | (32'b1<<din_b[4:0])};
-      `BCLR             :{alu_cout,alu_dout} = {cin, din_a & !(32'b1<<din_b[4:0])};
+      `BTST             :{alu_cout,alu_dout} = {cin, din_a & (32'b1 <<  (din_b & 32'h01F))};
+      `BSET             :{alu_cout,alu_dout} = {cin, din_a | (32'b1 <<  (din_b & 32'h01F))};
+      `BCLR             :{alu_cout,alu_dout} = {cin, din_a & ~(32'b1 << (din_b &  32'h01F))};
       default           :{alu_cout,alu_dout} = {cin,din_b} ;
     endcase // case opcode
   end
