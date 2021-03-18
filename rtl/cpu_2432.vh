@@ -1,6 +1,6 @@
 /*
  * General configuration
- * 
+ *
  */
 
 `define TWO_STAGE_PIPE 1
@@ -56,7 +56,7 @@
 
 
 // All opcodes are extended to 6 bits with the LSBs padded to zeros as listed below
-//  
+//
 // These instructions use only 4 opcode bits with the two LSBs as immediate data
 `define LMOV   6'b011000
 `define LMOVT  6'b011100
@@ -65,7 +65,7 @@
 `define LD_W   6'b000100
 `define MOV    6'b000110
 `define STO_W  6'b001100
-`define JRCC   6'b010000 
+`define JRCC   6'b010000
 `define JRSRCC 6'b010010
 `define AND    6'b100000
 `define OR     6'b100010
@@ -92,4 +92,3 @@
 `endif
 `define JMP    6'b010110
 `define JSR    6'b010111
-
