@@ -135,6 +135,9 @@ module cpu_2432 (
     p1_imm_d = 32'b000000;
     // Expand or pad the opcode, unpack immediates and update any implied register source/dests
     if (raw_instr_w[23:21] == 3'b000 ) begin // Format A
+      if ( raw_instr_w[23:18] == `NOT ) begin
+        p1_opcode_d =  raw_instr_w[23:18];
+      end
       p1_imm_d = { 18'b0, raw_instr_w[11:4], raw_instr_w[17:16], raw_instr_w[3:0]};
       p1_rsrc0_d = 6'b000000 ; // Unused set to RZero
     end
@@ -284,8 +287,10 @@ module cpu_2432 (
         else if ( p1_rdest_q[5] ) begin
           psr_d = alu_dout;
         end
-        else if ( p1_opcode_q == `JRCC ||
-                  p1_opcode_q == `JMP  ||
+        else if ( p1_opcode_q == `STO_W ||
+                  p1_opcode_q == `JRCC ||
+                  p1_opcode_q == `JRSRCC ||
+                  p1_opcode_q == `JMP ||
                   p1_opcode_q == `JSR ||
                   p1_opcode_q == `JRSRCC
 `ifdef DJNZ_INSTR

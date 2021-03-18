@@ -86,6 +86,7 @@
 `define CMP    6'b111100
 
 // These instructions need to use all 6 opcode bits
+`define NOT    6'b000111
 `define RETI   6'b010100
 `ifdef DJNZ_INSTR
   `define DJNZ   6'b010101

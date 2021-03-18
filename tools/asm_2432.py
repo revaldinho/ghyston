@@ -96,6 +96,7 @@ op = {
     "ld.w"    : {"format":"a", "opcode": 4 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "ld"      : {"format":"a", "opcode": 4 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "mov"     : {"format":"a", "opcode": 6 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
+    "not"     : {"format":"a", "opcode": 7 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "spare1"   : {"format":"b", "opcode": 8 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "spare2"   : {"format":"b", "opcode": 10 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "sto.w"   : {"format":"b", "opcode": 12 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
@@ -108,7 +109,6 @@ op = {
     "bcc"     : {"format":"c", "opcode": 16 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},
     "jrsr"    : {"format":"c", "opcode": 18 ,"sext":False, "cond":True,  "operands":2, "sext": False, "min_imm":-512, "max_imm":511},
     "bsr"     : {"format":"c", "opcode": 18 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},
-    "reti"    : {"format":"c", "opcode": 21 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":0,    "max_imm":0},
     "djnz"    : {"format":"c", "opcode": 21 ,"sext":True,  "cond":True,  "operands":3, "sext": False, "min_imm":-512, "max_imm":511},
     "jmp"     : {"format":"c2","opcode": 22 ,"sext":False, "cond":False, "operands":1, "sext": False, "min_imm":0,    "max_imm":262143},
     "jsr"     : {"format":"c2","opcode": 23 ,"sext":False, "cond":False, "operands":1, "sext": False, "min_imm":0,    "max_imm":262143},
@@ -261,6 +261,8 @@ def assemble( filename, listingon=True):
                     elif len(opfields) == 1:
                         opfields.append("0")
                         words.append(0)
+                if inst == "mov" and not is_register(opfields[-1]):
+                    inst = "movi"
                 if ( op[inst]["operands"] != len(words)):
                     errors.append("Error: wrong number of operands for instruction %s\n on line %s" % (inst, line.strip()))
                 else:
@@ -272,6 +274,8 @@ def assemble( filename, listingon=True):
                     if ifmt == "a" or ifmt == "b":
                         if ifmt=="a":
                             rdest = words[0]
+                            if (inst=="not"):
+                                direct = 0
                         else:
                             rsrc1 = words[0]
                         if (direct):

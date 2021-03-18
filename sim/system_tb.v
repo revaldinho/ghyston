@@ -80,20 +80,20 @@ module system_tb() ;
 always @ ( negedge clk ) begin
   $display( "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ");
 `ifdef TWO_STAGE_PIPE
-  $display( "P0: %10d: %02X : %08X : %d : %d " , cycle,
+  $display( "P0: adr = %08X: %08X : %d : %d " ,
             dut_0.cpu_0.p0_pc_q,
             dut_0.cpu_0.raw_instr_w,
             dut_0.cpu_0.rstb_q,
             dut_0.cpu_0.p0_moe_q );
 `else
-  $display( "P0: %10d: %02X : %08X : %d : %d %d " , cycle,
+  $display( "P0: adr = %08X: %08X : %d : %d %d " ,
             dut_0.cpu_0.p0_pc_q,
             dut_0.cpu_0.p0_instr_q,
             dut_0.cpu_0.rstb_q,
             dut_0.cpu_0.p0_moe_q,
             dut_0.cpu_0.p0_stage_valid_q );
 `endif
-  $display( "P1: %10d: %02X : %02X : - : %X %X %X -------- : %X : - - %d " , cycle,
+  $display( "P1:     = %10d: %02X : %02X : - : %X %X %X -------- : %X : - - %d " , cycle,
             dut_0.cpu_0.p1_pc_q,
             dut_0.cpu_0.p1_opcode_q,
             dut_0.cpu_0.p1_rdest_q,
