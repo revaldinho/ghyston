@@ -71,7 +71,6 @@ ENDMACRO
 
         ORG     0x00
 
-
         movi    r12,STACK_TOP
         jsr     pd_init
 
@@ -92,10 +91,6 @@ ENDMACRO
 
         HALT    ()
 end:    bra end
-
-
-
-
 
 test_sqrt:
         mov     r10, r1         ; save number for rooting
@@ -122,7 +117,6 @@ test_sqrt:
         PRINT_NL()
         POP     (r14)
         ret     r14
-
 
         # -----------------------------------------------------------------
         #
@@ -188,74 +182,6 @@ sq32_L4:
 sq32_L5:
         mov     r1, r2            # move result into r1 for return
         ret     r14
-
-##         # ------------------------------------------------------------
-##         # sprint
-##         #
-##         # Print packed byte string to console.
-##         #
-##         # Entry:
-##         #       r1  holds pointer to byte string terminated with zero
-##         #       r2  holds second byte string for end of print characters
-##         # Exit:
-##         #       r5-r13 preserved
-##         #       r1-r4 used for workspace
-##         # ------------------------------------------------------------
-##         #
-##         # If R2 == 0 then no additional characters are printed, otherwise
-##         # R2 might hold, say, 0x00001013 to print a CRLF pair at the end
-##         # of the string.
-##         # ------------------------------------------------------------
-## sprint:
-##         PUSH (r13)
-##         PUSH (r6)
-##         PUSH (r5)
-##         PUSH (r2)
-##         mov  r6,r1
-## sprint_loop:
-##         ld   r3,r6
-##         JSR  (sprint_word)
-##         z.lmov pc, sprint_eol
-##         add  r6,r0,1
-##         lmov pc,sprint_loop
-##
-## sprint_eol:
-##         POP (r3)
-##         JSR (sprint_word)
-## sprint_exit:
-##         POP (r5)
-##         POP (r6)
-##         POP (r13)
-##         RTS ()
-##
-## sprint_word:
-##         # Print all characters held in r3 to console
-##         # Exit with Zero flag set if reached a zero character
-##         PUSH (r13)
-##         bperm r1,r3,0x7770
-##         z.lmov pc,spw_retz
-##         JSR  (oswrch)
-##         bperm r1,r3,0x7771
-##         z.lmov pc,spw_retz
-##         JSR  (oswrch)
-##         bperm r1,r3,0x7772
-##         z.lmov pc,spw_retz
-##         JSR  (oswrch)
-##         bperm r1,r3,0x7773
-##         z.lmov pc,spw_retz
-##         JSR  (oswrch)
-## spw_ret:
-##         POP (r13)
-##         lmov    r1,1     # Ensure Z flag not set if exiting here
-##         RTS()
-## spw_retz:
-##         POP (r13)
-##         mov r1,r0       # Ensure Z flag set if exiting here
-##         RTS()
-##
-
-        #-----END
-
 
         # ------------------------------------------------------------
         # printdec32
