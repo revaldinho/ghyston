@@ -199,15 +199,16 @@ sb1:
         # r5,r6 = Divisor for each round of subtraction
         # r3,r4 = Remainder (eventually bits only in r3)
         # ------------------------------------------------------------
-
 pd_init:
         # Initialise divisor table for printdec32,
         mov     r1, pd32_table
         mov     r2, 10
-        mov     r3, 10
+        mov     r3, 9
 pdi_0:  sto     r2, r1
         add     r1, r1, 1
-        mul     r2, r2, 10
+        asl     r0, r2, 1
+        asl     r2, r2, 3
+        add     r2, r0, r2
         DJNZ    (r3, pdi_0)
         ret     r14
 
@@ -221,8 +222,8 @@ pd32_l1:
         ld      r5,r0           # get 32b divisor from table low word first
         mov     r8, 0           # set Q = 0
 pd32_l1a:
-        cmp     r3,r5           # Is number > decimal divisor
-        bra  le pd32_l2         # If no then skip ahead and decide whether to print the digit
+        cmp     r3,r5           # Is number >= decimal divisor
+        bra  lt pd32_l2         # If no then skip ahead and decide whether to print the digit
         sub     r3,r3, r5       # If yes, then do the subtraction
         add     r8,r8,1         # Increment the quotient
         bra     pd32_l1a        # Loop again to try another subtraction
