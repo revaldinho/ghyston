@@ -9,21 +9,16 @@ TESTS= $(patsubst %.s,%.sim,$(TESTNAMES))
 
 VPATH=${SRCDIR}:${TSTDIR}
 
-realclean:
-	rm -f *.vcd *.exe *~ *dump *.sim *.hex
-	cd ${TSTDIR} && make clean
-clean:
-	rm -f *.vcd *.exe *~ *dump *.sim *.hex
-
-all: ${TESTS}
-
 %.hex: %.s
 	cd ${TSTDIR} && make $*.hex
 
+
+# Only include this to get a full VCD dump
+#           -D VCD_FILE_D="\"$*.vcd\"" \
+#
 %.exe: %.hex ${HDRS} ${SRCS} system_tb.v
 	iverilog -I${SRCDIR} -o $*.exe \
 	   -D MEM_INIT_FILE_D="\"${TSTDIR}/$*.hex\"" \
-           -D VCD_FILE_D="\"$*.vcd\"" \
            -D RAM_DUMP_FILE_D="\"$*.dump\"" \
            system_tb.v \
            ${SRCDIR}/system.v \
@@ -38,4 +33,10 @@ all: ${TESTS}
 %.sim %.vcd %.dump : %.exe
 	./$*.exe > $*.sim
 
+realclean:
+	rm -f *.vcd *.exe *~ *dump *.sim *.hex
+	cd ${TSTDIR} && make clean
+clean:
+	rm -f *.vcd *.exe *~ *dump *.sim *.hex
 
+all: ${TESTS}
