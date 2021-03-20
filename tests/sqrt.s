@@ -153,35 +153,30 @@ test_sqrt:
         #
         # ------------------------------------------------------------------
 sqrt32:
-        movi    r2,0            # zero result
-        movi    r3,0            # set bit to 0x04000000
-        movti   r3,0x4000
+        mov     r2, r1          # move number to root into r2         
+        movi    r1,0            # zero result
+        bset    r3, r1, 30      # set bit to 0x40000000
 sq32_L1:
-        cmp     r1, r3          #  compare number with bit
+        cmp     r2, r3          # compare number with bit
         bra pl  sq32_L2         # exit loop if number >= bit
         asr     r3,r3,2         # shift bit 2 places right
         bra     sq32_L1
 
 sq32_L2:
-        cmp     r3,0            # is R3 zero ?
-        bra z   sq32_L5         # Yes ? then exit
-        sub     r1,r1,r2        # Trial subtract r1 -= Res + bit
-        sub     r1,r1,r3
-        bra mi  sq32_L3         # if <0 then need to restore r1
-        asr     r2,r2,1         # shift result right
-        add     r2,r2,r3        # .. and add bit
-        bra     sq32_L4
-sq32_L3:
-        add     r1,r1,r2        # restore r1 (add res + bit back)
-        add     r1,r1,r3
-        asr     r2,r2,1         # shift result right
-sq32_L4:
+        cmp     r3,0            # is R3 zero ? 
+        ret z   r14             # Yes ? then exit
+        add     r0,r1,r3        # Trial subtract r2 -= Res + bit
+        sub     r2,r2,r0
+        bra mi  sq32_L3         # if <0 then need to restore r2
+        asr     r1,r1,1         # shift result right
+        add     r1,r1,r3        # .. and add bit
         asr     r3,r3,2
         bra     sq32_L2
-
-sq32_L5:
-        mov     r1, r2            # move result into r1 for return
-        ret     r14
+sq32_L3:
+        add     r2,r2,r0        # restore r2 (add res + bit back)
+        asr     r1,r1,1         # shift result right
+        asr     r3,r3,2
+        bra     sq32_L2
 
         # ------------------------------------------------------------
         # printdec32
