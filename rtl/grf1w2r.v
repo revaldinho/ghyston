@@ -51,9 +51,9 @@ module grf1w2r (
     if (i_clk_en)
       if ( !i_cs_b) begin
         rf_q[i_waddr] <= din;        
-        $display("Writing %6X to R%d" , din, i_waddr);                
 //`define DEBUG_D 1
 `ifdef DEBUG_D
+        $display("Writing %6X to R%d" , din, i_waddr);                
         for ( i=0 ; i< 15 ; i= i+1) begin
           $display("Reg %02d = %08X", i, rf_q[i]);
         end

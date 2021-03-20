@@ -80,27 +80,27 @@ module system_tb() ;
 always @ ( negedge clk ) begin
   $display( "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ");
 `ifdef TWO_STAGE_PIPE
-  $display( "P0: adr = %08X: %08X : %d : %d " ,
+  $display( "P0: adr = %08X raw_ins=%08X rstb=%d p0_moe_q=%d " ,
             dut_0.cpu_0.p0_pc_q,
             dut_0.cpu_0.raw_instr_w,
             dut_0.cpu_0.rstb_q,
             dut_0.cpu_0.p0_moe_q );
 `else
-  $display( "P0: adr = %08X: %08X : %d : %d %d " ,
+  $display( "P0: adr = %08X pc_instr_q=%08X rstb=%d p0_moe_q=%d p0_stg_valid_q=%d " ,
             dut_0.cpu_0.p0_pc_q,
             dut_0.cpu_0.p0_instr_q,
             dut_0.cpu_0.rstb_q,
             dut_0.cpu_0.p0_moe_q,
             dut_0.cpu_0.p0_stage_valid_q );
 `endif
-  $display( "P1:     = %10d: %02X : %02X : - : %X %X %X -------- : %X : - - %d " , cycle,
-            dut_0.cpu_0.p1_pc_q,
-            dut_0.cpu_0.p1_opcode_q,
-            dut_0.cpu_0.p1_rdest_q,
-            dut_0.cpu_0.p1_rsrc0_q,
-            dut_0.cpu_0.p1_rsrc1_q,
-            dut_0.cpu_0.p1_cond_q,
-            dut_0.cpu_0.p1_stage_valid_q );
+//  $display( "P1:     = %10d: %02X : %02X : - : %X %X %X -------- : %X : - - %d " , cycle,
+//            dut_0.cpu_0.p1_pc_q,
+//            dut_0.cpu_0.p1_opcode_q,
+//            dut_0.cpu_0.p1_rdest_q,
+//            dut_0.cpu_0.p1_rsrc0_q,
+//            dut_0.cpu_0.p1_rsrc1_q,
+//            dut_0.cpu_0.p1_cond_q,
+//            dut_0.cpu_0.p1_stage_valid_q );
 
   $display("FLAGS C=%d Z=%d V=%d S=%d",
            dut_0.cpu_0.psr_q[`C],
@@ -129,11 +129,11 @@ always @ ( negedge clk ) begin
            dut_0.cpu_0.u0.rf_q[14],
            dut_0.cpu_0.u0.rf_q[15]);
 
-  $display("p0_pc_d=%08x p0_pc_q=%08x p2_jump_taken_d=%d",
-            dut_0.cpu_0.p0_pc_d,
-            dut_0.cpu_0.p0_pc_q,
-           dut_0.cpu_0.p2_jump_taken_d
-);
+//   $display("p0_pc_d=%08x p0_pc_q=%08x p2_jump_taken_d=%d",
+//             dut_0.cpu_0.p0_pc_d,
+//             dut_0.cpu_0.p0_pc_q,
+//            dut_0.cpu_0.p2_jump_taken_d
+// );
 
 
 end
