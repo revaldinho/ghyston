@@ -6,8 +6,11 @@ TESTSRCS= $(wildcard $(TSTDIR)/*.s)
 TESTHEXES= $(wildcard $(TSTDIR)/*.hex)
 TESTNAMES = $(notdir ${TESTSRCS} )
 TESTS= $(patsubst %.s,%.sim,$(TESTNAMES))
+STDOUT= $(patsubst %.s,%.stdout,$(TESTNAMES))
 
 VPATH=${SRCDIR}:${TSTDIR}
+
+pyexec ?= python3
 
 %.hex: %.s
 	cd ${TSTDIR} && make $*.hex
@@ -29,14 +32,16 @@ VPATH=${SRCDIR}:${TSTDIR}
            ${SRCDIR}/rom_8192x24.v \
            ${SRCDIR}/ram_8192x32.v
 
+%.stdout : %.sim
+	cat $*.sim | pyexec ../tools/extract_stdout.py >  $*.stdout
 
 %.sim %.vcd %.dump : %.exe
 	./$*.exe > $*.sim
 
 realclean:
-	rm -f *.vcd *.exe *~ *dump *.sim *.hex
+	rm -f *.vcd *.exe *~ *dump *.sim *.hex *.stdout
 	cd ${TSTDIR} && make clean
 clean:
-	rm -f *.vcd *.exe *~ *dump *.sim *.hex
+	rm -f *.vcd *.exe *~ *dump *.sim *.hex *.stdout
 
-all: ${TESTS}
+all: ${STDOUT}
