@@ -135,10 +135,12 @@ module cpu_2432 (
     p1_imm_d = 32'b000000;
     // Expand or pad the opcode, unpack immediates and update any implied register source/dests
     if (raw_instr_w[23:21] == 3'b000 ) begin // Format A
+`ifdef NOT_INSTR
       if ( raw_instr_w[23:18] == `NOT ) begin
         p1_opcode_d =  raw_instr_w[23:18];
         p1_ead_use_imm_d = 1'b0;
       end
+`endif
       p1_imm_d = { 18'b0, raw_instr_w[11:4], raw_instr_w[17:16], raw_instr_w[3:0]};
       p1_rsrc0_d = 6'b000000 ; // Unused set to RZero
     end

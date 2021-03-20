@@ -153,7 +153,7 @@ test_sqrt:
         #
         # ------------------------------------------------------------------
 sqrt32:
-        mov     r2, r1          # move number to root into r2         
+        mov     r2, r1          # move number to root into r2
         movi    r1,0            # zero result
         bset    r3, r1, 30      # set bit to 0x40000000
 sq32_L1:
@@ -163,7 +163,7 @@ sq32_L1:
         bra     sq32_L1
 
 sq32_L2:
-        cmp     r3,0            # is R3 zero ? 
+        cmp     r3,0            # is R3 zero ?
         ret z   r14             # Yes ? then exit
         add     r0,r1,r3        # Trial subtract r2 -= Res + bit
         sub     r2,r2,r0
