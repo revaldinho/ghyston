@@ -33,7 +33,7 @@ pyexec ?= python3
            ${SRCDIR}/ram_8192x32.v
 
 %.stdout : %.sim
-	cat $*.sim | pyexec ../tools/extract_stdout.py >  $*.stdout
+	cat $*.sim | ${pyexec} ../tools/extract_stdout.py >  $*.stdout
 
 %.sim %.vcd %.dump : %.exe
 	./$*.exe > $*.sim

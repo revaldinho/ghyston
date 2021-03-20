@@ -12,4 +12,6 @@ for l in sys.stdin:
     m = stdout_re.match(l)
     if m:
         data = int(m.groupdict()["decdata"])
-        print("%c" % data, end="")
+        # Suppress the CR characters 
+        if data != 13:
+            print("%c" % data, end="")
