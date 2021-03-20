@@ -1,10 +1,5 @@
-
-MACRO   HALT( )
-        movi    r0, 0xFFFF
-        movti   r0, 0x00FF
-        sto     r0, r0
-ENDMACRO
-
+#include "options.h"
+#include "macros.h"
 
         ORG 0000
 

@@ -1,24 +1,6 @@
-#define  DJNZ   1
-
-
-
-MACRO   HALT( )
-        movi    r0, 0xFFFF
-        movti   r0, 0x00FF
-        sto     r0, r0
-ENDMACRO
-
-MACRO   DJNZ ( _reg_, _label_)
-#ifdef DJNZ
-        djnz    _reg_, _reg_, _label_
-#else
-        sub     _reg_, _reg_, 1
-        bra nz  _label_
-#endif
-ENDMACRO
-
-
-
+#include "options.h"
+#include "macros.h"
+        
         ORG    0
         EQU    RESULTS, 0
 

@@ -5,35 +5,8 @@
 ;;
 ;; Translated from the OPC7 version
 
-#define MUL18X18
-        ;; #define SHIFT_32
-#define DJNZ_INSTR
-
-MACRO   WRCH( _reg_or_data_ )
-        mov     r1, _reg_or_data_
-        jsr     oswrch
-ENDMACRO
-
-MACRO   WRDIG( _reg_or_data_ )
-        mov     r1, _reg_or_data_
-        add     r1, r1, 48
-        jsr     oswrch
-ENDMACRO
-
-MACRO   HALT( )
-        movi    r0, 0xFFFF
-        movti   r0, 0x00FF
-        sto     r0, r0
-ENDMACRO
-
-MACRO   DJNZ ( _reg_, _label_)
-#ifdef DJNZ_INSTR
-        djnz    _reg_, _reg_, _label_
-#else
-        sub     _reg_, _reg_, 1
-        bra nz  _label_
-#endif
-ENDMACRO
+#include "options.h"
+#include "macros.h"        
 
         # r14 = link register
         # r12 = inner loop counter

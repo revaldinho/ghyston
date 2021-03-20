@@ -1,3 +1,8 @@
+
+
+
+#include "options.h"
+#include "macros.h"
         ;;
         ;; Program to generate Pi using the Spigot Algorithm from
         ;;
@@ -7,42 +12,6 @@
         ;;
         ;; Translated from the OPC7 version.
 
-        ;; define this to optimize for hardware multiplier but limited to 18x18 operation
-#define MUL18X18 1
-        ;; Need to define one and only one of the following defines for the division
-        ;; #define NOUNROLL_UDIV
-        ;; #define UNROLL_UDIV2 1
-#define UNROLL_UDIV4 1
-        ;; #define UNROLL_UDIV8 1
-        ;;  Define this if full 0-31 place shifts are implemented
-        ;; #define SHIFT_32
-        ;; Define this if native DJNZ is implemented
-#define DJNZ_INSTR 1
-MACRO   WRCH( _reg_or_data_ )
-        mov     r1, _reg_or_data_
-        jsr     oswrch
-ENDMACRO
-
-MACRO   WRDIG( _reg_or_data_ )
-        mov     r1, _reg_or_data_
-        add     r1, r1, 48
-        jsr     oswrch
-ENDMACRO
-
-MACRO   HALT( )
-        movi    r0, 0xFFFF
-        movti   r0, 0x00FF
-        sto     r0, r0
-ENDMACRO
-
-MACRO   DJNZ ( _reg_, _label_)
-#ifdef DJNZ_INSTR
-        djnz    _reg_, _reg_, _label_
-#else
-        sub     _reg_, _reg_, 1
-        bra nz  _label_
-#endif
-ENDMACRO
         ; Register Map
         ; (r15  = PC)
         ; r14   = stack pointer

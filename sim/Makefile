@@ -42,9 +42,9 @@ pyexec ?= python3
 	egrep -i '(terminated|executed)' $*.sim > $*.stats
 
 realclean:
-	rm -f *.vcd *.exe *~ *dump *.sim *.hex *.stdout
+	rm -f *.vcd *.exe *~ *dump *.sim *.hex *.stdout *stats
 	cd ${TSTDIR} && make clean
 clean:
-	rm -f *.vcd *.exe *~ *dump *.sim *.hex *.stdout
+	rm -f *.vcd *.exe *~ *dump *.sim *.hex *.stdout *stats
 
 all: ${STDOUT} ${STATS}
