@@ -7,7 +7,7 @@ TESTHEXES= $(wildcard $(TSTDIR)/*.hex)
 TESTNAMES = $(notdir ${TESTSRCS} )
 TESTS= $(patsubst %.s,%.sim,$(TESTNAMES))
 STDOUT= $(patsubst %.s,%.stdout,$(TESTNAMES))
-
+STATS = $(patsubst %.s,%.stats,$(TESTNAMES))
 VPATH=${SRCDIR}:${TSTDIR}
 
 pyexec ?= python3
@@ -38,10 +38,13 @@ pyexec ?= python3
 %.sim %.vcd %.dump : %.exe
 	./$*.exe > $*.sim
 
+%.stats : %.sim
+	egrep -i '(terminated|executed)' $*.sim > $*.stats
+
 realclean:
 	rm -f *.vcd *.exe *~ *dump *.sim *.hex *.stdout
 	cd ${TSTDIR} && make clean
 clean:
 	rm -f *.vcd *.exe *~ *dump *.sim *.hex *.stdout
 
-all: ${STDOUT}
+all: ${STDOUT} ${STATS}
