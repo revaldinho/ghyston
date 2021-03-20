@@ -38,8 +38,9 @@ pyexec ?= python3
 %.sim %.vcd %.dump : %.exe
 	./$*.exe > $*.sim
 
-%.stats : %.sim
+%.stats : %.sim %.lst
 	egrep -i '(terminated|executed)' $*.sim > $*.stats
+	egrep Assembled ../tests/$*.lst >> $*.stats
 
 realclean:
 	rm -f *.vcd *.exe *~ *dump *.sim *.hex *.stdout *stats
