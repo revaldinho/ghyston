@@ -12,7 +12,7 @@ VPATH=${SRCDIR}:${TSTDIR}
 
 pyexec ?= python3
 
-%.hex: %.s
+%.hex: %.s ../tests/options.h
 	cd ${TSTDIR} && make $*.hex
 
 
@@ -39,8 +39,9 @@ pyexec ?= python3
 	./$*.exe > $*.sim
 
 %.stats : %.sim %.lst
-	egrep -i '(terminated|executed)' $*.sim > $*.stats
-	egrep Assembled ../tests/$*.lst >> $*.stats
+	echo "filename: $*" > $*.stats
+	egrep Assembled ../tests/$*.lst | awk '{print "  Instr. words: " $$2}' >> $*.stats
+	tail -50 $*.sim | awk '/terminated/{ print "  Cycles: " $$5/1000} /Executed/{print "  Instr. Executed: "$$2}' >> $*.stats
 
 realclean:
 	rm -f *.vcd *.exe *~ *dump *.sim *.hex *.stdout *stats
@@ -48,4 +49,4 @@ realclean:
 clean:
 	rm -f *.vcd *.exe *~ *dump *.sim *.hex *.stdout *stats
 
-all: ${STDOUT} ${STATS}
+all: ${STDOUT} ${STATS} ${TESTS}

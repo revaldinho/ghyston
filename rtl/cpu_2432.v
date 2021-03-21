@@ -283,31 +283,28 @@ module cpu_2432 (
     // Compute the flag result  - default is to retain PSR
     psr_d = psr_q;
     if ( p1_stage_valid_q ) begin
-        if ( p1_opcode_q == `LD_W ) begin
-          psr_d[`Z] = !(|p0_result_d);
-          psr_d[`S] = p0_result_d[31];
-        end
-        else if ( p1_rdest_q[5] ) begin
-          psr_d = alu_dout;
-        end
-        else if ( p1_opcode_q == `STO_W ||
-                  p1_opcode_q == `JRCC ||
-                  p1_opcode_q == `JMP ||
-                  p1_opcode_q == `JSR ||
-                  p1_opcode_q == `JRSRCC
+      if ( p1_rdest_q[5] ) begin
+        psr_d = alu_dout;
+      end
+      else if ( p1_opcode_q == `LD_W ||
+                p1_opcode_q == `STO_W ||
+                p1_opcode_q == `JRCC ||
+                p1_opcode_q == `JMP ||
+                p1_opcode_q == `JSR ||
+                p1_opcode_q == `JRSRCC
 `ifdef DJNZ_INSTR
-                  || p1_opcode_q == `DJNZ
+                || p1_opcode_q == `DJNZ
 `endif
-                  ) begin
-          // Retain flags
-          psr_d = psr_q;
-        end
-        else begin
-          psr_d[`C] = alu_cout;
-          psr_d[`V] = alu_vout;
-          psr_d[`S] = alu_dout[31];
-          psr_d[`Z] = !(|alu_dout);
-        end
+                ) begin
+        // Retain flags
+        psr_d = psr_q;
+      end
+      else begin
+        psr_d[`C] = alu_cout;
+        psr_d[`V] = alu_vout;
+        psr_d[`S] = alu_dout[31];
+        psr_d[`Z] = !(|alu_dout);
+      end
     end
   end
 
@@ -329,7 +326,6 @@ module cpu_2432 (
       p1_ram_rd_d = (p1_opcode_d == `LD_W );
       if ( p1_opcode_d == `STO_W ) begin
         p1_ram_wr_d = 1'b1;
-        p1_ram_dout_d = p1_src0_data_d;
       end
     end // if ( p1_stage_valid_d )
   end // always @ (*)
