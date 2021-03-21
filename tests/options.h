@@ -13,5 +13,5 @@
         ;; #define SHIFT_32
         ;; Define this if native DJNZ is implemented
         ;; #define DJNZ_INSTR 1
-        ;; Define this if NOT instr is implemented
-        ;; #define NOT_INSTR 1
+        ;; Define this if NEG instr is implemented
+        ;; #define NEG_INSTR 1

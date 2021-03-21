@@ -10,10 +10,11 @@
 //`define MUL32 1
 // Define this to allow shifts of 16-31bits in one instruction, otherwise limited to 0-15
 //`define SHIFT16 1
-// Define this to enable NOT instruction
-//`define NOT_INSTR 1
+// Define this to enable NEG instruction or alternate implementation
+//`define NEG_INSTR 1
+//`define NEG2_INSTR 1
 // Define this to enable DJNZ instruction
-`define DJNZ_INSTR 1
+//`define DJNZ_INSTR 1
 `define BYPASS_EN_D 1
 //`define HALF_RATE_D 1
 
@@ -86,10 +87,12 @@
 `define BCLR   6'b111000
 `define BTST   6'b111010
 `define CMP    6'b111100
-
+`ifdef NEG2_INSTR
+  `define NEG    6'b111110
+`endif
 // These instructions need to use all 6 opcode bits
-`ifdef NOT_INSTR
-  `define NOT    6'b000111
+`ifdef NEG_INSTR
+ `define NEG    6'b000111
 `endif
 `define RETI   6'b010100
 `ifdef DJNZ_INSTR

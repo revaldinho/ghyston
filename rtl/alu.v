@@ -59,13 +59,10 @@ module alu(
     case ( opcode )
       //MOVT will have the bits shifted to the top of the word before writing the regfile
       `LMOVT      :{alu_cout,alu_dout} = {cin, din_b[15:0], din_a[15:0]} ;
-`ifdef NOT_INSTR
-      `NOT        :{alu_cout,alu_dout} = {cin, ~din_b};
-`endif
       `LMOV, `MOV :{alu_cout,alu_dout} = {cin, din_b} ;
       `AND        :{alu_cout,alu_dout} = {1'b0,(din_a & din_b)};
       `OR         :{alu_cout,alu_dout} = {1'b0,(din_a | din_b)};
-      `XOR        :{alu_cout,alu_dout} = {1'b0, din_a ^ din_b};
+      `XOR        :{alu_cout,alu_dout} = {1'b0,(din_a ^ din_b)};
 `ifdef INCLUDE_MUL
 `ifdef MUL32
       // Wide multiply 32b x32b = 32b (truncated) uses 3 cycles and stretches the clock cycle to complete
@@ -93,7 +90,16 @@ module alu(
         qnzout = |alu_dout;
       end
 `endif
-      `SUB, `CMP        : begin
+`ifdef NEG_INSTR
+      `NEG, `SUB, `CMP :
+`else
+  `ifdef NEG2_INSTR
+        `NEG, `SUB, `CMP :
+  `else
+          `SUB, `CMP       :
+  `endif
+`endif
+      begin
         {alu_cout,alu_dout} = {din_a - din_b};
         // overflow if -ve - +ve = +ve  or +ve - -ve = -ve
         vout =  ( din_a[31] & !din_b[31] & !alu_dout[31]) ||

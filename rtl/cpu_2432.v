@@ -32,7 +32,7 @@ module cpu_2432 (
   reg                          p1_jump_taken_d, p1_jump_taken_q;
   reg                          p1_stage_valid_d, p1_stage_valid_q;
   reg [31:0]                   p1_ead_d, p1_ead_q;
-  reg [31:0]                   p1_src0_data_d, p1_src0_data_q;
+  reg [31:0]                   p1_src0_data_d,  p1_src0_data_q;
 `ifdef DJNZ_INSTR
   reg [31:0]                   p1_src1_data_d, p1_src1_data_q;
 `endif
@@ -135,8 +135,8 @@ module cpu_2432 (
     p1_imm_d = 32'b000000;
     // Expand or pad the opcode, unpack immediates and update any implied register source/dests
     if (raw_instr_w[23:21] == 3'b000 ) begin // Format A
-`ifdef NOT_INSTR
-      if ( raw_instr_w[23:18] == `NOT ) begin
+`ifdef NEG_INSTR
+      if ( raw_instr_w[23:18] == `NEG ) begin
         p1_opcode_d =  raw_instr_w[23:18];
         p1_ead_use_imm_d = 1'b0;
       end
@@ -312,7 +312,6 @@ module cpu_2432 (
   always @(*) begin
     // Invalidate next stage if JUMP and condition true for two cycles
     p1_ram_wr_d = 1'b0;
-    p1_ram_dout_d = p1_src0_data_d;
     p1_ram_rd_d = 1'b0;
     p1_pc_d = p0_pc_q;
     p2_pc_d = p1_pc_q;
@@ -362,7 +361,10 @@ module cpu_2432 (
       else
         p2_jump_taken_d = 1'b0;
     end
+  end // always @ (*)
 
+  always @ ( * ) begin
+    // Register File read every cycle
     // Pick source, immediate and EAD data from the instruction format
     if ( p1_ead_use_imm_d )
       p1_ead_d = p1_imm_d;
@@ -370,10 +372,20 @@ module cpu_2432 (
       p1_ead_d =  ((p1_rsrc1_d[5]) ? psr_q:
                    (p1_rsrc1_d[4]) ? p0_pc_q:
                    rf_dout_1 );
-
-    p1_src0_data_d = ((p1_rsrc0_d[5]) ? psr_q:
-                      (p1_rsrc0_d[4]) ? p0_pc_q:
-                      rf_dout_0);
+    // Zero the RSRC1 data for NEG operation but don't put the extra logic on the
+    // RF to memory output path
+    p1_ram_dout_d = ((p1_rsrc0_d[5]) ? psr_q:
+                     (p1_rsrc0_d[4]) ? p0_pc_q:
+                     rf_dout_0);
+`ifdef NEG_INSTR
+    p1_src0_data_d = p1_ram_dout_d & { 32{ p1_opcode_d!=`NEG}};
+`else
+  `ifdef NEG2_INSTR
+    p1_src0_data_d = p1_ram_dout_d & { 32{ p1_opcode_d!=`NEG}};
+  `else
+    p1_src0_data_d = p1_ram_dout_d;
+  `endif
+`endif
 `ifdef DJNZ_INSTR
     // For DJNZ make second input to ALU -1 - ie all 0xF's
     p1_src1_data_d = p1_ead_d | {32{(p1_opcode_d == `DJNZ)}};

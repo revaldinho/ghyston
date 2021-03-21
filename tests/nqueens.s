@@ -49,8 +49,14 @@ L90:    sub     r9, r9,1        # Y = Y-1
         sub     r1,r1, r2       # T= A(X)-A(Y)
         bra z   L140            # IF T=0 THEN L140
         bra pl  L90a
-        mov     r0, 0           # T = ABS(T)
-        sub     r1,r0,r1        # IF X-Y != ABS(T) GOTO L90
+                                # T = ABS(T)
+                                # IF X-Y != ABS(T) GOTO L90
+#ifdef NEG_INSTR
+        neg     r1, r1          # get 2s complement in single instruction
+#else
+        movi    r0, 0
+        sub     r1, r0, r1
+#endif
 L90a:
         sub     r1,r1,r10       # [if ABS(T)-X+Y!=0]
         add     r1,r1,r9        #
