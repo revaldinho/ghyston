@@ -29,6 +29,10 @@ OPTIONAL SWITCHES ::
 
   -o --output    <filename>      specify file name for assembled code
 
+  -d --data      <filename>      specify file name for data segment
+                                 - if not supplied data will use the same filename
+                                   as the code, but with a .data suffix
+
   -g --format    <bin|hex>       set the file format for the assembled code
                                  - default is hex
 
