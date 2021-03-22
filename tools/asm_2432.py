@@ -98,6 +98,7 @@ op = {
     "spare3"    : {"format":"a", "opcode": 0 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "spare4"    : {"format":"a", "opcode": 2 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "ldw"       : {"format":"a", "opcode": 4 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
+    "ld.w"      : {"format":"a", "opcode": 4 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "ld"        : {"format":"a", "opcode": 4 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "mov"       : {"format":"a", "opcode": 6 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
 # Alternate form of neg uses only one opcode
@@ -105,6 +106,7 @@ op = {
     "spare1"   : {"format":"b", "opcode": 8 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "spare2"   : {"format":"b", "opcode": 10 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "stw"      : {"format":"b", "opcode": 12 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
+    "sto.w"      : {"format":"b", "opcode": 12 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "sto"      : {"format":"b", "opcode": 12 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
 #   ""        : {"format":"b", "opcode": 14 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":0},
     "jr"       : {"format":"c", "opcode": 16 ,"sext":False, "cond":True,  "operands":2, "sext": False, "min_imm":-512, "max_imm":511}, # COND field is optional in source code
