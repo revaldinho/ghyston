@@ -19,8 +19,14 @@ module system_tb() ;
         .io_gpio(gpio_w)
         );
 
-`ifdef MEM_INIT_FILE_D
-  defparam dut_0.irom_0.MEM_INIT_FILE = `MEM_INIT_FILE_D ;
+`ifdef RAM_INIT_FILE_D
+  defparam dut_0.dram_0.MEM_INIT_FILE = `RAM_INIT_FILE_D ;
+`else
+  defparam dut_0.dram_0.MEM_INIT_FILE = "ram.hex" ;
+`endif
+
+`ifdef ROM_INIT_FILE_D
+  defparam dut_0.irom_0.MEM_INIT_FILE = `ROM_INIT_FILE_D ;
 `else
   defparam dut_0.irom_0.MEM_INIT_FILE = "rom.hex" ;
 `endif

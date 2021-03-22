@@ -13,6 +13,7 @@ MACRO   HALT( )
         movi    r0, 0xFFFF
         movti   r0, 0x00FF
         sto     r0, r0
+@end:   bra     @end
 ENDMACRO
 
 MACRO   DJNZ ( _reg_, _label_)
@@ -60,5 +61,3 @@ MACRO   PRINT_NL ()
         WRCH(10)
         WRCH(13)
 ENDMACRO
-
-  

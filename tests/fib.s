@@ -6,14 +6,6 @@
 ## Start Vector
         jmp START1
 
-## Interrupt vectors
-L1:     WORD 00
-        WORD 00
-        WORD 00
-        WORD 00
-        WORD 00
-        WORD 00
-
 START1:
         jmp START
 
@@ -50,7 +42,10 @@ END2:
 
 ## DATA SECTION - LABELS for use in BYTE ORIENTED DMEM
 
-        ORG 0
+        DATA
 
+        ORG 0
+        WORD    1234
+        BSTRING "Hello, World\0"
         WALIGN
 RESULTS:

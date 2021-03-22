@@ -3,7 +3,7 @@ TSTDIR=../tests
 SRCS= $(wildcard $(SRCDIR)/*.v)
 HDRS= $(wildcard $(SRCDIR)/*.vh)
 TESTSRCS= $(wildcard $(TSTDIR)/*.s)
-TESTHEXES= $(wildcard $(TSTDIR)/*.hex)
+TESTHEXES= $(wildcard $(TSTDIR)/*.code.hex)
 TESTNAMES = $(notdir ${TESTSRCS} )
 TESTS= $(patsubst %.s,%.sim,$(TESTNAMES))
 STDOUT= $(patsubst %.s,%.stdout,$(TESTNAMES))
@@ -12,16 +12,17 @@ VPATH=${SRCDIR}:${TSTDIR}
 
 pyexec ?= python3
 
-%.hex: %.s ../tests/options.h
-	cd ${TSTDIR} && make $*.hex
+%.code.hex: %.s ../tests/options.h ${TESTSRCS}
+	cd ${TSTDIR} && make $*.code.hex
 
 
 # Only include this to get a full VCD dump
 #           -D VCD_FILE_D="\"$*.vcd\"" \
 #
-%.exe: %.hex ${HDRS} ${SRCS} system_tb.v
+%.exe: %.code.hex %.data.hex ${HDRS} ${SRCS} system_tb.v
 	iverilog -I${SRCDIR} -o $*.exe \
-	   -D MEM_INIT_FILE_D="\"${TSTDIR}/$*.hex\"" \
+	   -D ROM_INIT_FILE_D="\"${TSTDIR}/$*.code.hex\"" \
+	   -D RAM_INIT_FILE_D="\"${TSTDIR}/$*.data.hex\"" \
            -D RAM_DUMP_FILE_D="\"$*.dump\"" \
            system_tb.v \
            ${SRCDIR}/system.v \

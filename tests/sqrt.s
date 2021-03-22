@@ -28,27 +28,17 @@ ENDMACRO
         SQRT    ( 659000130 )
 
         HALT    ()
-end:    bra end
 
 test_sqrt:
         mov     r10, r1         ; save number for rooting
         PUSH    (r14)
-        mov     r1, ord('S')
-        WRCH    (r1)
-        mov     r1, ord('q')
-        WRCH    (r1)
-        mov     r1, ord('r')
-        WRCH    (r1)
-        mov     r1, ord('t')
-        WRCH    (r1)
-        mov     r1, ord('(')
-        WRCH    (r1)
+
+        mov     r1, m0
+        jsr     sprint
         mov     r1, r10
         jsr     printdec32
-        mov     r1, ord(')')
-        WRCH    (r1)
-        mov     r1, ord('=')
-        WRCH    (r1)
+        mov     r1, m1
+        jsr     sprint
         mov     r1, r10
         jsr     sqrt32
         jsr     printdec32
@@ -56,40 +46,40 @@ test_sqrt:
         POP     (r14)
         ret     r14
 
-        # -----------------------------------------------------------------
-        #
-        # sqrt32
-        #
-        # Find square root of a 32 bit number
-        #
-        # Entry
-        # - R1 holds number to root
-        # - R13 holds return address
-        #
-        # Exit
-        # - R1 holds square root
-        # - R2,3 used as workspace and trashed
-        # - all other registers preserved
-        #
-        # ------------------------------------------------------------------
-        #
-        # def isqrt( num) :
-        #     res = 0
-        #     bit = 1 << 30; ## Set second-to-top bit, ie b30 for 32 bits
-        #     ## "bit" starts at the highest power of four <= the argument.
-        #     while (bit > num):
-        #         bit >>= 2
-        #     while (bit != 0) :
-        #         num -= res + bit
-        #         if ( num >= 0 ):
-        #             res = (res >> 1) + bit
-        #         else:
-        #             num += res + bit
-        #             res >>= 1
-        #         bit >>= 2
-        #     return res
-        #
-        # ------------------------------------------------------------------
+        ;; -----------------------------------------------------------------
+        ;;
+        ;; sqrt32
+        ;;
+        ;; Find square root of a 32 bit number
+        ;;
+        ;; Entry
+        ;; - R1 holds number to root
+        ;; - R13 holds return address
+        ;;
+        ;; Exit
+        ;; - R1 holds square root
+        ;; - R2,3 used as workspace and trashed
+        ;; - all other registers preserved
+        ;;
+        ;; ------------------------------------------------------------------
+        ;;
+        ;; def isqrt( num) :
+        ;;     res = 0
+        ;;     bit = 1 << 30; ## Set second-to-top bit, ie b30 for 32 bits
+        ;;     ## "bit" starts at the highest power of four <= the argument.
+        ;;     while (bit > num):
+        ;;         bit >>= 2
+        ;;     while (bit != 0) :
+        ;;         num -= res + bit
+        ;;         if ( num >= 0 ):
+        ;;             res = (res >> 1) + bit
+        ;;         else:
+        ;;             num += res + bit
+        ;;             res >>= 1
+        ;;         bit >>= 2
+        ;;     return res
+        ;;
+        ;; ------------------------------------------------------------------
 sqrt32:
         mov     r2, r1          # move number to root into r2
         movi    r1,0            # zero result
@@ -177,6 +167,34 @@ pd32_l3:
         jsr     oswrch          # and print it
         POPALL  ()              # Restore all high registers and return
         ret
+
+
+
+        ; --------------------------------------------------------------
+        ;
+        ; sprint
+        ;
+        ; Print a string to stdout
+        ;
+        ; Entry:
+        ;       r1 is the address of a zero terminated string to print
+        ; Exit:
+        ;       r0-r5 trashed
+        ; ---------------------------------------------------------------
+sprint:
+        PUSH    (r14, r12)
+        mov     r3, r1
+spl1:   mov     r4, 4
+        ld      r5, r3
+spl2:   and     r1, r5, 0xFF
+        bra  z  spl3
+        jsr     oswrch
+        lsr     r5, r5, 8
+        DJNZ    (r4, spl2)
+        add     r3, r3, 1
+        bra     spl1
+spl3:   POP     (r14,r12)
+        ret     r14
         ; --------------------------------------------------------------
         ;
         ; oswrch
@@ -197,7 +215,13 @@ oswrch_loop:
 
 
 ;;;  DATA Area definitions
+        DATA
+        ORG     0x00
+m0:     BSTRING "Sqrt(\0"
+m1:     BSTRING ") = \0"
+pd32_table:
+        WORD    0x0
+
         EQU     STACK_TOP,      0x3F
-        EQU     pd32_table, 0x040
         EQU     pd32_table_sz, 10
         EQU     results, pd32_table + pd32_table_sz + 1

@@ -60,7 +60,7 @@ header_text = '''
 #---------:--------:-----------------------------------------------------------
 '''
 
-import sys, re, codecs, getopt
+import sys, re, codecs, getopt, shlex
 
 # globals
 (errors, warnings, nextmnum, debug) = ( [],[],0, False)
@@ -173,36 +173,56 @@ def preprocess( filename ) :
 
 def assemble( filename, listingon=True):
     global errors, warnings, nextmnum
-
     symtab = dict( [ ("r%d"%d,d) for d in range(0,16)] + [("pc",15), ("psr",0)])
     reg_re = re.compile("(r\d*|psr|pc)")
-    (wordmem,wcount)=([0x00000000]*1024*1024,0)
+    (codemem,code_count)=([0x00000000]*256*1024,0)
+    (datamem,data_count)=([0x00000000]*256*1024,0)
 
     newtext = preprocess(filename)
 
     for iteration in range (0,2): # Two pass assembly
-        (wcount,nextmem) = (0,0)
+        mode = "CODE"
+        (code_count,nextimem, data_count, nextdmem) = (0,0,0,0)
         for line in newtext:
             mobj = re.match('^(?:(?P<label>\w+)\:)?(\s*)?(?P<inst>\w[\w\.]+)?\s*(?P<operands>.*)',re.sub("(;.*|#.*)","",line))
             (label, inst, operands) = [ mobj.groupdict()[item] for item in ("label", "inst","operands")]
-            (opfields,words, memptr) = ([ x.strip() for x in operands.split(",")],[], nextmem)
+            (opfields,words, memptr, dmemptr) = ([ x.strip() for x in operands.split(",")],[], nextimem, nextdmem)
             if (iteration==0 and (label and label != "None") or (inst=="EQU")):
                 errors = (errors + ["Error: Symbol %16s redefined in ...\n         %s" % (label,line.strip())]) if label in symtab else errors
                 try:
-                    exec ("%s= int(%s)" % ((label,str(nextmem)) if label!= None else (opfields[0], opfields[1])), globals(), symtab )
+                    if mode == "CODE":
+                        exec ("%s= int(%s)" % ((label,str(nextimem)) if label!= None else (opfields[0], opfields[1])), globals(), symtab )
+                    else:
+                        exec ("%s= int(%s)" % ((label,str(nextdmem)) if label!= None else (opfields[0], opfields[1])), globals(), symtab )
                 except:
                     errors += [ "Syntax error on:\n  %s" % line.strip() ]
                     continue
             if (inst in("WORD","HALF","BYTE") or inst in op) and iteration < 1:
-                if inst=="WORD":
-                    nextmem += len(opfields)
-                elif inst == "HALF":
-                    nextmem += (len(opfields)+1)//2
-                elif inst == "BYTE":
-                    nextmem += (len(opfields)+3)//4
+                if mode == "CODE":
+                    if not (inst in op):
+                        errors.append("Error: assembling data into CODE section ...\n         %s" % (line.strip()))
+                    if inst=="WORD":
+                        nextimem += len(opfields)
+                    elif inst == "HALF":
+                        nextimem += (len(opfields)+1)//2
+                    elif inst == "BYTE":
+                        nextimem += (len(opfields)+3)//4
+                    else:
+                        nextimem += 1
                 else:
-                    nextmem += 1
+                    if inst=="WORD":
+                        nextdmem += len(opfields)
+                    elif inst == "HALF":
+                        nextdmem += (len(opfields)+1)//2
+                    elif inst == "BYTE":
+                        nextdmem += (len(opfields)+3)//4
+                    else:
+                        errors.append("Error: assembling code into DATA section ...\n         %s" % (line.strip()))
+                        nextdmem += 1
+
             elif inst in ("BYTE","HALF","WORD","STRING","BSTRING","PBSTRING"):
+                if mode == "CODE":
+                    errors.append("Error: assembling data into CODE section ...\n         %s" % (line.strip()))
                 if  inst in("STRING","BSTRING","PBSTRING"):
                     strings = re.match('.*STRING\s*\"(.*?)\"(?:\s*?,\s*?\"(.*?)\")?(?:\s*?,\s*?\"(.*?)\")?(?:\s*?,\s*?\"(.*?)\")?.*?', line.rstrip())
                     string_data = codecs.decode(''.join([ x for x in strings.groups() if x != None]),  'unicode_escape')
@@ -215,7 +235,8 @@ def assemble( filename, listingon=True):
                         words = [ord(wordstr[i]) for  i in range(0,len(wordstr))]
                 else:
                     try:
-                        exec("PC=%d+1" % nextmem, globals(), symtab) # calculate PC as it will be in EXEC state
+                        if mode == "CODE":
+                            exec("PC=%d+1" % nextimem, globals(), symtab) # calculate PC as it will be in EXEC state
                         if inst == "BYTE":
                             words = [int(eval( f,globals(), symtab)) for f in opfields ] + [0]*3
                             words = ([(words[i+3]&0xFF)<<24|(words[i+2]&0xFF)<<16|(words[i+1]&0xFF)<<8|(words[i]&0xFF) for i in range(0,len(words)-3,4)])
@@ -226,7 +247,10 @@ def assemble( filename, listingon=True):
                             words = [int(eval( f,globals(), symtab)) for f in opfields ]
                     except (ValueError, NameError, TypeError,SyntaxError):
                         (words,errors)=([0]*3,errors+["Error: illegal or undefined register name or expression in ...\n         %s" % line.strip() ])
-                    (wordmem[nextmem:nextmem+len(words)], nextmem,wcount )  = (words, nextmem+len(words),wcount+len(words))
+                if mode == "CODE":
+                    (codemem[nextimem:nextimem+len(words)], nextimem,code_count )  = (words, nextimem+len(words),code_count+len(words))
+                else:
+                    (datamem[nextdmem:nextdmem+len(words)], nextdmem,data_count )  = (words, nextdmem+len(words),data_count+len(words))
             elif inst in op:
                 # Check if the first of the opfields has a space separated condition code and extract it if it does
                 condfield = "al"
@@ -287,7 +311,7 @@ def assemble( filename, listingon=True):
                     elif ifmt == "c":
                         if ( inst == "djnz" ) :
                             cond = 0
-                            imm = words[2] - (nextmem)
+                            imm = words[2] - (nextimem)
                             rdest = words[0]
                             rsrc1 = words[1]
                         else:
@@ -296,7 +320,7 @@ def assemble( filename, listingon=True):
                                 rsrc1 = 15 # PC
                                 if (direct):
                                     # Branch to a label
-                                    imm = words[0] - (nextmem)
+                                    imm = words[0] - (nextimem)
                                 else:
                                     rsrc2 = words[0]
                             else:
@@ -366,22 +390,44 @@ def assemble( filename, listingon=True):
                         iword  = iword | (imm54<<16) | (imm96<<4) | (1<<18 if direct else 0)
 
                     words=[ iword ]
-                    (wordmem[nextmem:nextmem+len(words)], nextmem,wcount )  = (words, nextmem+len(words),wcount+len(words))
-                    exec("PC=%d+%d" % (nextmem,len(opfields)-1), globals(), symtab) # calculate PC as it will be in EXEC state
+                    if mode == "CODE":
+                        (codemem[nextimem:nextimem+len(words)], nextimem,code_count )  = (words, nextimem+len(words),code_count+len(words))
+                        exec("PC=%d+%d" % (nextimem,len(opfields)-1), globals(), symtab) # calculate PC as it will be in EXEC state
+                    else:
+                        (datamem[nextdmem:nextdmem+len(words)], nextdmem,data_count )  = (words, nextdmem+len(words),data_count+len(words))
             elif inst == "ORG":
-                nextmem = eval(operands,globals(),symtab)
+                if mode == "CODE":
+                    nextimem = eval(operands,globals(),symtab)
+                else:
+                    nextdmem = eval(operands,globals(),symtab)
+            elif inst == "CODE":
+                mode = "CODE"
+            elif inst == "DATA":
+                mode = "DATA"
             elif inst in ("WORDALIGN", "WALIGN","ALIGN"):
-                while ( nextmem % 4 ) :
-                    nextmem += 1
+                if mode == "CODE":
+                    while ( nextimem % 4 ) :
+                        nextimem += 1
+                else :
+                    while ( nextdmem % 4 ) :
+                        nextdmem += 1
             elif inst and (inst != "EQU") and iteration>0 :
                 errors.append("Error: unrecognized instruction or macro %s in ...\n         %s" % (inst,line.strip()))
             if iteration > 0 and listingon==True:
-                print("%08x   %-8s  %s"%(memptr,' '.join([("%06x" % i) for i in words]),line.rstrip()))
+                if mode == "CODE":
+                    print("%08x C  %-8s  %s"%(memptr,' '.join([("%06x" % i) for i in words]),line.rstrip()))
+                else:
+                    if len(words) < 3 :
+                        print("%08x D  %-8s  %s"%(dmemptr,' '.join([("%06x" % i) for i in words]),line.rstrip()))
+                    else:
+                        print("%08x D  %-8s %s"%(dmemptr,' '.join([("%08x" % i) for i in words[0:2]]),line.strip()))
+                        for idx in range (2, len(words), 2):
+                              print("%08x D  %-8s"%(dmemptr+(idx*2-2),' '.join([("%08x" % i) for i in words[idx:]])))
 
-    print ("\nAssembled %d words of code with %d error%s and %d warning%s." % (wcount,len(errors),'' if len(errors)==1 else 's',len(warnings),'' if len(warnings)==1 else 's'))
+    print ("\nAssembled %5d words of code with %d error%s and %d warning%s." % (code_count,len(errors),'' if len(errors)==1 else 's',len(warnings),'' if len(warnings)==1 else 's'))
+    print ("          %5d words of data" % (data_count))
     print ("\nSymbol Table:\n\n%s\n\n%s\n%s" % ('\n'.join(["%-32s 0x%08X (%08d)" % (k,v,v) for k,v in sorted(symtab.items()) if not re.match("r\d|r\d\d|pc|psr",k)]),'\n'.join(errors),'\n'.join(warnings)))
-
-    return wordmem
+    return (codemem, datamem)
 
 
 if __name__ == "__main__":
@@ -391,12 +437,13 @@ if __name__ == "__main__":
     filename = ""
     hexfile = ""
     output_filename = ""
+    data_filename = ""
     output_format = "hex"
     listingon = True
     start_adr = 0
     size = 0
     try:
-        opts, args = getopt.getopt( sys.argv[1:], "f:o:g:s:z:hn", ["filename=","output=","format=","start_adr=","size=", "help","nolisting"])
+        opts, args = getopt.getopt( sys.argv[1:], "f:o:d:g:s:z:hn", ["filename=","output=","data=","format=","start_adr=","size=", "help","nolisting"])
     except getopt.GetoptError as  err:
         print(err)
         usage()
@@ -407,9 +454,13 @@ if __name__ == "__main__":
         output_filename = args[1]
         output_format = "hex"
 
+    data_filename = ""
+
     for opt, arg in opts:
         if opt in ( "-f", "--filename" ) :
             filename = arg
+        elif opt in ( "-d", "--data" ) :
+            data_filename = arg
         elif opt in ( "-o", "--output" ) :
             output_filename = arg
         elif opt in ( "-s", "--start_adr" ) :
@@ -429,18 +480,32 @@ if __name__ == "__main__":
             sys.exit(1)
 
     if filename != "":
+
         if size==0:
-            size = 1024*1024 - start_adr
+            size = 256*1024 - start_adr
         print(header_text)
-        wordmem = assemble(filename, listingon)[start_adr:start_adr+size]
+        (codemem, datamem)  = assemble(filename, listingon)[start_adr:start_adr+size]
         if len(errors)==0 and output_filename != "":
+            if data_filename == "" :
+                data_filename = "%s.data" % output_filename
             if output_format == "hex":
                 with open(output_filename,"w" ) as f:
-                    f.write( '\n'.join([''.join("%08x " % d for d in wordmem[j:j+12]) for j in [i for i in range(0,len(wordmem),12)]]))
+                    f.write( '\n'.join([''.join("%08x " % d for d in codemem[j:j+12]) for j in [i for i in range(0,len(codemem),12)]]))
+                with open(data_filename,"w" ) as f:
+                    f.write( '\n'.join([''.join("%08x " % d for d in datamem[j:j+12]) for j in [i for i in range(0,len(datamem),12)]]))
             else:
                 with open(output_filename,"wb" ) as f:
                     # Write binary in little endian order
-                    for w in wordmem:
+                    for w in codemem:
+                        bytes = bytearray()
+                        bytes.append( w & 0xFF)
+                        bytes.append( (w>>8) & 0xFF)
+                        bytes.append( (w>>16) & 0xFF)
+                        #bytes.append( (w>>24) & 0xFF)
+                        f.write(bytes)
+                with open(data_filename,"wb" ) as f:
+                    # Write binary in little endian order
+                    for w in datamem:
                         bytes = bytearray()
                         bytes.append( w & 0xFF)
                         bytes.append( (w>>8) & 0xFF)

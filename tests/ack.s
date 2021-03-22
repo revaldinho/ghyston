@@ -35,25 +35,18 @@ end:    bra end
 
 
 acktest:
+
         PUSH    (r14)
-        mov     r1, ord('A')
-        jsr     oswrch
-        mov     r1, ord('c')
-        jsr     oswrch
-        mov     r1, ord('k')
-        jsr     oswrch
-        mov     r1, ord('(')
-        jsr     oswrch
+        mov     r1, m1
+        jsr     sprint
         mov     r1, r5
         jsr     printdec32
-        mov     r1, 32
+        mov     r1, 44          ; comma
         jsr     oswrch
         mov     r1, r6
         jsr     printdec32
-        mov     r1, ord(')')
-        jsr     oswrch
-        mov     r1, ord('=')
-        jsr     oswrch
+        mov     r1, m2
+        jsr     sprint
         mov     r1, r5
         mov     r2, r6
         jsr     ack
@@ -163,6 +156,35 @@ pd32_l3:
         ret
         ; --------------------------------------------------------------
         ;
+        ; sprint
+        ;
+        ; Print a string to stdout
+        ;
+        ; Entry:
+        ;       r1 is the address of a zero terminated string to print
+        ; Exit:
+        ;       r0-r3 trashed
+        ; ---------------------------------------------------------------
+sprint:
+        PUSH    (r14, r12)
+        PUSH    (r5, r12)
+        PUSH    (r4, r12)
+        mov     r3, r1
+spl1:   mov     r4, 4
+        ld      r5, r3
+spl2:   and     r1, r5, 0xFF
+        bra  z  spl3
+        jsr     oswrch
+        lsr     r5, r5, 8
+        DJNZ    (r4, spl2)
+        add     r3, r3, 1
+        bra     spl1
+spl3:   POP     (r4, r12)
+        POP     (r5, r12)
+        POP     (r14,r12)
+        ret     r14
+        ; --------------------------------------------------------------
+        ;
         ; oswrch
         ;
         ; Output a single ascii character to the uart
@@ -181,7 +203,13 @@ oswrch_loop:
 
 
 ;;;  DATA Area definitions
+        DATA
+        ORG     0x00
+m1:     BSTRING "Ack(\0"
+m2:     BSTRING ") = \0"
+pd32_table:
+        WORD    0
+
         EQU     STACK_TOP,  0x0FFF
-        EQU     pd32_table, 0x0
         EQU     pd32_table_sz, 10
         EQU     results, pd32_table + pd32_table_sz + 1

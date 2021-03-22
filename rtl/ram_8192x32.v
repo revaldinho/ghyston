@@ -9,6 +9,13 @@ module ram_8192x32 (
 
   reg [31:0]                           ram [0:8191];
   reg [12:0]                           raddr_r;
+  parameter MEM_INIT_FILE = "ram.hex";
+
+  initial begin
+    if (MEM_INIT_FILE != "") begin
+      $readmemh(MEM_INIT_FILE, ram);
+    end
+  end
 
   always @ ( posedge clk ) begin
     if (!cs_b & !rnw) begin
