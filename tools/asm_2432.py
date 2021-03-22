@@ -204,7 +204,7 @@ def assemble( filename, listingon=True):
             if (inst in("WORD","HALF","BYTE") or inst in op) and iteration < 1:
                 if mode == "CODE":
                     if not (inst in op):
-                        errors.append("Error: assembling data into CODE section ...\n         %s" % (line.strip()))
+                        warnings.append("Warning: assembling data into CODE section ...\n         %s" % (line.strip()))
                     if inst=="WORD":
                         nextimem += len(opfields)
                     elif inst == "HALF":
@@ -221,12 +221,12 @@ def assemble( filename, listingon=True):
                     elif inst == "BYTE":
                         nextdmem += (len(opfields)+3)//4
                     else:
-                        errors.append("Error: assembling code into DATA section ...\n         %s" % (line.strip()))
+                        warnings.append("Warning: assembling code into DATA section ...\n         %s" % (line.strip()))
                         nextdmem += 1
 
             elif inst in ("BYTE","HALF","WORD","STRING","BSTRING","PBSTRING"):
                 if mode == "CODE":
-                    errors.append("Error: assembling data into CODE section ...\n         %s" % (line.strip()))
+                    warnings.append("Warning: assembling data into CODE section ...\n         %s" % (line.strip()))
                 if  inst in("STRING","BSTRING","PBSTRING"):
                     strings = re.match('.*STRING\s*\"(.*?)\"(?:\s*?,\s*?\"(.*?)\")?(?:\s*?,\s*?\"(.*?)\")?(?:\s*?,\s*?\"(.*?)\")?.*?', line.rstrip())
                     string_data = codecs.decode(''.join([ x for x in strings.groups() if x != None]),  'unicode_escape')

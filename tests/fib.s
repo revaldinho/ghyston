@@ -40,10 +40,7 @@ END:
 END2:
         bra END2
 
-## DATA SECTION - LABELS for use in BYTE ORIENTED DMEM
-
         DATA
-
         ORG 0
         WORD    1234
         BSTRING "Hello, World\0"
