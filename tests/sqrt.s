@@ -46,65 +46,7 @@ test_sqrt:
         POP     (r14)
         ret     r14
 
-        ;; -----------------------------------------------------------------
-        ;;
-        ;; sqrt32
-        ;;
-        ;; Find square root of a 32 bit number
-        ;;
-        ;; Entry
-        ;; - R1 holds number to root
-        ;; - R13 holds return address
-        ;;
-        ;; Exit
-        ;; - R1 holds square root
-        ;; - R2,3 used as workspace and trashed
-        ;; - all other registers preserved
-        ;;
-        ;; ------------------------------------------------------------------
-        ;;
-        ;; def isqrt( num) :
-        ;;     res = 0
-        ;;     bit = 1 << 30; ## Set second-to-top bit, ie b30 for 32 bits
-        ;;     ## "bit" starts at the highest power of four <= the argument.
-        ;;     while (bit > num):
-        ;;         bit >>= 2
-        ;;     while (bit != 0) :
-        ;;         num -= res + bit
-        ;;         if ( num >= 0 ):
-        ;;             res = (res >> 1) + bit
-        ;;         else:
-        ;;             num += res + bit
-        ;;             res >>= 1
-        ;;         bit >>= 2
-        ;;     return res
-        ;;
-        ;; ------------------------------------------------------------------
-sqrt32:
-        mov     r2, r1          # move number to root into r2
-        movi    r1,0            # zero result
-        bset    r3, r1, 30      # set bit to 0x40000000
-sq32_L1:
-        cmp     r2, r3          # compare number with bit
-        bra pl  sq32_L2         # exit loop if number >= bit
-        asr     r3,r3,2         # shift bit 2 places right
-        bra     sq32_L1
-
-sq32_L2:
-        cmp     r3,0            # is R3 zero ?
-        ret z   r14             # Yes ? then exit
-        add     r0,r1,r3        # Trial subtract r2 -= Res + bit
-        sub     r2,r2,r0
-        bra mi  sq32_L3         # if <0 then need to restore r2
-        asr     r1,r1,1         # shift result right
-        add     r1,r1,r3        # .. and add bit
-        asr     r3,r3,2
-        bra     sq32_L2
-sq32_L3:
-        add     r2,r2,r0        # restore r2 (add res + bit back)
-        asr     r1,r1,1         # shift result right
-        asr     r3,r3,2
-        bra     sq32_L2
+#include "include/intmath.s"
 
         # ------------------------------------------------------------
         # printdec32
