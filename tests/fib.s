@@ -1,50 +1,28 @@
 #include "options.h"
 #include "macros.h"
 
-        ORG 0000
+        ORG     0000
+        mov     r12, STKTOP
+fib:
+        mov     r7, 0     # r7 = 0
+        mov     r8, 1     # r8 = 1
 
-## Start Vector
-        jmp START1
-
-START1:
-        jmp START
-
-        ORG 0x100
-START:
-        mov  r1, RESULTS
-        mov  r5,r1
-        mov  r1, 0
-        mov  r2, 1
-        mov  r3, 10
-        sto.w r1, r5
-        add   r5, r5, 1
-LOOP:
-        sto.w r2, r5
-        add   r4, r1, r2
-        mov   r1, r2
-        mov   r0, r0
-        mov   r2, r4
-        add   r5, r5, 1
-        sub   r3, r3, 1
-        bcc   nz LOOP
-        # these instructions will get fetched but should NOT complete 'til
-        # the loop is done
-        mov   r2,r0
-        mov   r2,r0
-        mov   r5,r0
-
-END:
+fibLoop:
+        add     r7, r7, r8
+        bra c   fibEnd
+        mov     r1, r7
+        jsr     printdec32
+        PRINT_NL        ()
+        add     r8, r8, r7
+        bra c   fibEnd
+        mov     r1, r8
+        jsr     printdec32
+        PRINT_NL        ()
+        bra     fibLoop
+fibEnd:
         HALT ()
-        bra END
 
-END2:
-        bra END2
+#include "include/stdio.s"
 
         DATA
-        ORG 0
-        WORD    1234
-        BSTRING "Hello, World\0"
-        DATA 10
-        BSTRING "Hello, World\0"
-        WALIGN
-RESULTS:
+        EQU     STKTOP,         0x3FF

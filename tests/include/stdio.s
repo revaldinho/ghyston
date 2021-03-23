@@ -35,7 +35,7 @@ pd32_l1:
         mov     r8, 0           # set Q = 0
 pd32_l1a:
         cmp     r3,r5           # Is number >= decimal divisor
-        bra  lt pd32_l2         # If no then skip ahead and decide whether to print the digit
+        bra  nc pd32_l2         # If no then skip ahead and decide whether to print the digit
         sub     r3,r3, r5       # If yes, then do the subtraction
         add     r8,r8,1         # Increment the quotient
         bra     pd32_l1a        # Loop again to try another subtraction

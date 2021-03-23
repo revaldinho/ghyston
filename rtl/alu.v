@@ -31,6 +31,7 @@ module alu(
 
   reg [31:0]             alu_dout;
   reg                    alu_cout;
+  reg                    borrow_out;
   wire [31:0]            shifted_w;
   wire                   shifted_c;
 
@@ -55,6 +56,7 @@ module alu(
     mcp_out = 1'b0;
     alu_dout = 32'bx;
     qnzout = 1'bx;
+    borrow_out = 1'bx;
 
     case ( opcode )
       //MOVT will have the bits shifted to the top of the word before writing the regfile
@@ -73,14 +75,14 @@ module alu(
 `else
       // Restrict multiplies to 18x18 to fit a single DSP slice on a Spartan 6 FPGA and single cycle execution
       `MUL        : begin
-        {alu_cout,alu_dout} = {din_a[17:0] * din_b[17:0]};
+        {alu_cout,alu_dout} = din_a[17:0] * din_b[17:0];
         vout = !(din_a[31] ^ din_b[31] ^ alu_dout[31]);
       end
 `endif
 `endif
       `ADD              : begin
         // overflow if -ve + -ve = +ve  or +ve + +ve = -ve
-        {alu_cout,alu_dout} = {din_a + din_b};
+        {alu_cout,alu_dout} = din_a + din_b;
         vout =  ( din_a[31] & din_b[31] & !alu_dout[31]) ||
                 ( !din_a[31] & !din_b[31] & alu_dout[31]) ;
       end
@@ -100,7 +102,8 @@ module alu(
   `endif
 `endif
       begin
-        {alu_cout,alu_dout} = {din_a - din_b};
+        {borrow_out,alu_dout} = din_a - din_b;
+        alu_cout = !borrow_out;
         // overflow if -ve - +ve = +ve  or +ve - -ve = -ve
         vout =  ( din_a[31] & !din_b[31] & !alu_dout[31]) ||
                 ( !din_a[31] & din_b[31] & alu_dout[31]) ;
