@@ -1,3 +1,4 @@
+
         ;; -----------------------------------------------------------------
         ;; intmath.s
         ;;
@@ -207,6 +208,7 @@ udiv_1:
         ; - R1 = Product Register
         ; - R0 = holds first shifted copy of A
         ; ------------------------------------------------------------------
+qmul32:
 qmul32b:
         lsr      r0, r1, 1       ; shift A into r0
         mov      r1, 0           ; initialise product (preserve C)
