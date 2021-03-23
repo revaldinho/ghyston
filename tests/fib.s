@@ -44,5 +44,7 @@ END2:
         ORG 0
         WORD    1234
         BSTRING "Hello, World\0"
+        DATA 10
+        BSTRING "Hello, World\0"
         WALIGN
 RESULTS:
