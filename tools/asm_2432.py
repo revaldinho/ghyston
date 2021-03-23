@@ -403,13 +403,22 @@ def assemble( filename, listingon=True):
                         (datamem[nextdmem:nextdmem+len(words)], nextdmem,data_count )  = (words, nextdmem+len(words),data_count+len(words))
             elif inst == "ORG":
                 if mode == "CODE":
+                    oldimem = nextimem
                     nextimem = eval(operands,globals(),symtab)
+                    if oldimem > nextimem:
+                        warnings.append("Warning: ORG directive is setting code pointer lower than current value...\n         %s" % (line.strip()))
                 else:
+                    olddmem = nextdmem
                     nextdmem = eval(operands,globals(),symtab)
+                    if olddmem > nextdmem:
+                        warnings.append("Warning: ORG directive is setting data pointer lower than current value...\n         %s" % (line.strip()))
             elif inst == "CODE":
                 mode = "CODE"
             elif inst == "DATA":
                 mode = "DATA"
+                ## If provided with an argument then reserve the amount of space requested
+                if len(operands) > 0:
+                    nextdmem += eval(operands,globals(),symtab)
             elif inst in ("WORDALIGN", "WALIGN","ALIGN"):
                 if mode == "CODE":
                     while ( nextimem % 4 ) :
@@ -424,7 +433,7 @@ def assemble( filename, listingon=True):
                     print("%08x C  %-8s  %s"%(memptr,' '.join([("%06x" % i) for i in words]),line.rstrip()))
                 else:
                     if len(words) < 3 :
-                        print("%08x D  %-8s  %s"%(dmemptr,' '.join([("%06x" % i) for i in words]),line.rstrip()))
+                        print("%08x D  %-8s  %s"%(dmemptr,' '.join([("%08x" % i) for i in words]),line.rstrip()))
                     else:
                         print("%08x D  %-8s %s"%(dmemptr,' '.join([("%08x" % i) for i in words[0:2]]),line.strip()))
                         for idx in range (2, len(words), 2):
