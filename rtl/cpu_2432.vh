@@ -3,22 +3,31 @@
  *
  */
 
-`define TWO_STAGE_PIPE 1
-// Including single cycle MUL18x18 limits clock speed to ~60MHz
+//`define TWO_STAGE_PIPE 1
+// Including single cycle MUL18x18 limits clock speed to ~90MHz
 //`define INCLUDE_MUL 1
 // Making full 32x32 MUL slows clock speed down further
 //`define MUL32 1
 // Define this to allow shifts of 16-31bits in one instruction, otherwise limited to 0-15
-//`define SHIFT16 1
+`define SHIFT16 1
 // Define this to enable NEG instruction or alternate implementation
-//`define NEG_INSTR 1
+`define NEG_INSTR 1
 //`define NEG2_INSTR 1
 // Define this to enable DJNZ instruction
 //`define DJNZ_INSTR 1
+// Define this to enable DJCS instruction
+//`define DJCS_INSTR 1
 `define BYPASS_EN_D 1
 //`define HALF_RATE_D 1
-
 /* ****************************** */
+
+`ifdef DJNZ_INSTR
+`define DJNZ_OR_DJCS_INSTR 1
+`endif
+`ifdef DJCS_INSTR
+`define DJNZ_OR_DJCS_INSTR 1
+`endif
+
 
 
 // PSR register bits
@@ -95,8 +104,13 @@
  `define NEG    6'b000111
 `endif
 `define RETI   6'b010100
+
+// NB can only have one or the other of the DJ instructions
 `ifdef DJNZ_INSTR
   `define DJNZ   6'b010101
+`endif
+`ifdef DJCS_INSTR
+  `define DJCS   6'b010101
 `endif
 `define JMP    6'b010110
 `define JSR    6'b010111

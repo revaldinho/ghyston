@@ -1,5 +1,3 @@
-
-
         ;; Assembler options files
 
         ;; define this to optimize for hardware multiplier but limited to 18x18 operation
@@ -14,4 +12,4 @@
         ;; Define this if native DJNZ is implemented
         ;; #define DJNZ_INSTR 1
         ;; Define this if NEG instr is implemented
-        ;; #define NEG_INSTR 1
+#define NEG_INSTR 1

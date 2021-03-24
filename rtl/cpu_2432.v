@@ -33,7 +33,7 @@ module cpu_2432 (
   reg                          p1_stage_valid_d, p1_stage_valid_q;
   reg [31:0]                   p1_ead_d, p1_ead_q;
   reg [31:0]                   p1_src0_data_d,  p1_src0_data_q;
-`ifdef DJNZ_INSTR
+`ifdef DJNZ_OR_DJCS_INSTR
   reg [31:0]                   p1_src1_data_d, p1_src1_data_q;
 `endif
   reg                          p1_ram_rd_d, p1_ram_rd_q;
@@ -104,7 +104,7 @@ module cpu_2432 (
   // Barrel shifter/ALU is effectively after Pipe stage 1
   alu u1 (
           .din_a( p1_src0_data_q),
-`ifdef DJNZ_INSTR
+`ifdef DJNZ_OR_DJCS_INSTR
           .din_b( p1_src1_data_q),
 `else
           .din_b( p1_ead_q),
@@ -154,6 +154,13 @@ module cpu_2432 (
       p1_imm_d = { {22{raw_instr_w[7]}}, raw_instr_w[7:4], raw_instr_w[17:16], raw_instr_w[3:0]};
 `ifdef DJNZ_INSTR
       if ( raw_instr_w[23:18] == `DJNZ ) begin
+        p1_ead_use_imm_d = 1;
+        p1_opcode_d =  raw_instr_w[23:18]; // use full opcode
+      end
+      else
+`endif
+`ifdef DJCS_INSTR
+      if ( raw_instr_w[23:18] == `DJCS ) begin
         p1_ead_use_imm_d = 1;
         p1_opcode_d =  raw_instr_w[23:18]; // use full opcode
       end
@@ -241,8 +248,15 @@ module cpu_2432 (
     if ( p2_jump_taken_d && p1_stage_valid_q)
       if ( p1_opcode_q == `JMP || p1_opcode_q == `JSR )
         p0_pc_d = p1_ead_q;
+`ifdef DJNZ_OR_DJCS_INSTR
+      else if (p1_rsrc0_q[3:0]==4'b1111
 `ifdef DJNZ_INSTR
-      else if (p1_rsrc0_q[3:0]==4'b1111 || p1_opcode_q == `DJNZ )
+		|| p1_opcode_q == `DJNZ
+`endif
+`ifdef DJCS_INSTR
+		|| p1_opcode_q == `DJCS
+`endif
+      )
 `else
       else if (p1_rsrc0_q[3:0]==4'b1111 )
 `endif
@@ -295,6 +309,10 @@ module cpu_2432 (
 `ifdef DJNZ_INSTR
                 || p1_opcode_q == `DJNZ
 `endif
+`ifdef DJCS_INSTR
+                || p1_opcode_q == `DJCS
+`endif
+
                 ) begin
         // Retain flags
         psr_d = psr_q;
@@ -338,6 +356,10 @@ module cpu_2432 (
 `ifdef DJNZ_INSTR
       else if ( p1_opcode_q==`DJNZ )
         p2_jump_taken_d = qnz_w;
+`endif
+`ifdef DJCS_INSTR
+      else if ( p1_opcode_q==`DJCS )
+        p2_jump_taken_d = qnz_w; // same flag name but this is carry set now
 `endif
       else if ( p1_opcode_q==`JRCC || p1_opcode_q==`JRSRCC) begin
         case (p1_cond_q)
@@ -386,9 +408,15 @@ module cpu_2432 (
     p1_src0_data_d = p1_ram_dout_d;
   `endif
 `endif
-`ifdef DJNZ_INSTR
+`ifdef DJNZ_OR_DJCS_INSTR
+    `ifdef DJNZ_INSTR
     // For DJNZ make second input to ALU -1 - ie all 0xF's
     p1_src1_data_d = p1_ead_d | {32{(p1_opcode_d == `DJNZ)}};
+    `endif
+    `ifdef DJCS_INSTR
+    // For DJNZ make second input to ALU -1 - ie all 0xF's
+    p1_src1_data_d = p1_ead_d | {32{(p1_opcode_d == `DJCS)}};
+    `endif
 `endif
   end
 
@@ -444,7 +472,7 @@ module cpu_2432 (
         p1_stage_valid_q <= p1_stage_valid_d;
         p1_ead_q <= p1_ead_d;
         p1_src0_data_q <= p1_src0_data_d;
-`ifdef DJNZ_INSTR
+`ifdef DJNZ_OR_DJCS_INSTR
         p1_src1_data_q <= p1_src1_data_d;
 `endif
         p1_ram_rd_q <= p1_ram_rd_d;

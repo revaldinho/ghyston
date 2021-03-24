@@ -90,7 +90,13 @@ module alu(
       `DJNZ              :begin
         {alu_cout,alu_dout} = {din_a + din_b};
         qnzout = |alu_dout;
-      end
+		end
+`endif
+`ifdef DJCS_INSTR
+      `DJCS              :begin
+        {alu_cout,alu_dout} = {din_a + din_b};
+			qnzout = !alu_cout; // export not_borrow instead
+		end
 `endif
 `ifdef NEG_INSTR
       `NEG, `SUB, `CMP :

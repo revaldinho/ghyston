@@ -102,7 +102,7 @@ op = {
     "ld"        : {"format":"a", "opcode": 4 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "mov"       : {"format":"a", "opcode": 6 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
 # Alternate form of neg uses only one opcode
-#    "neg"     : {"format":"a", "opcode": 7 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
+    "neg"     : {"format":"a", "opcode": 7 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "spare1"   : {"format":"b", "opcode": 8 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "spare2"   : {"format":"b", "opcode": 10 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "stw"      : {"format":"b", "opcode": 12 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
@@ -137,7 +137,8 @@ op = {
     "bclr"    : {"format":"e", "opcode": 56 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":31},
     "btst"    : {"format":"e", "opcode": 58 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":31},
     "cmp"     : {"format":"e", "opcode": 60 ,"sext":True,  "cond":False, "operands":2, "sext": True,  "min_imm":-512, "max_imm":511},
-    "neg"     : {"format":"e", "opcode": 62 ,"sext":True,  "cond":False, "operands":2, "sext": True,  "min_imm":-512, "max_imm":511},
+# Alternative form of neg uses two opcodes    
+#    "neg"     : {"format":"e", "opcode": 62 ,"sext":True,  "cond":False, "operands":2, "sext": True,  "min_imm":-512, "max_imm":511},
 }
 
 
