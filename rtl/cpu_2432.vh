@@ -3,7 +3,7 @@
  *
  */
 
-`define TWO_STAGE_PIPE 1
+//`define TWO_STAGE_PIPE 1
 // Including single cycle MUL18x18 limits clock speed to ~90MHz
 //`define INCLUDE_MUL 1
 // Making full 32x32 MUL slows clock speed down further

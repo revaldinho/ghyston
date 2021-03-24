@@ -1,15 +1,14 @@
-
 #include "options.h"
 #include "macros.h"
         ;;
-        ;; Define this to get a better idea of how to optimize the rooting algorithm or implementation 
+        ;; Define this to get a better idea of how to optimize the rooting algorithm or implementation
         ;; #define NOPRINT 1
-        
+
 MACRO   SQRT    ( _num_ )
         movi    r1, _num_ & 0xFFFF
         movti   r1, (_num_ >> 16) & 0xFFFF
 #ifdef NOPRINT
-        jsr     sqrt32        
+        jsr     sqrt32
 #else
         jsr     test_sqrt
 #endif

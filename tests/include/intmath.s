@@ -49,7 +49,7 @@ sqrt32:
         movi    r1,0            # zero result
         bset    r3, r1, 30      # set bit to 0x40000000
 
-        zloop   sq32_L2        
+        zloop   sq32_L2
         cmp     r2, r3          # compare number with bit
         bra pl  sq32_L2         # exit loop if number >= bit
         asr     r3,r3,2         # shift bit 2 places right
@@ -59,16 +59,12 @@ sq32_L2:
         cmp     r3,0            # is R3 zero ?
         ret z   r14             # Yes ? then exit
         add     r0,r1,r3        # Trial subtract r2 -= Res + bit
-        sub     r2,r2,r0
-        bra mi  sq32_L3         # if <0 then need to restore r2
         asr     r1,r1,1         # shift result right
+        cmp     r2,r0
+        bra mi  sq32_L3         # if >0 then skip ahead
+        sub     r2,r2,r0        # else do subtraction ...
         add     r1,r1,r3        # .. and add bit
-        bra     sq32_L4
 sq32_L3:
-        add     r2,r2,r0        # restore r2 (add res + bit back)
-        asr     r1,r1,1         # shift result right
-
-sq32_L4:
         asr     r3,r3,2
 sq32_endloop:
 
