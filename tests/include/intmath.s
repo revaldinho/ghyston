@@ -42,6 +42,7 @@
         ;;     return res
         ;;
         ;; ------------------------------------------------------------------
+
 sqrt32:
         mov     r2, r1          # move number to root into r2
         movi    r1,0            # zero result
@@ -67,7 +68,6 @@ sq32_L3:
         asr     r1,r1,1         # shift result right
         asr     r3,r3,2
         bra     sq32_L2
-
 	;; -----------------------------------------------------------------
 	;;
 	;; udiv32 (udiv16)
@@ -212,6 +212,20 @@ qmul32:
 qmul32b:
         lsr      r0, r1, 1       ; shift A into r0
         mov      r1, 0           ; initialise product (preserve C)
+#ifdef ZLOOP_INSTR
+qm32_loopstart:
+        zloop    qm32_loopend
+        bra  nc  qm32_2b
+        add      r1, r1, r2      ; add B into acc if carry
+qm32_2b:
+        asl      r2, r2, 1       ; multiply B x 2
+        lsr      r0, r0, 1       ; shift A to check LSB
+        bra  z   qm32_loopend    ; if A is zero then exit else loop again (preserving carry)
+qm32_loopend:   
+        ret  nc  r14             ; return if no carry
+        add      r1, r1, r2      ; Add last copy of multiplicand into acc if carry was set
+        ret      r14             ; return        
+#else        
 qm32_1b:
         bra  nc  qm32_2b
         add      r1, r1, r2      ; add B into acc if carry
@@ -222,3 +236,4 @@ qm32_2b:
         ret  nc  r14             ; return if no carry
         add      r1, r1, r2      ; Add last copy of multiplicand into acc if carry was set
         ret      r14             ; return
+#endif

@@ -13,3 +13,4 @@
         ;; #define DJNZ_INSTR 1
         ;; Define this if NEG instr is implemented
 #define NEG_INSTR 1
+        ;;#define ZLOOP_INSTR 1

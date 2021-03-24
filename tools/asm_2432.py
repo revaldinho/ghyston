@@ -103,7 +103,7 @@ op = {
     "mov"       : {"format":"a", "opcode": 6 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
 # Alternate form of neg uses only one opcode
     "neg"     : {"format":"a", "opcode": 7 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
-    "spare1"   : {"format":"b", "opcode": 8 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
+    "zloop"   : {"format":"b", "opcode": 8 , "sext":False, "cond":False, "operands":1, "sext": False, "min_imm":0,    "max_imm":16383},
     "spare2"   : {"format":"b", "opcode": 10 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "stw"      : {"format":"b", "opcode": 12 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
     "sto.w"      : {"format":"b", "opcode": 12 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
@@ -302,16 +302,22 @@ def assemble( filename, listingon=True):
                     opcode = op[inst]["opcode"]
                     ifmt = op[inst]["format"]
                     # Format A - load instructions and register move
-                    # Format B - store instructions
+                    # Format B - store instructions and zloop
                     if ifmt == "a" or ifmt == "b":
                         if ifmt=="a":
                             rdest = words[0]
                             if (inst in ("not")):
                                 direct = 0
                         else:
+                            if inst == "zloop":
+                                words.insert(0,0)
                             rsrc1 = words[0]
                         if (direct):
-                            imm = words[1]
+                            if inst == "zloop":
+                                # zloop uses a label which is an offset to the PC (as djnz below)
+                                imm = words[1] - nextimem 
+                            else:
+                                imm = words[1]
                         else:
                             rsrc2 = words[1]
                     # Format C - branch and return instructions

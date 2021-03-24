@@ -19,6 +19,7 @@
 //`define DJCS_INSTR 1
 `define BYPASS_EN_D 1
 //`define HALF_RATE_D 1
+`define ZLOOP_INSTR 1
 /* ****************************** */
 
 `ifdef DJNZ_INSTR
@@ -76,6 +77,9 @@
 // Define 5 MSBs only for these instructions where the LSB indicates direct or register source
 `define LD_W   6'b000100
 `define MOV    6'b000110
+`ifdef ZLOOP_INSTR
+  `define ZLOOP  6'b001000
+`endif
 `define STO_W  6'b001100
 `define JRCC   6'b010000
 `define JRSRCC 6'b010010

@@ -14,6 +14,7 @@ module cpu_2432 (
                  output        o_ram_wr
                  );
 
+  reg [31:0]                   next_pc;
   reg [31:0]                   psr_d, psr_q;
   reg [3:0]                    rf_wr_en_d;
   reg                          rstb_q;
@@ -23,6 +24,12 @@ module cpu_2432 (
   reg [23:0]                   p0_instr_q;
   reg                          p0_stage_valid_q;
 `endif
+`ifdef ZLOOP_INSTR
+  reg                          p0_zloop_valid_d, p0_zloop_valid_q;
+  reg [31:0]                   p0_zloop_start_d, p0_zloop_start_q;
+  reg [31:0]                   p0_zloop_end_d, p0_zloop_end_q;
+`endif
+
   reg [31:0]                   p0_result_d ;
   reg                          p0_moe_d, p0_moe_q;
 
@@ -197,7 +204,11 @@ module cpu_2432 (
     end
     else begin // Format E
       // Sign extended data for arithmetic operations
+`ifdef ZLOOP_INSTR
+      if ( p1_opcode_d == `CMP || p1_opcode_d== `BTST || p1_opcode_d == `ZLOOP)
+`else
       if ( p1_opcode_d == `CMP || p1_opcode_d== `BTST )
+`endif
         p1_rf_wr_d = 0;
       if (p1_ead_use_imm_d )
         p1_rsrc1_d = 6'b000000 ; // Unused set to RZero
@@ -270,19 +281,39 @@ module cpu_2432 (
 `endif
       else
         p0_pc_d = p1_ead_q + p1_src0_data_q ;
-    // If pipe0 is moving then increment PC
-    else if (p0_moe_d)
-      p0_pc_d = p0_pc_q + 1;
+    else if (p0_moe_d) begin
+      next_pc = p0_pc_q + 1;  // default is to increment PC
+`ifdef ZLOOP_INSTR
+      p0_pc_d = (p0_zloop_valid_q && (next_pc==p0_zloop_end_q)) ? p0_zloop_start_q : next_pc;      
+`else      
+      p0_pc_d = next_pc;
+`endif      
+    end     
     else
       p0_pc_d = p0_pc_q;
   end
 
   always @ ( * ) begin
     // Compute the result ready for assigning to the RF
+    p0_zloop_start_d = p0_zloop_start_q;
+    p0_zloop_end_d = p0_zloop_end_q;
+    p0_zloop_valid_d = p0_zloop_valid_q;
     p0_result_d = alu_dout;
     if ( p1_stage_valid_q ) begin
       if ( p1_opcode_q == `LD_W )
         p0_result_d = i_din ;
+`ifdef ZLOOP_INSTR
+      else if ( p1_opcode_q == `ZLOOP ) begin
+        p0_zloop_valid_d = 1'b1;
+  `ifdef TWO_STAGE_PIPE
+        p0_zloop_end_d = p1_ead_q + p1_pc_q ;
+        p0_zloop_start_d = p1_pc_q+1; // should come through ALU or be part of RET instuction ie JR CC Rlink, +1
+  `else
+        p0_zloop_end_d = p1_ead_q + p2_pc_q ;
+        p0_zloop_start_d = p2_pc_q+1; // should come through ALU or be part of RET instuction ie JR CC Rlink, +1
+  `endif
+      end
+`endif
       else if (p1_opcode_q == `JSR || p1_opcode_q == `JRSRCC)
         // Value to put into link register and retain flags
 `ifdef TWO_STAGE_PIPE
@@ -333,7 +364,6 @@ module cpu_2432 (
     p1_ram_rd_d = 1'b0;
     p1_pc_d = p0_pc_q;
     p2_pc_d = p1_pc_q;
-
 `ifdef TWO_STAGE_PIPE
     p1_stage_valid_d = rstb_q & p0_moe_d & !p2_jump_taken_d ;  // invalidate any instruction behind a taken jump
 `else
@@ -453,6 +483,9 @@ module cpu_2432 (
       p1_cond_q        <= 0;
       p1_rf_wr_q       <= 0;
       p2_jump_taken_q  <= 0;
+      p0_zloop_valid_q <= 0;
+      p0_zloop_start_q <= 0;
+      p0_zloop_end_q   <= 0;
       rstb_q           <= 0;
     end
     else
@@ -462,6 +495,11 @@ module cpu_2432 (
 `ifndef TWO_STAGE_PIPE
         p0_instr_q <= i_instr;
         p0_stage_valid_q <= p0_stage_valid_d;
+`endif
+`ifdef ZLOOP_INSTR
+        p0_zloop_valid_q <= p0_zloop_valid_d;
+        p0_zloop_start_q <= p0_zloop_start_d;
+        p0_zloop_end_q <= p0_zloop_end_d;
 `endif
         psr_q <= psr_d;
         p0_pc_q <= p0_pc_d;

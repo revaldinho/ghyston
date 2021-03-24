@@ -98,7 +98,12 @@ always @ ( negedge clk ) begin
             dut_0.cpu_0.rstb_q,
             dut_0.cpu_0.p0_moe_q,
             dut_0.cpu_0.p0_stage_valid_q );
+`endif // !`ifdef TWO_STAGE_PIPE
+
+`ifdef ZLOOP_INSTR
+  $display("p0_zloop_start_q=%08X p0_zloop_end_q=%08X p0_zloop_valid_q=%d", dut_0.cpu_0.p0_zloop_start_q, dut_0.cpu_0.p0_zloop_end_q, dut_0.cpu_0.p0_zloop_valid_q);  
 `endif
+  
 //  $display( "P1:     = %10d: %02X : %02X : - : %X %X %X -------- : %X : - - %d " , cycle,
 //            dut_0.cpu_0.p1_pc_q,
 //            dut_0.cpu_0.p1_opcode_q,
