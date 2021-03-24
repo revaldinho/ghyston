@@ -43,6 +43,36 @@
         ;;
         ;; ------------------------------------------------------------------
 
+#ifdef ZLOOP_INSTR
+sqrt32:
+        mov     r2, r1          # move number to root into r2
+        movi    r1,0            # zero result
+        bset    r3, r1, 30      # set bit to 0x40000000
+
+        zloop   sq32_L2        
+        cmp     r2, r3          # compare number with bit
+        bra pl  sq32_L2         # exit loop if number >= bit
+        asr     r3,r3,2         # shift bit 2 places right
+
+sq32_L2:
+        zloop   sq32_endloop
+        cmp     r3,0            # is R3 zero ?
+        ret z   r14             # Yes ? then exit
+        add     r0,r1,r3        # Trial subtract r2 -= Res + bit
+        sub     r2,r2,r0
+        bra mi  sq32_L3         # if <0 then need to restore r2
+        asr     r1,r1,1         # shift result right
+        add     r1,r1,r3        # .. and add bit
+        bra     sq32_L4
+sq32_L3:
+        add     r2,r2,r0        # restore r2 (add res + bit back)
+        asr     r1,r1,1         # shift result right
+
+sq32_L4:
+        asr     r3,r3,2
+sq32_endloop:
+
+#else
 sqrt32:
         mov     r2, r1          # move number to root into r2
         movi    r1,0            # zero result
@@ -68,6 +98,7 @@ sq32_L3:
         asr     r1,r1,1         # shift result right
         asr     r3,r3,2
         bra     sq32_L2
+#endif
 	;; -----------------------------------------------------------------
 	;;
 	;; udiv32 (udiv16)
@@ -221,11 +252,11 @@ qm32_2b:
         asl      r2, r2, 1       ; multiply B x 2
         lsr      r0, r0, 1       ; shift A to check LSB
         bra  z   qm32_loopend    ; if A is zero then exit else loop again (preserving carry)
-qm32_loopend:   
+qm32_loopend:
         ret  nc  r14             ; return if no carry
         add      r1, r1, r2      ; Add last copy of multiplicand into acc if carry was set
-        ret      r14             ; return        
-#else        
+        ret      r14             ; return
+#else
 qm32_1b:
         bra  nc  qm32_2b
         add      r1, r1, r2      ; add B into acc if carry

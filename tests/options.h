@@ -12,5 +12,5 @@
         ;; Define this if native DJNZ is implemented
         ;; #define DJNZ_INSTR 1
         ;; Define this if NEG instr is implemented
-#define NEG_INSTR 1
-        ;;#define ZLOOP_INSTR 1
+        ;; #define NEG_INSTR 1
+#define ZLOOP_INSTR 1

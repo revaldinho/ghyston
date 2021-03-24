@@ -1,11 +1,18 @@
 
 #include "options.h"
 #include "macros.h"
-
+        ;;
+        ;; Define this to get a better idea of how to optimize the rooting algorithm or implementation 
+        ;; #define NOPRINT 1
+        
 MACRO   SQRT    ( _num_ )
         movi    r1, _num_ & 0xFFFF
         movti   r1, (_num_ >> 16) & 0xFFFF
+#ifdef NOPRINT
+        jsr     sqrt32        
+#else
         jsr     test_sqrt
+#endif
 ENDMACRO
 
         ORG     0x00
@@ -32,7 +39,6 @@ ENDMACRO
 test_sqrt:
         mov     r10, r1         ; save number for rooting
         PUSH    (r14)
-
         mov     r1, m0
         jsr     sprint
         mov     r1, r10

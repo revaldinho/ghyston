@@ -3,15 +3,15 @@
  *
  */
 
-//`define TWO_STAGE_PIPE 1
+`define TWO_STAGE_PIPE 1
 // Including single cycle MUL18x18 limits clock speed to ~90MHz
 //`define INCLUDE_MUL 1
 // Making full 32x32 MUL slows clock speed down further
 //`define MUL32 1
 // Define this to allow shifts of 16-31bits in one instruction, otherwise limited to 0-15
-`define SHIFT16 1
+//`define SHIFT16 1
 // Define this to enable NEG instruction or alternate implementation
-`define NEG_INSTR 1
+//`define NEG_INSTR 1
 //`define NEG2_INSTR 1
 // Define this to enable DJNZ instruction
 //`define DJNZ_INSTR 1
