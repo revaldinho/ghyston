@@ -96,7 +96,7 @@ oswrch:
 oswrch_loop:
         movi    r0, 0xFFFE
         movti   r0, 0x00FF
-        sto.w   r1, r0
+        stw     r1, r0
         ret     r14
 
         ;;  DATA Area will be declared at current DATA pointer

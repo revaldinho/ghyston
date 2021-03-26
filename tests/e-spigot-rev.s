@@ -6,7 +6,7 @@
 ;; Translated from the OPC7 version
 
 #include "options.h"
-#include "macros.h"        
+#include "macros.h"
 
         # r14 = link register
         # r12 = inner loop counter
@@ -164,7 +164,7 @@ oswrch:
 oswrch_loop:
         movi    r0, 0xFFFE
         movti   r0, 0x00FF
-        sto.w   r1, r0
+        sto     r1, r0
         ret     r14
 
         ; DATA MEM defines

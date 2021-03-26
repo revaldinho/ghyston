@@ -50,7 +50,7 @@ start:
                                         ; Initialise remainder/denominator array using temp vars
         mov     r2,2                    ; r2=const 2 for initialisation, used as data for rem[] and increment val
         mov     r3,cols+remain-1        ; loop counter i starts at index = 1
-L1:     sto.w   r2,r3                   ; store remainder value to pointer
+L1:     sto     r2,r3                   ; store remainder value to pointer
         sub     r3, r3, 1               ; next loop counter
         cmp     r3, remain-1
         bra nz  L1
@@ -74,7 +74,7 @@ L4:
         jsr     qmul32b
         mov     r11,r1
 #endif
-        ld.w    r2,r7                   ; r2 <- *remptr = r[i]
+        ld      r2,r7                   ; r2 <- *remptr = r[i]
 #ifdef MUL18X18
         mul     r1, r2, 10
 #else
@@ -87,7 +87,7 @@ L4:
         mov     r2,r10
         jsr     udiv1632                ; Compute Q % denom, Q // denom
         mov     r11,r1                  ; Q<- Quotient
-        sto.w   r2, r7                  ; rem[i] <- r2
+        sto     r2, r7                  ; rem[i] <- r2
         sub     r7, r7, 1               ; dec remptr
         DJNZ    (r12, L4)               ; decr loop counter and loop again if not zero
 
@@ -328,7 +328,7 @@ oswrch:
 oswrch_loop:
         movi    r0, 0xFFFE
         movti   r0, 0x00FF
-        sto.w   r1, r0
+        sto     r1, r0
         ret     r14
 
 

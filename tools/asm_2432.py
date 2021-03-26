@@ -95,50 +95,50 @@ cond_codes = {
 
 ##  Generally only even opcodes are listed - odd versions select an immediate rather than second source reg
 op = {
-    "spare3"    : {"format":"a", "opcode": 0 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
-    "spare4"    : {"format":"a", "opcode": 2 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
-    "ldw"       : {"format":"a", "opcode": 4 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
-    "ld.w"      : {"format":"a", "opcode": 4 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
-    "ld"        : {"format":"a", "opcode": 4 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
-    "mov"       : {"format":"a", "opcode": 6 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
-# Alternate form of neg uses only one opcode
-    "neg"     : {"format":"a", "opcode": 7 , "sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
-    "zloop"   : {"format":"b", "opcode": 8 , "sext":False, "cond":False, "operands":1, "sext": False, "min_imm":0,    "max_imm":16383},
-    "spare2"   : {"format":"b", "opcode": 10 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
-    "stw"      : {"format":"b", "opcode": 12 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
-    "sto.w"      : {"format":"b", "opcode": 12 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
-    "sto"      : {"format":"b", "opcode": 12 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":16383},
-#   ""        : {"format":"b", "opcode": 14 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":0},
-    "jr"       : {"format":"c", "opcode": 16 ,"sext":False, "cond":True,  "operands":2, "sext": False, "min_imm":-512, "max_imm":511}, # COND field is optional in source code
+    "djcc"      : {"format":"a", "opcode": 0 , "sext":True , "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
+    "djcs"      : {"format":"a", "opcode": 1 , "sext":True , "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
+    "djnz"      : {"format":"a", "opcode": 2 , "sext":True , "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
+    "djz"       : {"format":"a", "opcode": 3 , "sext":True , "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
+    "zloop"     : {"format":"a", "opcode": 4 , "sext":True , "cond":False, "operands":1, "min_imm":-512, "max_imm":511},
+    "reti"      : {"format":"a", "opcode": 5 , "sext":True , "cond":False, "operands":0, "min_imm":-512, "max_imm":511},
+    "jmp"       : {"format":"a1","opcode": 6 , "sext":False, "cond":False, "operands":1, "min_imm":0,    "max_imm":262143},
+    "jsr"       : {"format":"a1","opcode": 7 , "sext":False, "cond":False, "operands":1, "min_imm":0,    "max_imm":262143},
+
+    "jr"        : {"format":"b", "opcode": 8 , "sext":False, "cond":True,  "operands":2, "min_imm":-512, "max_imm":511}, # COND field is optional in source code
+    "bra"       : {"format":"b", "opcode": 8 , "sext":False, "cond":True,  "operands":1, "min_imm":-512, "max_imm":511},
+    "bcc"       : {"format":"b", "opcode": 8 , "sext":False, "cond":True,  "operands":1, "min_imm":-512, "max_imm":511},
     # Ret is a synonmym for JR AL RLINK,0
-    "ret"     : {"format":"c", "opcode": 17 ,"sext":False, "cond":True,  "operands":2, "sext": False, "min_imm":0,    "max_imm":0},
-    "bra"     : {"format":"c", "opcode": 16 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},
-    "bcc"     : {"format":"c", "opcode": 16 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},
-    "jrsr"    : {"format":"c", "opcode": 18 ,"sext":False, "cond":True,  "operands":2, "sext": False, "min_imm":-512, "max_imm":511},
-    "bsr"     : {"format":"c", "opcode": 18 ,"sext":False, "cond":True,  "operands":1, "sext": False, "min_imm":-512, "max_imm":511},
-    "djnz"    : {"format":"c", "opcode": 21 ,"sext":True,  "cond":True,  "operands":3, "sext": False, "min_imm":-512, "max_imm":511},
-    "jmp"     : {"format":"c2","opcode": 22 ,"sext":False, "cond":False, "operands":1, "sext": False, "min_imm":0,    "max_imm":262143},
-    "jsr"     : {"format":"c2","opcode": 23 ,"sext":False, "cond":False, "operands":1, "sext": False, "min_imm":0,    "max_imm":262143},
+    "ret"       : {"format":"b", "opcode": 9  ,"sext":False, "cond":True,  "operands":2, "min_imm":0,    "max_imm":0},
+    "jrsr"      : {"format":"b", "opcode": 10 ,"sext":False, "cond":True,  "operands":2, "min_imm":-512, "max_imm":511},
+    "bsr"       : {"format":"b", "opcode": 10 ,"sext":False, "cond":True,  "operands":1, "min_imm":-512, "max_imm":511},
+    #
+    "ldw"       : {"format":"d", "opcode": 12 , "sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":16383},
+    "ld"        : {"format":"d", "opcode": 12 , "sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":16383},
+    "stw"       : {"format":"d", "opcode": 14 , "sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":16383},
+    "sto"       : {"format":"d", "opcode": 14 , "sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":16383},
+    #
     ## Next two opcodes take up 4 opcodes each, with 2 LSBs used as additional immediate bits
-    "movi"    : {"format":"d", "opcode": 24 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":65535},
-    "movti"   : {"format":"d", "opcode": 28 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":65535},
-    "and"     : {"format":"e", "opcode": 32 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
-    "or"      : {"format":"e", "opcode": 34, "sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
-    "xor"     : {"format":"e", "opcode": 36 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
-    "mul"     : {"format":"e", "opcode": 38 ,"sext":True,  "cond":False, "operands":3, "sext": True,  "min_imm":-512, "max_imm":511},
-    "add"     : {"format":"e", "opcode": 40 ,"sext":True,  "cond":False, "operands":3, "sext": True,  "min_imm":-512, "max_imm":511},
-    "sub"     : {"format":"e", "opcode": 42 ,"sext":True,  "cond":False, "operands":3, "sext": True,  "min_imm":-512, "max_imm":511},
-    "asr"     : {"format":"e", "opcode": 44 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
-    "lsr"     : {"format":"e", "opcode": 46 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
-    "ror"     : {"format":"e", "opcode": 48 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
-    "asl"     : {"format":"e", "opcode": 50 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
-    "rol"     : {"format":"e", "opcode": 52 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":1023},
-    "bset"    : {"format":"e", "opcode": 54 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":31},
-    "bclr"    : {"format":"e", "opcode": 56 ,"sext":False, "cond":False, "operands":3, "sext": False, "min_imm":0,    "max_imm":31},
-    "btst"    : {"format":"e", "opcode": 58 ,"sext":False, "cond":False, "operands":2, "sext": False, "min_imm":0,    "max_imm":31},
-    "cmp"     : {"format":"e", "opcode": 60 ,"sext":True,  "cond":False, "operands":2, "sext": True,  "min_imm":-512, "max_imm":511},
-# Alternative form of neg uses two opcodes    
-#    "neg"     : {"format":"e", "opcode": 62 ,"sext":True,  "cond":False, "operands":2, "sext": True,  "min_imm":-512, "max_imm":511},
+    "movi"      : {"format":"c", "opcode": 16 ,"sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":65535},
+    "movti"     : {"format":"c", "opcode": 20 ,"sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":65535},
+
+    "neg"       : {"format":"d", "opcode": 30 ,"sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":16383},
+    "and"       : {"format":"e", "opcode": 32 ,"sext":False, "cond":False, "operands":3, "min_imm":0,    "max_imm":1023},
+    "mov"       : {"format":"e", "opcode": 35, "sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":1023},   # synonym for OR rd, rs, 0
+    "or"        : {"format":"e", "opcode": 34, "sext":False, "cond":False, "operands":3, "min_imm":0,    "max_imm":1023},
+    "xor"       : {"format":"e", "opcode": 36 ,"sext":False, "cond":False, "operands":3, "min_imm":0,    "max_imm":1023},
+    "not"       : {"format":"e", "opcode": 38 ,"sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":1023},
+    "asr"       : {"format":"e", "opcode": 40 ,"sext":False, "cond":False, "operands":3, "min_imm":0,    "max_imm":1023},
+    "lsr"       : {"format":"e", "opcode": 42 ,"sext":False, "cond":False, "operands":3, "min_imm":0,    "max_imm":1023},
+    "ror"       : {"format":"e", "opcode": 44 ,"sext":False, "cond":False, "operands":3, "min_imm":0,    "max_imm":1023},
+    "asl"       : {"format":"e", "opcode": 46 ,"sext":False, "cond":False, "operands":3, "min_imm":0,    "max_imm":1023},
+    "rol"       : {"format":"e", "opcode": 48 ,"sext":False, "cond":False, "operands":3, "min_imm":0,    "max_imm":1023},
+    "bset"      : {"format":"e", "opcode": 50 ,"sext":False, "cond":False, "operands":3, "min_imm":0,    "max_imm":31},
+    "bclr"      : {"format":"e", "opcode": 52 ,"sext":False, "cond":False, "operands":3, "min_imm":0,    "max_imm":31},
+    "btst"      : {"format":"e", "opcode": 54 ,"sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":31},
+    "add"       : {"format":"e", "opcode": 56 ,"sext":True,  "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
+    "sub"       : {"format":"e", "opcode": 58 ,"sext":True,  "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
+    "cmp"       : {"format":"e", "opcode": 60 ,"sext":True,  "cond":False, "operands":2, "min_imm":-512, "max_imm":511},
+    "mul"       : {"format":"e", "opcode": 62 ,"sext":True,  "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
 }
 
 
@@ -266,7 +266,6 @@ def assemble( filename, listingon=True):
                     if len(tmp) > 1:
                         condfield = tmp[0]
                         opfields[0] = tmp[1]
-
                 direct=False
                 if len(opfields) > 0 and not opfields[0]=='':
                     if ( not is_register(opfields[-1])):
@@ -293,77 +292,67 @@ def assemble( filename, listingon=True):
                     elif len(opfields) == 1:
                         opfields.append("0")
                         words.append(0)
-                if inst == "mov" and not is_register(opfields[-1]):
-                    inst = "movi"
+                if inst == "mov":
+                    if is_register(opfields[-1]):
+                        inst = "or"
+                        opfields.append("0")
+                        words.append(0)
+                    else:
+                        inst = "movi"
+                if inst.startswith("dj") and len(opfields) < op[inst]["operands"]:
+                    # djnz [rs], rs, label
+                    opfields.insert(0, opfields[0])
+                    words.insert(0, words[0])
                 if ( op[inst]["operands"] != len(words)):
                     errors.append("Error: wrong number of operands for instruction %s\n on line %s" % (inst, line.strip()))
                 else:
                     (rdest, cond, rsrc1, rsrc2, imm) = (0,0,0,0,0)
                     opcode = op[inst]["opcode"]
                     ifmt = op[inst]["format"]
-                    # Format A - load instructions and register move
-                    # Format B - store instructions and zloop
-                    if ifmt == "a" or ifmt == "b":
-                        if ifmt=="a":
-                            rdest = words[0]
-                            if (inst in ("not")):
-                                direct = 0
+                    if ifmt == "a": # Format A - DJxx, ZLOOP: DJxx Rsd, IMM10, ZLOOP IMM10
+                        direct = 0                  # Full opcode is used so zero direct bit
+                        if not inst == "zloop":
+                            imm = words[1] - nextimem   # Immediate is always an offset to PC in these instructions
+                            (rdest, rsrc1) = (words[0], words[0])
                         else:
-                            if inst == "zloop":
-                                words.insert(0,0)
+                            imm = words[0] - nextimem   # Immediate is always an offset to PC in these instructions
+                    elif ifmt == "a1": # Format A1 : JMP IMM and JSR IMM instructions
+                        (rdest, rsrc1, rsrc2, imm) = (0,0,0, words[0])
+                        direct = 0                   # Use the whole instruction so blank out the direct bit
+                    elif ifmt == "b": # Format B : JR COND Rb, Roff or JR COND Rb, IMM
+                        cond = cond_codes[condfield]
+                        if (inst in ("bra","bsr","bcc")):
+                            rsrc1 = 15 # PC
+                            if (direct):
+                                # Branch to a label
+                                imm = words[0] - (nextimem)
+                            else:
+                                rsrc2 = words[0]
+                        else:
                             rsrc1 = words[0]
-                        if (direct):
-                            if inst == "zloop":
-                                # zloop uses a label which is an offset to the PC (as djnz below)
-                                imm = words[1] - nextimem 
-                            else:
+                            if (direct):
                                 imm = words[1]
-                        else:
-                            rsrc2 = words[1]
-                    # Format C - branch and return instructions
-                    elif ifmt == "c":
-                        if ( inst == "djnz" ) :
-                            cond = 0
-                            imm = words[2] - (nextimem)
-                            rdest = words[0]
-                            rsrc1 = words[1]
-                        else:
-                            cond = cond_codes[condfield]
-                            if (inst in ("bra","bsr","bcc")):
-                                rsrc1 = 15 # PC
-                                if (direct):
-                                    # Branch to a label
-                                    imm = words[0] - (nextimem)
-                                else:
-                                    rsrc2 = words[0]
                             else:
-                                rsrc1 = words[0]
-                                if (direct):
-                                    imm = words[1]
-                                else:
-                                    rsrc2 = words[1]
-                    # Format C2 - Jump instructions
-                    elif ifmt == "c2":
-                        imm = words[0]
-                        # Use the whole instruction so blank out the direct bit
-                        direct = 0
-                    # Format D - Long mov/movt
-                    elif ifmt == "d":
+                                rsrc2 = words[1]
+                    elif ifmt == "c": # Format C - Long mov/movt
                         rdest = words[0]
                         imm = words[1]
-                    # Format E - arith and logic instructions
-                    elif ifmt == "e":
+                        direct = 0
+                    elif ifmt == "d" : # Format D move, load store
+                        rdest = words[0]
+                        if direct:
+                            imm = words[1]
+                        else:
+                            rsrc2 = words[1]
+                    elif ifmt == "e": # Format E - arith and logic instructions
                         if inst in( "cmp", "btst") :
                             words.insert(0,0)
-                        elif inst=="neg":
-                            words.insert(1,0)
                         rdest = words[0]
                         rsrc1 = words[1]
                         if (direct):
                             imm = words[2]
                         else:
                             rsrc2 = words[2]
-
                     if (debug):
                         print (inst)
                         print ("opcode = %s" % op[inst]["opcode"])
@@ -373,7 +362,7 @@ def assemble( filename, listingon=True):
                         print ("rsrc1 = %s" % rsrc1)
                         print ("rsrc2 = %s" % rsrc2)
                         print ("cond = %d" % cond)
-                        print ("imm   = %05x (%d)" % (imm,imm))
+                        print ("imm   = %05x (%d)" % (imm & 0xFFFFFFFF,imm))
 
                     if ( not (op[inst]["min_imm"] <= imm <= op[inst]["max_imm"]) ):
                         errors.append("Error: immediate %d out of range (%d to %d) \n on line %s" % (imm, op[inst]["min_imm"], op[inst]["max_imm"], line.strip()))
@@ -389,16 +378,16 @@ def assemble( filename, listingon=True):
                     # Populate standard fields first
                     iword = (op[inst]["opcode"]<<18)| ((rdest | cond ) << 12) | ((rsrc1 ) << 8) | ((rsrc2 ) << 4) | imm30
                     # Now fit in immediate segments
-                    if ifmt == "a" and direct:
-                        iword  = iword | (imm54<<16) | (imm1310<<8) | (imm96<<4)| (1<<18 if direct else 0)
-                    elif ifmt == "b" and direct:
-                        iword  = iword | (imm54<<16) | (imm1310<<12) | (imm96<<4)| (1<<18 if direct else 0)
-                    elif ifmt == "c" and direct:
-                        iword  = iword | (imm54<<16) | (imm96<<4) | (1<<18 if direct else 0)
-                    elif ifmt == "c2" :
+                    if ifmt == "a" :
+                        iword  = iword | (imm54<<16) | (imm96<<4)
+                    elif ifmt == "a1" :
                         iword  = iword | (imm54<<16) | (imm1714 << 12) | (imm1310<<8) | (imm96<<4)
-                    elif ifmt == "d" :
-                        iword  = iword | (imm54<<16) | (imm1514 << 18) | (imm1310<<8) | (imm96<<4)
+                    elif ifmt == "b" and direct:
+                        iword  = iword | (imm54<<16) | (imm96<<4)| (1<<18 if direct else 0)
+                    elif ifmt == "c" :
+                        iword  = iword | (imm1514 << 18) | (imm54<<16)  | (imm1310<<8) | (imm96<<4)
+                    elif ifmt == "d" and direct:
+                        iword  = iword | (imm54<<16) | (imm1310<<8) | (imm96<<4)| (1<<18 if direct else 0)
                     elif ifmt == "e" and direct:
                         iword  = iword | (imm54<<16) | (imm96<<4) | (1<<18 if direct else 0)
 
