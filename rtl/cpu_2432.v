@@ -1,4 +1,3 @@
-
 `include "cpu_2432.vh"
 
 module cpu_2432 (
@@ -24,12 +23,9 @@ module cpu_2432 (
   reg [23:0]                   p0_instr_q;
   reg                          p0_stage_valid_q;
 `endif
-`ifdef ZLOOP_INSTR
   reg                          p0_zloop_valid_d, p0_zloop_valid_q;
   reg [31:0]                   p0_zloop_start_d, p0_zloop_start_q;
   reg [31:0]                   p0_zloop_end_d, p0_zloop_end_q;
-`endif
-
   reg [31:0]                   p0_result_d ;
   reg                          p0_moe_d, p0_moe_q;
 
@@ -40,9 +36,7 @@ module cpu_2432 (
   reg                          p1_stage_valid_d, p1_stage_valid_q;
   reg [31:0]                   p1_ead_d, p1_ead_q;
   reg [31:0]                   p1_src0_data_d,  p1_src0_data_q;
-`ifdef DJNZ_OR_DJCS_INSTR
   reg [31:0]                   p1_src1_data_d, p1_src1_data_q;
-`endif
   reg                          p1_ram_rd_d, p1_ram_rd_q;
   reg                          p1_ram_wr_d, p1_ram_wr_q;
   reg [5:0]                    p1_rdest_d, p1_rdest_q;
@@ -56,15 +50,13 @@ module cpu_2432 (
   reg                          p2_jump_taken_d, p2_jump_taken_q ;
   reg [31:0]                   p2_pc_d, p2_pc_q;
 
-  reg                          mcp_q;
   wire [31:0]                  alu_dout;
-  wire                         mcp_w;
-  wire                         clk_en_w = i_clk_en & !mcp_q;
+  wire                         clk_en_w = i_clk_en ;
   wire [31:0]                  rf_dout_0;
   wire [31:0]                  rf_dout_1;
   wire [3:0]                   rf_wen;
   wire [23:0]                  raw_instr_w;
-  wire                         qnz_w;
+  wire                         djtaken_w;
 
 `ifdef TWO_STAGE_PIPE
   assign raw_instr_w = i_instr;
@@ -111,18 +103,13 @@ module cpu_2432 (
   // Barrel shifter/ALU is effectively after Pipe stage 1
   alu u1 (
           .din_a( p1_src0_data_q),
-`ifdef DJNZ_OR_DJCS_INSTR
           .din_b( p1_src1_data_q),
-`else
-          .din_b( p1_ead_q),
-`endif
           .cin( psr_q[`C] ),
           .vin( psr_q[`V] ),
           .opcode( p1_opcode_q ),
           .dout( alu_dout ),
           .cout( alu_cout ),
-          .qnzout(qnz_w),
-          .mcp_out(mcp_w),
+          .djtaken(djtaken_w),
           .vout( alu_vout )
           );
 
@@ -135,94 +122,67 @@ module cpu_2432 (
     p1_rdest_d = { 1'b0, raw_instr_w[`RDST_RNG]==`RPC , raw_instr_w[`RDST_RNG] };
     p1_rsrc0_d = { 1'b0, raw_instr_w[`RSRC0_RNG]==`RPC, raw_instr_w[`RSRC0_RNG] };
     p1_rsrc1_d = { 1'b0, raw_instr_w[`RSRC1_RNG]==`RPC, raw_instr_w[`RSRC1_RNG] };
-
     // Most instructions use 5 MSBs as instruction and 1 bit as direct flag
     p1_opcode_d = { raw_instr_w[23:19], 1'b0};      // Blank out LSB
     p1_ead_use_imm_d = raw_instr_w[18];
-    p1_imm_d = 32'b000000;
-    // Expand or pad the opcode, unpack immediates and update any implied register source/dests
-    if (raw_instr_w[23:21] == 3'b000 ) begin // Format A
-`ifdef NEG_INSTR
-      if ( raw_instr_w[23:18] == `NEG ) begin
-        p1_opcode_d =  raw_instr_w[23:18];
-        p1_ead_use_imm_d = 1'b0;
-      end
-`endif
-      p1_imm_d = { 18'b0, raw_instr_w[11:4], raw_instr_w[17:16], raw_instr_w[3:0]};
-      p1_rsrc0_d = 6'b000000 ; // Unused set to RZero
+    // default to sign extending a 10 bit immediate
+    p1_imm_d = { {22{raw_instr_w[7]}}, raw_instr_w[7:4], raw_instr_w[17:16], raw_instr_w[3:0]};
+
+    if ( raw_instr_w[23] ) begin // Format E covers most instructions 0b1xxxxx
+
+//      $display ( "raw_instr_w = %06X, p1_ead_use_imm_d=%d", raw_instr_w, p1_ead_use_imm_d);
+      
+//      if (p1_ead_use_imm_d )
+//        p1_rsrc1_d = 6'b000000 ; // Unused set to RZero
+      if ( p1_opcode_d == `CMP || p1_opcode_d== `BTST )
+        p1_rf_wr_d = 0;          // No register write for these instructions
     end
-    else if (raw_instr_w[23:21] == 3'b001 ) begin // Format B
-      p1_rf_wr_d = 0; // no register writes from a STO
-      p1_rdest_d = 6'b000000 ; // Unused set to RZero
+    else if ( raw_instr_w[23:21] == 3'b000) begin // Format A: DJxx, ZLOOP, RETI, JMP,JSR
+      p1_ead_use_imm_d = 1'b1;                    // All format A instructions use an immediate
+      p1_opcode_d = raw_instr_w[`OPCODE_RNG] ;    // ..and need full 6 bit opcode
+      if ( p1_opcode_d == `JMP || p1_opcode_d == `ZLOOP)
+        p1_rf_wr_d = 0;          // No register write for these instructions (JMP write PC only, ZLOOP internal state)
+      else if ( p1_opcode_d == `JSR) begin
+        p1_rdest_d = 6'b001110 ; // JSR writes R14 with return address
+      end
+      if ( p1_opcode_d == `JMP || p1_opcode_d == `JSR) begin
+        // Zero-extended long immediate
+        p1_imm_d = { 14'b0, raw_instr_w[15:4], raw_instr_w[17:16], raw_instr_w[3:0]};
+//        p1_rsrc0_d = 6'b000000 ; // Unused set to RZero or leave as don't care ?
+//        p1_rsrc1_d = 6'b000000 ; // Unused set to RZero or leave as don't care ?
+      end
+    end
+    else if (raw_instr_w[23:21] == 3'b010 ) begin   // Format C: LMOV/T
+      p1_ead_use_imm_d = 1'b1;                      // Always use immediate, obviously
+      p1_opcode_d = { raw_instr_w[23:20], 2'b00};   // Blank out bottom two bits of opcode which are used as immediate
+      // No need to read reg for MOVT - dealt with by byte enables
+//      p1_rsrc0_d = 6'b000000 ; // Unused set to RZero or leave as don't care ?
+//      p1_rsrc1_d = 6'b000000 ; // Unused set to RZero or leave as don't care ?
+      p1_imm_d = { 16'b0, raw_instr_w[19:18], raw_instr_w[11:4], raw_instr_w[17:16], raw_instr_w[3:0] }; // zero-ext long immediate
+    end
+    else if (raw_instr_w[23:20] == 4'b0011 ) begin  // Format D: Load/Store
+      $display("LOAD/STO instruction fetched");
+      if ( p1_opcode_d == `STO ) begin
+        p1_rsrc0_d = p1_rdest_d; // dest register is actually the source for a STO
+        p1_rf_wr_d = 0; // no register writes from a STO
+//        p1_rdest_d = 6'b000000 ; // Unused set to RZero or leave as don't care ?
+      end
+      // zero-extended 14 bit immediate
       p1_imm_d = { 18'b0, raw_instr_w[15:12], raw_instr_w[7:4], raw_instr_w[17:16], raw_instr_w[3:0]};
     end
-    else if (raw_instr_w[23:21] == 3'b010 ) begin // Format C
-      // Sign extend immediates
-      p1_imm_d = { {22{raw_instr_w[7]}}, raw_instr_w[7:4], raw_instr_w[17:16], raw_instr_w[3:0]};
-`ifdef DJNZ_INSTR
-      if ( raw_instr_w[23:18] == `DJNZ ) begin
-        p1_ead_use_imm_d = 1;
-        p1_opcode_d =  raw_instr_w[23:18]; // use full opcode
-      end
+    else if ( raw_instr_w[23:20] == 4'b0010) begin // Format B: JRCC (BRA), JRSRCC (BSR)
+      p1_cond_d = raw_instr_w[`RDST_RNG];  // Finally use the destination register field as a conditional
+      if ( p1_opcode_d == `JRCC)
+        p1_rf_wr_d = 0;                    // Branch instruction does not write register file
       else
-`endif
-`ifdef DJCS_INSTR
-      if ( raw_instr_w[23:18] == `DJCS ) begin
-        p1_ead_use_imm_d = 1;
-        p1_opcode_d =  raw_instr_w[23:18]; // use full opcode
-      end
-      else
-`endif
-        begin
-        p1_rf_wr_d = 0; // default is no RF write for format C
-        p1_rdest_d = 6'b000000 ;
-        p1_ead_use_imm_d = raw_instr_w[18] || ( p1_opcode_d== `JMP || p1_opcode_d==`JSR);
-        if ( p1_opcode_d == `JMP || p1_opcode_d == `JSR ) begin // C2
-          p1_opcode_d = { raw_instr_w[`OPCODE_RNG] };
-          if ( p1_opcode_d == `JSR)
-            p1_rf_wr_d = 1;
-            p1_rdest_d = 6'b001110 ; // Rlink= R14
-          p1_imm_d = { 14'b0, raw_instr_w[15:4], raw_instr_w[17:16], raw_instr_w[3:0]};
-          p1_rsrc0_d = 6'b000000 ; // Unused set to RZero
-          p1_rsrc1_d = 6'b000000 ; // Unused set to RZero
-        end
-        else begin
-          if ( p1_opcode_d == `JRSRCC)
-            p1_rf_wr_d = 1;
-            p1_rdest_d = 6'b001110 ; // Rlink= R14
-          p1_cond_d = raw_instr_w[`RDST_RNG];
-        end // else: !if( p1_opcode_d == `JMP || p1_opcode_d == `JSR )
-      end // else: !if(raw_instr_w[23:21] == 3'b010 )
+        p1_rdest_d = 6'b001110 ;           // Rlink= R14 for JRSR
+      $display("JR code=%02X src0=%02X data0=%08X src1=%02X data1=%08X", p1_cond_d, p1_rsrc0_d, rf_dout_0, p1_rsrc1_d, rf_dout_1);
     end
-    else if (raw_instr_w[23:21] == 3'b011 ) begin // Format D - Blank out two LSBs
-      p1_opcode_d = { raw_instr_w[23:20], 2'b00};
-      // No need to read reg for MOVT - dealt with by byte enables
-      p1_rsrc0_d = 6'b000000 ; // Unused set to RZero
-      p1_rsrc1_d = 6'b000000 ; // Unused set to RZero
-      p1_imm_d = { 16'b0, raw_instr_w[19:18], raw_instr_w[11:4], raw_instr_w[17:16], raw_instr_w[3:0] };
-      p1_ead_use_imm_d = 1'b1;
-    end
-    else begin // Format E
-      // Sign extended data for arithmetic operations
-`ifdef ZLOOP_INSTR
-      if ( p1_opcode_d == `CMP || p1_opcode_d== `BTST || p1_opcode_d == `ZLOOP)
-`else
-      if ( p1_opcode_d == `CMP || p1_opcode_d== `BTST )
-`endif
-        p1_rf_wr_d = 0;
-      if (p1_ead_use_imm_d )
-        p1_rsrc1_d = 6'b000000 ; // Unused set to RZero
-`ifdef INCLUDE_MUL
-      if ( p1_opcode_d == `MUL || p1_opcode_d == `ADD || p1_opcode_d == `SUB)
-`else
-      if ( p1_opcode_d == `ADD || p1_opcode_d == `SUB)
-`endif
-        p1_imm_d = { {22{raw_instr_w[7]}} ,raw_instr_w[7:4], raw_instr_w[17:16], raw_instr_w[3:0] };
-      else
-        p1_imm_d = { 22'b0 ,raw_instr_w[7:4], raw_instr_w[17:16], raw_instr_w[3:0] };
+    else begin
+      $display("Illegal opcode %06X", raw_instr_w);
+      $finish;
     end
   end
-
 
   always @ ( * ) begin
     p0_stage_valid_d = rstb_q & p0_moe_d & (!(p2_jump_taken_d && p1_stage_valid_q)) ; // invalidate any instruction behind a taken jump
@@ -233,8 +193,8 @@ module cpu_2432 (
     // rather than use a combinatorial bypass
 //`define BYPASS_EN_D 1
 `ifdef BYPASS_EN_D
-    p0_moe_d = rstb_q & !((p1_opcode_d == `LD_W) &&
-                          (p1_opcode_d == `STO_W));  // rstb_q FF delays coming out of reset by 1 cycle
+    p0_moe_d = rstb_q & !((p1_opcode_d == `LD) &&
+                          (p1_opcode_d == `STO));  // rstb_q FF delays coming out of reset by 1 cycle
 `else
 //  `define HALF_RATE_D 1
   `ifdef HALF_RATE_D
@@ -259,19 +219,13 @@ module cpu_2432 (
     if ( p2_jump_taken_d && p1_stage_valid_q)
       if ( p1_opcode_q == `JMP || p1_opcode_q == `JSR )
         p0_pc_d = p1_ead_q;
-`ifdef DJNZ_OR_DJCS_INSTR
       else if (p1_rsrc0_q[3:0]==4'b1111
-`ifdef DJNZ_INSTR
 		|| p1_opcode_q == `DJNZ
-`endif
-`ifdef DJCS_INSTR
+		|| p1_opcode_q == `DJZ
+		|| p1_opcode_q == `DJCC
 		|| p1_opcode_q == `DJCS
-`endif
       )
-`else
-      else if (p1_rsrc0_q[3:0]==4'b1111 )
-`endif
-        // BRAnch or DJNZ
+        // BRAnch or DJxx
         // need to read the PC associated with the jump instruction
         // and ensure that stalling is accounted for
 `ifdef TWO_STAGE_PIPE
@@ -283,12 +237,8 @@ module cpu_2432 (
         p0_pc_d = p1_ead_q + p1_src0_data_q ;
     else if (p0_moe_d) begin
       next_pc = p0_pc_q + 1;  // default is to increment PC
-`ifdef ZLOOP_INSTR
-      p0_pc_d = (p0_zloop_valid_q && (next_pc==p0_zloop_end_q)) ? p0_zloop_start_q : next_pc;      
-`else      
-      p0_pc_d = next_pc;
-`endif      
-    end     
+      p0_pc_d = (p0_zloop_valid_q && (next_pc==p0_zloop_end_q)) ? p0_zloop_start_q : next_pc;
+    end
     else
       p0_pc_d = p0_pc_q;
   end
@@ -300,9 +250,8 @@ module cpu_2432 (
     p0_zloop_valid_d = p0_zloop_valid_q;
     p0_result_d = alu_dout;
     if ( p1_stage_valid_q ) begin
-      if ( p1_opcode_q == `LD_W )
+      if ( p1_opcode_q == `LD )
         p0_result_d = i_din ;
-`ifdef ZLOOP_INSTR
       else if ( p1_opcode_q == `ZLOOP ) begin
         p0_zloop_valid_d = 1'b1;
   `ifdef TWO_STAGE_PIPE
@@ -313,7 +262,6 @@ module cpu_2432 (
         p0_zloop_start_d = p2_pc_q+1; // should come through ALU or be part of RET instuction ie JR CC Rlink, +1
   `endif
       end
-`endif
       else if (p1_opcode_q == `JSR || p1_opcode_q == `JRSRCC)
         // Value to put into link register and retain flags
 `ifdef TWO_STAGE_PIPE
@@ -331,19 +279,16 @@ module cpu_2432 (
       if ( p1_rdest_q[5] ) begin
         psr_d = alu_dout;
       end
-      else if ( p1_opcode_q == `LD_W ||
-                p1_opcode_q == `STO_W ||
+      else if ( p1_opcode_q == `LD ||
+                p1_opcode_q == `STO ||
                 p1_opcode_q == `JRCC ||
                 p1_opcode_q == `JMP ||
                 p1_opcode_q == `JSR ||
-                p1_opcode_q == `JRSRCC
-`ifdef DJNZ_INSTR
-                || p1_opcode_q == `DJNZ
-`endif
-`ifdef DJCS_INSTR
-                || p1_opcode_q == `DJCS
-`endif
-
+                p1_opcode_q == `JRSRCC ||
+                p1_opcode_q == `DJNZ ||
+                p1_opcode_q == `DJZ ||
+                p1_opcode_q == `DJCC ||
+                p1_opcode_q == `DJCS
                 ) begin
         // Retain flags
         psr_d = psr_q;
@@ -370,8 +315,8 @@ module cpu_2432 (
     p1_stage_valid_d = p0_stage_valid_q & !p2_jump_taken_d ;  // invalidate any instruction behind a taken jump
 `endif
     if ( p1_stage_valid_d ) begin
-      p1_ram_rd_d = (p1_opcode_d == `LD_W );
-      if ( p1_opcode_d == `STO_W ) begin
+      p1_ram_rd_d = (p1_opcode_d == `LD );
+      if ( p1_opcode_d == `STO ) begin
         p1_ram_wr_d = 1'b1;
       end
     end // if ( p1_stage_valid_d )
@@ -383,14 +328,11 @@ module cpu_2432 (
     if ( p1_stage_valid_q ) begin
       if (p1_opcode_q == `JMP || p1_opcode_q == `JSR )
         p2_jump_taken_d = 1'b1;
-`ifdef DJNZ_INSTR
-      else if ( p1_opcode_q==`DJNZ )
-        p2_jump_taken_d = qnz_w;
-`endif
-`ifdef DJCS_INSTR
-      else if ( p1_opcode_q==`DJCS )
-        p2_jump_taken_d = qnz_w; // same flag name but this is carry set now
-`endif
+      else if ( p1_opcode_q == `DJNZ ||
+                p1_opcode_q == `DJCS ||
+                p1_opcode_q == `DJCC ||
+                p1_opcode_q == `DJZ )
+        p2_jump_taken_d = djtaken_w;
       else if ( p1_opcode_q==`JRCC || p1_opcode_q==`JRSRCC) begin
         case (p1_cond_q)
 	  `EQ: p2_jump_taken_d = (psr_q[`Z]==1);    // Equal
@@ -429,34 +371,9 @@ module cpu_2432 (
     p1_ram_dout_d = ((p1_rsrc0_d[5]) ? psr_q:
                      (p1_rsrc0_d[4]) ? p0_pc_q:
                      rf_dout_0);
-`ifdef NEG_INSTR
     p1_src0_data_d = p1_ram_dout_d & { 32{ p1_opcode_d!=`NEG}};
-`else
-  `ifdef NEG2_INSTR
-    p1_src0_data_d = p1_ram_dout_d & { 32{ p1_opcode_d!=`NEG}};
-  `else
-    p1_src0_data_d = p1_ram_dout_d;
-  `endif
-`endif
-`ifdef DJNZ_OR_DJCS_INSTR
-    `ifdef DJNZ_INSTR
     // For DJNZ make second input to ALU -1 - ie all 0xF's
-    p1_src1_data_d = p1_ead_d | {32{(p1_opcode_d == `DJNZ)}};
-    `endif
-    `ifdef DJCS_INSTR
-    // For DJNZ make second input to ALU -1 - ie all 0xF's
-    p1_src1_data_d = p1_ead_d | {32{(p1_opcode_d == `DJCS)}};
-    `endif
-`endif
-  end
-
-  // Special MCP control for 32x32 multiplications
-  always @ ( posedge i_clk or negedge i_rstb ) begin
-    if ( ! i_rstb )
-      mcp_q <= 1'b0;
-    else
-      // MCP flop gets set but then zeroed after one cycle
-      mcp_q <= mcp_w & !mcp_q;
+    p1_src1_data_d = p1_ead_d | {32{(p1_opcode_d == `DJNZ || p1_opcode_d == `DJCS || p1_opcode_d == `DJCC || p1_opcode_d == `DJZ)}};
   end
 
   // Edge triggered state
@@ -496,11 +413,9 @@ module cpu_2432 (
         p0_instr_q <= i_instr;
         p0_stage_valid_q <= p0_stage_valid_d;
 `endif
-`ifdef ZLOOP_INSTR
         p0_zloop_valid_q <= p0_zloop_valid_d;
         p0_zloop_start_q <= p0_zloop_start_d;
         p0_zloop_end_q <= p0_zloop_end_d;
-`endif
         psr_q <= psr_d;
         p0_pc_q <= p0_pc_d;
 
@@ -510,9 +425,7 @@ module cpu_2432 (
         p1_stage_valid_q <= p1_stage_valid_d;
         p1_ead_q <= p1_ead_d;
         p1_src0_data_q <= p1_src0_data_d;
-`ifdef DJNZ_OR_DJCS_INSTR
         p1_src1_data_q <= p1_src1_data_d;
-`endif
         p1_ram_rd_q <= p1_ram_rd_d;
         p1_ram_wr_q <= p1_ram_wr_d;
         p1_rdest_q <= p1_rdest_d;

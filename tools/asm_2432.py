@@ -105,12 +105,11 @@ op = {
     "jsr"       : {"format":"a1","opcode": 7 , "sext":False, "cond":False, "operands":1, "min_imm":0,    "max_imm":262143},
 
     "jr"        : {"format":"b", "opcode": 8 , "sext":False, "cond":True,  "operands":2, "min_imm":-512, "max_imm":511}, # COND field is optional in source code
-    "bra"       : {"format":"b", "opcode": 8 , "sext":False, "cond":True,  "operands":1, "min_imm":-512, "max_imm":511},
-    "bcc"       : {"format":"b", "opcode": 8 , "sext":False, "cond":True,  "operands":1, "min_imm":-512, "max_imm":511},
+    "bra"       : {"format":"b", "opcode": 8 , "sext":False, "cond":True,  "operands":2, "min_imm":-512, "max_imm":511},
     # Ret is a synonmym for JR AL RLINK,0
-    "ret"       : {"format":"b", "opcode": 9  ,"sext":False, "cond":True,  "operands":2, "min_imm":0,    "max_imm":0},
+    "ret"       : {"format":"b", "opcode": 9  ,"sext":False, "cond":True,  "operands":2, "min_imm":-512, "max_imm":511},
     "jrsr"      : {"format":"b", "opcode": 10 ,"sext":False, "cond":True,  "operands":2, "min_imm":-512, "max_imm":511},
-    "bsr"       : {"format":"b", "opcode": 10 ,"sext":False, "cond":True,  "operands":1, "min_imm":-512, "max_imm":511},
+    "bsr"       : {"format":"b", "opcode": 10 ,"sext":False, "cond":True,  "operands":2, "min_imm":-512, "max_imm":511},
     #
     "ldw"       : {"format":"d", "opcode": 12 , "sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":16383},
     "ld"        : {"format":"d", "opcode": 12 , "sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":16383},
@@ -121,24 +120,24 @@ op = {
     "movi"      : {"format":"c", "opcode": 16 ,"sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":65535},
     "movti"     : {"format":"c", "opcode": 20 ,"sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":65535},
 
-    "neg"       : {"format":"d", "opcode": 30 ,"sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":16383},
-    "and"       : {"format":"e", "opcode": 32 ,"sext":False, "cond":False, "operands":3, "min_imm":0,    "max_imm":1023},
-    "mov"       : {"format":"e", "opcode": 35, "sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":1023},   # synonym for OR rd, rs, 0
-    "or"        : {"format":"e", "opcode": 34, "sext":False, "cond":False, "operands":3, "min_imm":0,    "max_imm":1023},
-    "xor"       : {"format":"e", "opcode": 36 ,"sext":False, "cond":False, "operands":3, "min_imm":0,    "max_imm":1023},
-    "not"       : {"format":"e", "opcode": 38 ,"sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":1023},
-    "asr"       : {"format":"e", "opcode": 40 ,"sext":False, "cond":False, "operands":3, "min_imm":0,    "max_imm":1023},
-    "lsr"       : {"format":"e", "opcode": 42 ,"sext":False, "cond":False, "operands":3, "min_imm":0,    "max_imm":1023},
-    "ror"       : {"format":"e", "opcode": 44 ,"sext":False, "cond":False, "operands":3, "min_imm":0,    "max_imm":1023},
-    "asl"       : {"format":"e", "opcode": 46 ,"sext":False, "cond":False, "operands":3, "min_imm":0,    "max_imm":1023},
-    "rol"       : {"format":"e", "opcode": 48 ,"sext":False, "cond":False, "operands":3, "min_imm":0,    "max_imm":1023},
-    "bset"      : {"format":"e", "opcode": 50 ,"sext":False, "cond":False, "operands":3, "min_imm":0,    "max_imm":31},
-    "bclr"      : {"format":"e", "opcode": 52 ,"sext":False, "cond":False, "operands":3, "min_imm":0,    "max_imm":31},
-    "btst"      : {"format":"e", "opcode": 54 ,"sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":31},
-    "add"       : {"format":"e", "opcode": 56 ,"sext":True,  "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
-    "sub"       : {"format":"e", "opcode": 58 ,"sext":True,  "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
-    "cmp"       : {"format":"e", "opcode": 60 ,"sext":True,  "cond":False, "operands":2, "min_imm":-512, "max_imm":511},
-    "mul"       : {"format":"e", "opcode": 62 ,"sext":True,  "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
+    "and"       : {"format":"e", "opcode": 32 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},
+    "mov"       : {"format":"e", "opcode": 35, "sext":True, "cond":False, "operands":2, "min_imm":-512, "max_imm":512},   # synonym for OR rd, rs, 0 (ie imm. form)
+    "or"        : {"format":"e", "opcode": 34, "sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},
+    "not"       : {"format":"e", "opcode": 37 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},   # synonym for XOR rd, rs, 0x3FF (ie imm form)
+    "xor"       : {"format":"e", "opcode": 36 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},
+    "neg"       : {"format":"e", "opcode": 38 ,"sext":True, "cond":False, "operands":2, "min_imm":-512, "max_imm":512},
+    "asr"       : {"format":"e", "opcode": 40 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},
+    "lsr"       : {"format":"e", "opcode": 42 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},
+    "ror"       : {"format":"e", "opcode": 44 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},
+    "asl"       : {"format":"e", "opcode": 46 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},
+    "rol"       : {"format":"e", "opcode": 48 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},
+    "bset"      : {"format":"e", "opcode": 50 ,"sext":True, "cond":False, "operands":3, "min_imm":0, "max_imm":31},
+    "bclr"      : {"format":"e", "opcode": 52 ,"sext":True, "cond":False, "operands":3, "min_imm":0, "max_imm":31},
+    "btst"      : {"format":"e", "opcode": 54 ,"sext":True, "cond":False, "operands":2, "min_imm":0, "max_imm":31},
+    "add"       : {"format":"e", "opcode": 56 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
+    "sub"       : {"format":"e", "opcode": 58 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
+    "cmp"       : {"format":"e", "opcode": 60 ,"sext":True, "cond":False, "operands":2, "min_imm":-512, "max_imm":511},
+    "mul"       : {"format":"e", "opcode": 62 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
 }
 
 
@@ -292,13 +291,29 @@ def assemble( filename, listingon=True):
                     elif len(opfields) == 1:
                         opfields.append("0")
                         words.append(0)
-                if inst == "mov":
+                elif inst in ("bra", "bsr"):
+                    # Add the implied PC field for a branch
+                    opfields.insert(0,"r15")
+                    words.insert(0,15)
+                # Mov mapped to OR or MOVI depending on register or immediate operation
+                elif inst == "mov":
                     if is_register(opfields[-1]):
+                        direct= True
                         inst = "or"
                         opfields.append("0")
                         words.append(0)
                     else:
                         inst = "movi"
+                # NOT Rd, Rs is mapped to XOR Rd, Rs, 0x3FF
+                elif inst == "not":
+                    direct = True
+                    inst = "xor"
+                    direct = True
+                    if is_register(opfields[-1]):
+                        opfields.append("0x3FF")
+                        words.append(-1)
+                    else:
+                        errors.append("Error: NOT instruction can only take a register source \n on line %s" % (line.strip()))
                 if inst.startswith("dj") and len(opfields) < op[inst]["operands"]:
                     # djnz [rs], rs, label
                     opfields.insert(0, opfields[0])
@@ -319,21 +334,16 @@ def assemble( filename, listingon=True):
                     elif ifmt == "a1": # Format A1 : JMP IMM and JSR IMM instructions
                         (rdest, rsrc1, rsrc2, imm) = (0,0,0, words[0])
                         direct = 0                   # Use the whole instruction so blank out the direct bit
-                    elif ifmt == "b": # Format B : JR COND Rb, Roff or JR COND Rb, IMM
+                    elif ifmt == "b": # Format B : JR COND Rb, Roff or JR COND Rb, IMM or BRA COND [PC], imm or BRA COND [PC], Reg
                         cond = cond_codes[condfield]
-                        if (inst in ("bra","bsr","bcc")):
-                            rsrc1 = 15 # PC
-                            if (direct):
-                                # Branch to a label
-                                imm = words[0] - (nextimem)
-                            else:
-                                rsrc2 = words[0]
+                        rsrc1 = words[0]
+                        if (direct) and rsrc1==15: # PC relative label
+                            # Branch to a label
+                            imm = words[1] - (nextimem)
+                        elif direct:
+                            imm = words[1]
                         else:
-                            rsrc1 = words[0]
-                            if (direct):
-                                imm = words[1]
-                            else:
-                                rsrc2 = words[1]
+                            rsrc2 = words[1]
                     elif ifmt == "c": # Format C - Long mov/movt
                         rdest = words[0]
                         imm = words[1]
@@ -349,10 +359,14 @@ def assemble( filename, listingon=True):
                             words.insert(0,0)
                         rdest = words[0]
                         rsrc1 = words[1]
-                        if (direct):
-                            imm = words[2]
+                        if op[inst]["operands"] > 2:
+                            if (direct):
+                                imm = words[2]
+                            else:
+                                rsrc2 = words[2]
                         else:
-                            rsrc2 = words[2]
+                            rsrc2 = words[1]
+
                     if (debug):
                         print (inst)
                         print ("opcode = %s" % op[inst]["opcode"])
@@ -392,6 +406,9 @@ def assemble( filename, listingon=True):
                         iword  = iword | (imm54<<16) | (imm96<<4) | (1<<18 if direct else 0)
 
                     words=[ iword ]
+
+                    if (debug ) :
+                        print ( "OUTPUT CODE = %06X" % words[0])
                     if mode == "CODE":
                         (codemem[nextimem:nextimem+len(words)], nextimem,code_count )  = (words, nextimem+len(words),code_count+len(words))
                         exec("PC=%d+%d" % (nextimem,len(opfields)-1), globals(), symtab) # calculate PC as it will be in EXEC state

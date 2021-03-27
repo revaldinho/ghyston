@@ -1,4 +1,3 @@
-
 `timescale 1ns / 1ns
 `include "cpu_2432.vh"
 
@@ -53,7 +52,8 @@ module system_tb() ;
     clken = 1'b1;
     cycle = 0;
     #3005 reset_b = 1;
-    #50000000000 ;
+//    #50000000000 ;
+    #5000000 ;
 `ifdef RAM_DUMP_FILE_D
     $writememh(RAM_DUMP_FILE, dut_0.dram_0.ram);
 `endif
@@ -86,13 +86,13 @@ module system_tb() ;
 always @ ( negedge clk ) begin
   $display( "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ");
 `ifdef TWO_STAGE_PIPE
-  $display( "P0: adr = %08X raw_ins=%08X rstb=%d p0_moe_q=%d " ,
+  $display( "P0: adr = %08X raw_ins=%06X rstb=%d p0_moe_q=%d " ,
             dut_0.cpu_0.p0_pc_q,
             dut_0.cpu_0.raw_instr_w,
             dut_0.cpu_0.rstb_q,
             dut_0.cpu_0.p0_moe_q );
 `else
-  $display( "P0: adr = %08X pc_instr_q=%08X rstb=%d p0_moe_q=%d p0_stg_valid_q=%d " ,
+  $display( "P0: adr = %08X p0_instr_q=%06X rstb=%d p0_moe_q=%d p0_stg_valid_q=%d " ,
             dut_0.cpu_0.p0_pc_q,
             dut_0.cpu_0.p0_instr_q,
             dut_0.cpu_0.rstb_q,
@@ -101,9 +101,9 @@ always @ ( negedge clk ) begin
 `endif // !`ifdef TWO_STAGE_PIPE
 
 `ifdef ZLOOP_INSTR
-  $display("p0_zloop_start_q=%08X p0_zloop_end_q=%08X p0_zloop_valid_q=%d", dut_0.cpu_0.p0_zloop_start_q, dut_0.cpu_0.p0_zloop_end_q, dut_0.cpu_0.p0_zloop_valid_q);  
+  $display("p0_zloop_start_q=%08X p0_zloop_end_q=%08X p0_zloop_valid_q=%d", dut_0.cpu_0.p0_zloop_start_q, dut_0.cpu_0.p0_zloop_end_q, dut_0.cpu_0.p0_zloop_valid_q);
 `endif
-  
+
 //  $display( "P1:     = %10d: %02X : %02X : - : %X %X %X -------- : %X : - - %d " , cycle,
 //            dut_0.cpu_0.p1_pc_q,
 //            dut_0.cpu_0.p1_opcode_q,

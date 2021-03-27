@@ -24,7 +24,8 @@ pyexec ?= python3
 	   -D ROM_INIT_FILE_D="\"${TSTDIR}/$*.code.hex\"" \
 	   -D RAM_INIT_FILE_D="\"${TSTDIR}/$*.data.hex\"" \
            -D RAM_DUMP_FILE_D="\"$*.dump\"" \
-           system_tb.v \
+           -D VCD_FILE_D="\"$*.vcd\"" \
+	   system_tb.v \
            ${SRCDIR}/system.v \
            ${SRCDIR}/gpio.v \
            ${SRCDIR}/alu.v \

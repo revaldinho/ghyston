@@ -1,10 +1,5 @@
 `include "cpu_2432.vh"
 
-// Define this to allow 32x32 multiplies, but the result is still truncated to 32b anyway and
-// this then needs multiple DSP slices and the final structure reduces the max clock speed by
-// around a half. A multi-cycle flag is provided to allow an extra cycle for these long multiplies
-// to complete without slowing down the machine for all other instructions.
-
 `ifdef SHIFT16
   `define ROT16 ((distance & 5'b10000)!=0)
 `else
@@ -24,8 +19,7 @@ module alu(
            input [5:0]   opcode,
            output [31:0] dout,
            output        cout,
-           output reg    qnzout,
-           output reg    mcp_out,
+           output reg    djtaken,
            output reg    vout
            );
 
@@ -53,67 +47,53 @@ module alu(
   always @(*) begin
     alu_cout = cin;
     vout = vin;
-    mcp_out = 1'b0;
     alu_dout = 32'bx;
-    qnzout = 1'bx;
+    djtaken = 1'bx;
     borrow_out = 1'bx;
 
     case ( opcode )
       //MOVT will have the bits shifted to the top of the word before writing the regfile
       `LMOVT      :{alu_cout,alu_dout} = {cin, din_b[15:0], din_a[15:0]} ;
-      `LMOV, `MOV :{alu_cout,alu_dout} = {cin, din_b} ;
-      `AND        :{alu_cout,alu_dout} = {1'b0,(din_a & din_b)};
-      `OR         :{alu_cout,alu_dout} = {1'b0,(din_a | din_b)};
-      `XOR        :{alu_cout,alu_dout} = {1'b0,(din_a ^ din_b)};
-`ifdef INCLUDE_MUL
-`ifdef MUL32
-      // Wide multiply 32b x32b = 32b (truncated) uses 3 cycles and stretches the clock cycle to complete
-      `MUL        : begin
-        {mcp_out,alu_cout,alu_dout} = {1'b1, din_a * din_b};
-        vout = !(din_a[31] ^ din_b[31] ^ alu_dout[31]);
-      end
-`else
-      // Restrict multiplies to 18x18 to fit a single DSP slice on a Spartan 6 FPGA and single cycle execution
+      `LMOV       :{alu_cout,alu_dout} = {cin, din_b} ;
+      `AND        :{alu_cout,alu_dout} = {cin,(din_a & din_b)};
+      `OR         :{alu_cout,alu_dout} = {cin,(din_a | din_b)};
+      `XOR        :{alu_cout,alu_dout} = {cin,(din_a ^ din_b)};
+      // Restrict multiplies to 18x18 to fit a single DSP slice on a Spartan
+      // 6 FPGA and single cycle execution
       `MUL        : begin
         {alu_cout,alu_dout} = din_a[17:0] * din_b[17:0];
         vout = !(din_a[31] ^ din_b[31] ^ alu_dout[31]);
       end
-`endif
-`endif
       `ADD              : begin
         // overflow if -ve + -ve = +ve  or +ve + +ve = -ve
         {alu_cout,alu_dout} = din_a + din_b;
         vout =  ( din_a[31] & din_b[31] & !alu_dout[31]) ||
                 ( !din_a[31] & !din_b[31] & alu_dout[31]) ;
       end
-`ifdef DJNZ_INSTR
-      `DJNZ              :begin
+      `DJNZ : begin
         {alu_cout,alu_dout} = {din_a + din_b};
-        qnzout = |alu_dout;
-		end
-`endif
-`ifdef DJCS_INSTR
-      `DJCS              :begin
-        {alu_cout,alu_dout} = {din_a + din_b};
-			qnzout = !alu_cout; // export not_borrow instead
-		end
-`endif
-`ifdef NEG_INSTR
-      `NEG, `SUB, `CMP :
-`else
-  `ifdef NEG2_INSTR
-        `NEG, `SUB, `CMP :
-  `else
-          `SUB, `CMP       :
-  `endif
-`endif
-      begin
-        {borrow_out,alu_dout} = din_a - din_b;
-        alu_cout = !borrow_out;
-        // overflow if -ve - +ve = +ve  or +ve - -ve = -ve
-        vout =  ( din_a[31] & !din_b[31] & !alu_dout[31]) ||
-                ( !din_a[31] & din_b[31] & alu_dout[31]) ;
+        djtaken = |alu_dout; // Jump if NON-zero
       end
+      `DJZ : begin
+        {alu_cout,alu_dout} = {din_a + din_b};
+        djtaken = ! (|alu_dout); // Jump if zero
+      end
+      `DJCS : begin
+        {alu_cout,alu_dout} = {din_a + din_b};
+	djtaken = !alu_cout; // Jump if NOT borrow
+      end
+      `DJCC : begin
+        {alu_cout,alu_dout} = {din_a + din_b};
+	djtaken = alu_cout; // Jump if Borrow
+      end
+      `NEG, `SUB, `CMP :
+        begin
+          {borrow_out,alu_dout} = din_a - din_b;
+          alu_cout = !borrow_out;
+          // overflow if -ve - +ve = +ve  or +ve - -ve = -ve
+          vout =  ( din_a[31] & !din_b[31] & !alu_dout[31]) ||
+                  ( !din_a[31] & din_b[31] & alu_dout[31]) ;
+        end
 
       `BTST             :{alu_cout,alu_dout} = {cin, din_a & (32'b1 <<  (din_b & 32'h01F))};
       `BSET             :{alu_cout,alu_dout} = {cin, din_a | (32'b1 <<  (din_b & 32'h01F))};

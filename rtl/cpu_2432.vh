@@ -3,7 +3,7 @@
  *
  */
 
-//`define TWO_STAGE_PIPE 1
+`define TWO_STAGE_PIPE 1
 // Including single cycle MUL18x18 limits clock speed to ~90MHz
 //`define INCLUDE_MUL 1
 // Making full 32x32 MUL slows clock speed down further
@@ -67,54 +67,43 @@
 `define RPSR     14
 `define RPC      15
 
-
 // All opcodes are extended to 6 bits with the LSBs padded to zeros as listed below
 //
-// These instructions use only 4 opcode bits with the two LSBs as immediate data
-`define LMOV   6'b011000
-`define LMOVT  6'b011100
-
-// Define 5 MSBs only for these instructions where the LSB indicates direct or register source
-`define LD_W   6'b000100
-`define MOV    6'b000110
-`ifdef ZLOOP_INSTR
-  `define ZLOOP  6'b001000
-`endif
-`define STO_W  6'b001100
-`define JRCC   6'b010000
-`define JRSRCC 6'b010010
-`define AND    6'b100000
-`define OR     6'b100010
-`define XOR    6'b100100
-`ifdef INCLUDE_MUL
-  `define MUL    6'b100110
-`endif
-`define ADD    6'b101000
-`define SUB    6'b101010
-`define ASR    6'b101100
-`define LSR    6'b101110
-`define ROR    6'b110000
-`define ASL    6'b110010
-`define ROL    6'b110100
-`define BSET   6'b110110
-`define BCLR   6'b111000
-`define BTST   6'b111010
-`define CMP    6'b111100
-`ifdef NEG2_INSTR
-  `define NEG    6'b111110
-`endif
-// These instructions need to use all 6 opcode bits
-`ifdef NEG_INSTR
- `define NEG    6'b000111
-`endif
-`define RETI   6'b010100
-
-// NB can only have one or the other of the DJ instructions
-`ifdef DJNZ_INSTR
-  `define DJNZ   6'b010101
-`endif
-`ifdef DJCS_INSTR
-  `define DJCS   6'b010101
-`endif
-`define JMP    6'b010110
-`define JSR    6'b010111
+// Format A. Opcodes need all 6 bits
+`define DJCC  6'h00
+`define DJCS  6'h01
+`define DJNZ  6'h02
+`define DJZ   6'h03
+`define ZLOOP 6'h04
+`define RETI  6'h05
+// Format A1
+`define JMP   6'h06
+`define JSR   6'h07
+// Format B. Direct or register ops, LSB is zero
+`define JRCC   6'h08
+`define JRSRCC 6'h0A
+// Format D. Direct or register ops, LSB is zero
+`define LD     6'h0C
+`define STO    6'h0E
+// Format C. These instructions use only 4 opcode bits with the two LSBs
+// as immediate data so define only the 4 MSBs and zero the others
+`define LMOV   6'h10
+`define LMOVT  6'h14
+// Format E. Define 5 MSBs only for these instructions where the LSB
+// indicates direct or register source
+`define AND    6'h20
+`define OR     6'h22
+`define XOR    6'h24
+`define NEG    6'h26
+`define ASR    6'h28
+`define LSR    6'h2A
+`define ROR    6'h2C
+`define ASL    6'h2E
+`define ROL    6'h30
+`define BSET   6'h32
+`define BCLR   6'h34
+`define BTST   6'h36
+`define ADD    6'h38
+`define SUB    6'h3A
+`define CMP    6'h3C
+`define MUL    6'h3E
