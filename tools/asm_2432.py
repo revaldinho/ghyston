@@ -121,7 +121,7 @@ op = {
     "movti"     : {"format":"c", "opcode": 20 ,"sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":65535},
 
     "and"       : {"format":"e", "opcode": 32 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},
-    "mov"       : {"format":"e", "opcode": 35, "sext":True, "cond":False, "operands":2, "min_imm":-512, "max_imm":512},   # synonym for OR rd, rs, 0 (ie imm. form)
+    "mov"       : {"format":"e", "opcode": 35, "sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},   # synonym for OR rd, rs, 0 (ie imm. form)
     "or"        : {"format":"e", "opcode": 34, "sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},
     "not"       : {"format":"e", "opcode": 37 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},   # synonym for XOR rd, rs, 0x3FF (ie imm form)
     "xor"       : {"format":"e", "opcode": 36 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},
@@ -133,10 +133,10 @@ op = {
     "rol"       : {"format":"e", "opcode": 48 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},
     "bset"      : {"format":"e", "opcode": 50 ,"sext":True, "cond":False, "operands":3, "min_imm":0, "max_imm":31},
     "bclr"      : {"format":"e", "opcode": 52 ,"sext":True, "cond":False, "operands":3, "min_imm":0, "max_imm":31},
-    "btst"      : {"format":"e", "opcode": 54 ,"sext":True, "cond":False, "operands":2, "min_imm":0, "max_imm":31},
+    "btst"      : {"format":"e", "opcode": 54 ,"sext":True, "cond":False, "operands":3, "min_imm":0, "max_imm":31},
     "add"       : {"format":"e", "opcode": 56 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
     "sub"       : {"format":"e", "opcode": 58 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
-    "cmp"       : {"format":"e", "opcode": 60 ,"sext":True, "cond":False, "operands":2, "min_imm":-512, "max_imm":511},
+    "cmp"       : {"format":"e", "opcode": 60 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
     "mul"       : {"format":"e", "opcode": 62 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
 }
 
@@ -278,6 +278,7 @@ def assemble( filename, listingon=True):
 
                 # deal with RET synonym for JR CC Rlink,1
                 if inst in ("ret" ):
+                    direct = True
                     if len(opfields) == 0:
                         opfields.append("r14")
                         words.append(14)
@@ -314,6 +315,12 @@ def assemble( filename, listingon=True):
                         words.append(-1)
                     else:
                         errors.append("Error: NOT instruction can only take a register source \n on line %s" % (line.strip()))
+                # CMP [r0] r1, r2|Imm  and BTST [r0] r1, r2|IMM need to have an extra field inserted
+                elif inst in( "cmp", "btst") :
+                    words.insert(0,0)
+                    opfields.insert(0,"r0")
+                    
+                        
                 if inst.startswith("dj") and len(opfields) < op[inst]["operands"]:
                     # djnz [rs], rs, label
                     opfields.insert(0, opfields[0])
@@ -355,8 +362,6 @@ def assemble( filename, listingon=True):
                         else:
                             rsrc2 = words[1]
                     elif ifmt == "e": # Format E - arith and logic instructions
-                        if inst in( "cmp", "btst") :
-                            words.insert(0,0)
                         rdest = words[0]
                         rsrc1 = words[1]
                         if op[inst]["operands"] > 2:
