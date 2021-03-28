@@ -14,7 +14,7 @@ MACRO MUL (_a_, _b_ )
 ENDMACRO
 
         ORG     0000
-        EQU     MAX, 16
+        EQU     MAX, 13
         mov     r12, STKTOP
 
         mov     r5, 1

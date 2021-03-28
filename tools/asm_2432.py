@@ -319,8 +319,8 @@ def assemble( filename, listingon=True):
                 elif inst in( "cmp", "btst") :
                     words.insert(0,0)
                     opfields.insert(0,"r0")
-                    
-                        
+
+
                 if inst.startswith("dj") and len(opfields) < op[inst]["operands"]:
                     # djnz [rs], rs, label
                     opfields.insert(0, opfields[0])
@@ -334,8 +334,8 @@ def assemble( filename, listingon=True):
                     if ifmt == "a": # Format A - DJxx, ZLOOP: DJxx Rsd, IMM10, ZLOOP IMM10
                         direct = 0                  # Full opcode is used so zero direct bit
                         if not inst == "zloop":
-                            imm = words[1] - nextimem   # Immediate is always an offset to PC in these instructions
-                            (rdest, rsrc1) = (words[0], words[0])
+                            imm = words[2] - nextimem   # Immediate is always an offset to PC in these instructions
+                            (rdest, rsrc1) = (words[0], words[1])
                         else:
                             imm = words[0] - nextimem   # Immediate is always an offset to PC in these instructions
                     elif ifmt == "a1": # Format A1 : JMP IMM and JSR IMM instructions
