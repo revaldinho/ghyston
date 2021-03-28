@@ -35,6 +35,8 @@ module gpio (
     gpio_din_d = io_gpio_r;
     gpio_din2_d = gpio_din_q;
     gpio_mode_d = gpio_mode_q;
+    gpio_dout_d = gpio_dout_q;
+
     if ( i_addr == `GPIO_MODE_REG ) begin
       gpio_mode_d = (i_wr_en) ? i_din : gpio_mode_q;
     end

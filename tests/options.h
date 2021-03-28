@@ -1,7 +1,7 @@
         ;; Assembler options files
 
         ;; define this to optimize for hardware multiplier but limited to 18x18 operation
-#define MUL18X18 1
+        ;; #define MUL18X18 1
         ;; Need to define one and only one of the following defines for the division
         ;; #define NOUNROLL_UDIV
         ;; #define UNROLL_UDIV2 1
@@ -12,4 +12,4 @@
 #define DJNZ_INSTR 1
         ;; Define this if NEG instr is implemented
 #define NEG_INSTR 1
-        ;;#define ZLOOP_INSTR 1
+#define ZLOOP_INSTR 1

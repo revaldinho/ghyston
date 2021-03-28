@@ -3,17 +3,17 @@
  *
  */
 
-//`define TWO_STAGE_PIPE 1
+`define TWO_STAGE_PIPE 1
 // Including single cycle MUL18x18 limits clock speed to ~90MHz
-//`define INCLUDE_MUL 1
-// Making full 32x32 MUL slows clock speed down further
-//`define MUL32 1
-// Define this to allow shifts of 16-31bits in one instruction, otherwise limited to 0-15
-//`define SHIFT16 1
-// Define this to enable NEG instruction or alternate implementation
+`define MUL_INSTR 1
+// Define this to allow shifts of 16-31bits in one instruction, but speed limited to ~94MHz, otherwise limited to 0-15
+`define SHIFT16 1
 `define BYPASS_EN_D 1
 //`define HALF_RATE_D 1
+`define NEG_INSTR 1
 `define ZLOOP_INSTR 1
+`define DJNZ_Z_INSTR 1
+`define DJCC_CS_INSTR 1
 /* ****************************** */
 
 // PSR register bits
@@ -22,7 +22,6 @@
 `define S        2
 `define V        3
 `define EI       4
-
 
 // Condition Codes
 `define EQ 4'h0 // Equal
@@ -55,11 +54,17 @@
 // All opcodes are extended to 6 bits with the LSBs padded to zeros as listed below
 //
 // Format A. Opcodes need all 6 bits
-`define DJCC  6'h00
-`define DJCS  6'h01
-`define DJNZ  6'h02
-`define DJZ   6'h03
-`define ZLOOP 6'h04
+`ifdef DJCC_CS_INSTR
+  `define DJCC  6'h00
+  `define DJCS  6'h01
+`endif
+`ifdef DJNZ_Z_INSTR
+  `define DJNZ  6'h02
+  `define DJZ   6'h03
+`endif
+`ifdef ZLOOP_INSTR
+  `define ZLOOP 6'h04
+`endif
 `define RETI  6'h05
 // Format A1
 `define JMP   6'h06
@@ -79,7 +84,9 @@
 `define AND    6'h20
 `define OR     6'h22
 `define XOR    6'h24
-`define NEG    6'h26
+`ifdef NEG_INSTR
+  `define NEG    6'h26
+`endif
 `define ASR    6'h28
 `define LSR    6'h2A
 `define ROR    6'h2C
@@ -91,4 +98,6 @@
 `define ADD    6'h38
 `define SUB    6'h3A
 `define CMP    6'h3C
-`define MUL    6'h3E
+`ifdef MUL_INSTR
+  `define MUL    6'h3E
+`endif

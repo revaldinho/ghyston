@@ -17,6 +17,7 @@ module alu(
            input         cin,
            input         vin,
            input [5:0]   opcode,
+           input         shift_instr,
            output [31:0] dout,
            output        cout,
            output reg    djtaken,
@@ -38,11 +39,7 @@ module alu(
                      .cout(shifted_c)
                      );
 
-  assign {cout,dout} = ( opcode==`ASR ||
-                         opcode==`ROR ||
-                         opcode==`LSR ||
-                         opcode==`ASL ||
-                         opcode==`ROL) ? {shifted_c, shifted_w} : { alu_cout, alu_dout};
+  assign {cout,dout} = ( shift_instr ) ? {shifted_c, shifted_w} : { alu_cout, alu_dout};
 
   always @(*) begin
     alu_cout = cin;
@@ -60,35 +57,45 @@ module alu(
       `XOR        :{alu_cout,alu_dout} = {cin,(din_a ^ din_b)};
       // Restrict multiplies to 18x18 to fit a single DSP slice on a Spartan
       // 6 FPGA and single cycle execution
+`ifdef MUL_INSTR
       `MUL        : begin
         {alu_cout,alu_dout} = din_a[17:0] * din_b[17:0];
         vout = !(din_a[31] ^ din_b[31] ^ alu_dout[31]);
       end
+`endif
       `ADD              : begin
         // overflow if -ve + -ve = +ve  or +ve + +ve = -ve
         {alu_cout,alu_dout} = din_a + din_b;
         vout =  ( din_a[31] & din_b[31] & !alu_dout[31]) ||
                 ( !din_a[31] & !din_b[31] & alu_dout[31]) ;
       end
+`ifdef DJNZ_Z_INSTR
       `DJNZ : begin
-        {alu_cout,alu_dout} = {din_a + din_b};
+        {alu_cout,alu_dout} = {din_a - 32'b01};
         djtaken = |alu_dout; // Jump if NON-zero
       end
       `DJZ : begin
-        {alu_cout,alu_dout} = {din_a + din_b};
+        {alu_cout,alu_dout} = {din_a - 32'b01};
         djtaken = ! (|alu_dout); // Jump if zero
       end
+`endif
+`ifdef DJCC_CS_INSTR
       `DJCS : begin
-        {alu_cout,alu_dout} = {din_a + din_b};
+        {alu_cout,alu_dout} = {din_a - 32'b01};
 	djtaken = !alu_cout; // Jump if NOT borrow
       end
       `DJCC : begin
-        {alu_cout,alu_dout} = {din_a + din_b};
+        {alu_cout,alu_dout} = {din_a - 32'b01};
 	djtaken = alu_cout; // Jump if Borrow
       end
+`endif
+`ifdef NEG_INSTR
       `NEG, `SUB, `CMP :
+`else
+      `SUB, `CMP :
+`endif
         begin
-          {borrow_out,alu_dout} = din_a - din_b;
+          {borrow_out,alu_dout} = ((opcode==`NEG)?32'b0:din_a) - din_b;
           alu_cout = !borrow_out;
           // overflow if -ve - +ve = +ve  or +ve - -ve = -ve
           vout =  ( din_a[31] & !din_b[31] & !alu_dout[31]) ||
@@ -150,7 +157,6 @@ module barrel_shifter(
   end
 
   // ROR - rotate through carry
-  assign r_stg1 = ( `ROT16 ) ? { stg0[15:0],  stg0[64:16]}  : stg0;
   assign r_stg1 = ( `ROT16 ) ? { stg0[15:0],  stg0[64:16]}  : stg0;
   assign r_stg2 = ( `ROT8 ) ?  { r_stg1[7:0], r_stg1[64:8]} : r_stg1;
   assign r_stg3 = ( `ROT4 ) ?  { r_stg2[3:0], r_stg2[64:4]} : r_stg2;

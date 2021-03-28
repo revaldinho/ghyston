@@ -16,6 +16,6 @@
 
         # data Section
         DATA
-msg:    BSTRING "Hello, World!\r\0"
+msg:    BSTRING "Hello, World!\012\015\000"
 
         EQU     stack_top, 0x01FF
