@@ -286,6 +286,9 @@ udiv_0:
 	mov     r3, r2         ; copy D to R3 and check != 0
 	ret  z  r14            ; bail out if zero (and carry will be set also)
 	movi    r2,0           ; Initialise R
+#ifdef ZLOOP_INSTR
+        zloop   udiv_3
+#endif
 udiv_1:
 #ifdef NOUNROLL_UDIV
         DIVSTEP ()
@@ -310,7 +313,12 @@ udiv_1:
         DIVSTEP ()
         DIVSTEP ()
 #endif
+#ifdef ZLOOP_INSTR
+        djz     r0, udiv_3
+#else
         DJNZ    (r0,udiv_1)
+#endif
+udiv_3:
 	and     r1, r1, r1      ; clear carry
 	ret     r14
         ; --------------------------------------------------------------

@@ -147,9 +147,6 @@ udiv32:
 #ifdef UNROLL_UDIV4
 	movi    r0,8           ; loop counter
 #endif
-#ifdef UNROLL_UDIV8
-	movi    r0,4           ; loop counter
-#endif
         bra     udiv_0
         ;; Determine whether to use 16 or 32 bit division depending on whether
         ;; any bits in the upper half-word of either operatnd are set
@@ -172,9 +169,6 @@ udiv16:
 #ifdef UNROLL_UDIV4
 	movi    r0,4           ; loop counter
 #endif
-#ifdef UNROLL_UDIV8
-	movi    r0,2           ; loop counter
-#endif
 #ifdef SHIFT_32
 	asl     r1, r1, 16      ; Move N into R1 upper half word/zero lower half
 #else
@@ -185,6 +179,9 @@ udiv_0:
 	mov     r3, r2         ; copy D to R3 and check != 0
 	ret  z  r14            ; bail out if zero (and carry will be set also)
 	movi    r2,0           ; Initialise R
+#ifdef ZLOOP_INSTR
+        zloop udiv_3
+#endif
 udiv_1:
 #ifdef UNROLL_UDIV2
         DIVSTEP ()
@@ -196,21 +193,15 @@ udiv_1:
         DIVSTEP ()
         DIVSTEP ()
  #else
-  #ifdef UNROLL_UDIV8
         DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-  #else
-        DIVSTEP ()
-  #endif
  #endif
 #endif
-        DJNZ    (r0,udiv_1)
+#ifdef ZLOOP_INSTR
+        djz     r0,udiv_3       ; breakout if zero
+udiv_3:
+#else
+        DJNZ    (r0,udiv_1)     ; Loop again if not zero
+#endif
 	and     r1, r1, r1      ; clear carry
 	ret     r14
 

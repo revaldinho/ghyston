@@ -33,13 +33,18 @@ pd32_l1:
         add     r0, r9, pd32_table-1
         ld      r5,r0           # get 32b divisor from table low word first
         mov     r8, 0           # set Q = 0
+
+#ifdef ZLOOP_INSTR
+        zloop pd32_l2
+#endif
 pd32_l1a:
         cmp     r3,r5           # Is number >= decimal divisor
         bra  nc pd32_l2         # If no then skip ahead and decide whether to print the digit
         sub     r3,r3, r5       # If yes, then do the subtraction
         add     r8,r8,1         # Increment the quotient
+#ifndef ZLOOP_INSTR
         bra     pd32_l1a        # Loop again to try another subtraction
-
+#endif
 pd32_l2:
         add     r1,r8,48        # put ASCII val of quotient in r1
         add     r7,r7,r8        # Add digit into leading zero flag
@@ -68,6 +73,9 @@ sprint:
         PUSH    (r5, r12)
         PUSH    (r4, r12)
         mov     r3, r1
+#ifdef ZLOOP_INSTR
+        zloop   spl3
+#endif
 spl1:   mov     r4, 4
         ld      r5, r3
 spl2:   and     r1, r5, 0xFF
@@ -76,7 +84,9 @@ spl2:   and     r1, r5, 0xFF
         lsr     r5, r5, 8
         DJNZ    (r4, spl2)
         add     r3, r3, 1
+#ifndef LOOP_INSTR
         bra     spl1
+#endif
 spl3:   POP     (r4, r12)
         POP     (r5, r12)
         POP     (r14,r12)
