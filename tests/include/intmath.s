@@ -138,14 +138,14 @@ MACRO  DIVSTEP ( )
 ENDMACRO
 
 udiv32:
-#ifdef NOUNROLL_UDIV
-	movi    r0,32           ; loop counter
-#endif
 #ifdef UNROLL_UDIV2
 	movi    r0,16           ; loop counter
-#endif
-#ifdef UNROLL_UDIV4
+#else
+ #ifdef UNROLL_UDIV4
 	movi    r0,8           ; loop counter
+ #else
+	movi    r0,32           ; loop counter
+ #endif
 #endif
         bra     udiv_0
         ;; Determine whether to use 16 or 32 bit division depending on whether
@@ -160,15 +160,15 @@ udiv1632:
 #endif
         bra  nz udiv32
 udiv16:
-#ifdef NOUNROLL_UDIV
-	movi    r0,16           ; loop counter
-#endif
 #ifdef UNROLL_UDIV2
 	movi    r0,8           ; loop counter
-#endif
-#ifdef UNROLL_UDIV4
+#else
+  #ifdef UNROLL_UDIV4
 	movi    r0,4           ; loop counter
-#endif
+  #else        
+	movi    r0,16           ; loop counter        
+  #endif
+#endif  
 #ifdef SHIFT_32
 	asl     r1, r1, 16      ; Move N into R1 upper half word/zero lower half
 #else

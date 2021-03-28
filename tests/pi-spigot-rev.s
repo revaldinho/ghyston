@@ -1,6 +1,3 @@
-
-
-
 #include "options.h"
 #include "macros.h"
         ;;
@@ -50,11 +47,19 @@ start:
                                         ; Initialise remainder/denominator array using temp vars
         mov     r2,2                    ; r2=const 2 for initialisation, used as data for rem[] and increment val
         mov     r3,cols+remain-1        ; loop counter i starts at index = 1
+#ifdef ZLOOP_INSTR
+        zloop   L1A
 L1:     sto     r2,r3                   ; store remainder value to pointer
         sub     r3, r3, 1               ; next loop counter
         cmp     r3, remain-1
-        bra nz  L1
-
+        bra z   L1A                     ; break out if zero
+L1A:
+#else
+L1:     sto     r2,r3                   ; store remainder value to pointer
+        sub     r3, r3, 1               ; next loop counter
+        cmp     r3, remain-1
+        bra nz  L1                      ; loop again while not zero
+#endif
         mov     r9,digits               ; set up outer loop counter (digits)
 L3:     mov     r11,0                   ; r11 = Q
         ;
@@ -182,9 +187,24 @@ PZN1:   mov     r1, r2
         ; - R1 = Product Register
         ; - R0 = holds first shifted copy of A
         ; ------------------------------------------------------------------
+qmul32:
 qmul32b:
         lsr      r0, r1, 1       ; shift A into r0
         mov      r1, 0           ; initialise product (preserve C)
+#ifdef ZLOOP_INSTR
+qm32_loopstart:
+        zloop    qm32_loopend
+        bra  nc  qm32_2b
+        add      r1, r1, r2      ; add B into acc if carry
+qm32_2b:
+        asl      r2, r2, 1       ; multiply B x 2
+        lsr      r0, r0, 1       ; shift A to check LSB
+        bra  z   qm32_loopend    ; if A is zero then exit else loop again (preserving carry)
+qm32_loopend:
+        ret  nc  r14             ; return if no carry
+        add      r1, r1, r2      ; Add last copy of multiplicand into acc if carry was set
+        ret      r14             ; return
+#else
 qm32_1b:
         bra  nc  qm32_2b
         add      r1, r1, r2      ; add B into acc if carry
@@ -195,6 +215,7 @@ qm32_2b:
         ret  nc  r14             ; return if no carry
         add      r1, r1, r2      ; Add last copy of multiplicand into acc if carry was set
         ret      r14             ; return
+#endif
 #endif
 	;; -----------------------------------------------------------------
 	;;

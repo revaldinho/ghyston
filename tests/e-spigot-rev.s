@@ -22,6 +22,7 @@
         ORG 0
         ;; trivial banner + first digit and decimal point
         ;; trivial banner
+        mov     r12, 0x3FF
         WRCH    (0x4f)
         WRCH    (0x6b)
         WRCH    (0x20)
@@ -73,99 +74,10 @@ L7:
         HALT    ()
 end:    bra     end
 
-	;; -----------------------------------------------------------------
-	;;
-	;; udiv32 (udiv16)
-	;;
-	;; Divide 32(16) bit N by 32(16) bit D and return integer dividend and remainder
-	;;
-	;; Entry
-	;; - R1 holds N (in lower 16b for udiv 16)
-	;; - R2 holds D
-	;; - R14 holds return address
-	;;
-	;; Exit
-	;; - R1 holds Quotient
-	;; - R2 holds remainder
-	;; - C = 0 if successful ; C = 1 if divide by zero
-	;; - R3,R0 used as workspace and trashed
-	;; - all other registers preserved
-	;;
-	;; Register Usage
-	;; - R1 = N:Quotient (N shifts out of LHS/Q in from RHS)
-	;; - R2 = Divisor
-	;; - R3 = Remainder
-	;; - R0 = loop counter
-	;; -----------------------------------------------------------------
-	;;
-	;; For 16b operation, N must be moved to the upper 16 bits of R1 to
-	;; start so that left shifts immediately move valid bits into the carry.
-	;;
-	;; Routine returns on divide by zero with carry flag set.
-	;;
-	;; ------------------------------------------------------------------
 
-MACRO  DIVSTEP ( )
-	asl     r1, r1, 1       ; left shift N with MSB exiting into carry
-	rol     r2, r2, 1       ; left shift R and import carry into LSB
-	cmp     r2, r3          ; compare R with D
-	bra  mi @next           ; skip ahead if negative ..
-	sub     r2, r2, r3      ; ..otherwise do subtract for real..
-	add     r1, r1, 1       ; ..and increment quotient
-@next:
-ENDMACRO
+        #include "include/intmath.s"
+        #include "include/stdio.s"
 
-udiv32:
-	movi    r0,8           ; loop counter (unrolled 4 times)
-        bra     udiv_0
-        ;; Determine whether to use 16 or 32 bit division depending on whether
-        ;; any bits in the upper half-word of either operatnd are set
-udiv1632:
-        or      r0, r1, r2
-#ifdef SHIFT_32
-        lsr     r0, r0, 16
-#else
-        lsr     r0, r0, 8       ; assume shifts limited to 0-15 places
-        lsr     r0, r0, 8
-#endif
-        bra  nz udiv32
-udiv16:
-	movi    r0,4           ; loop counter (unrolled 4 times)
-#ifdef SHIFT_32
-        asl     r1, r1, 16
-#else
-        asl     r1, r1, 8
-        asl     r1, r1, 8
-#endif
-udiv_0:
-	mov     r3, r2         ; copy D to R3 and check != 0
-	ret  z  r14            ; bail out if zero (and carry will be set also)
-	movi    r2,0           ; Initialise R
-udiv_1:
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DJNZ    (r0,udiv_1)
-	and     r1, r1, r1      ; clear carry
-	ret     r14
-        ; --------------------------------------------------------------
-        ;
-        ; oswrch
-        ;
-        ; Output a single ascii character to the uart
-        ;
-        ; Entry:
-        ;       r1 is the character to output
-        ; Exit:
-        ;       r2 used as temporary
-        ; ---------------------------------------------------------------
-oswrch:
-oswrch_loop:
-        movi    r0, 0xFFFE
-        movti   r0, 0x00FF
-        sto     r1, r0
-        ret     r14
-
-        ; DATA MEM defines
-        EQU     remain,                0
+        DATA
+        ; DATA MEM defines after any local memory for include files
+remain:

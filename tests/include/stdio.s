@@ -29,29 +29,33 @@ printdec32:
         mov     r7,0            # leading zero flag
         mov     r9,9            # r9 points to end of 9 entry table (numbered 1-9 to allow use of DJNZ)
         mov     r3,r1           # move number into r3 to sav juggling over oswrch call
+
+#ifdef ZLOOP_INSTR
+        zloop   pd32_l4
+#endif
 pd32_l1:
         add     r0, r9, pd32_table-1
         ld      r5,r0           # get 32b divisor from table low word first
         mov     r8, 0           # set Q = 0
 
-#ifdef ZLOOP_INSTR
-        zloop pd32_l2
-#endif
 pd32_l1a:
         cmp     r3,r5           # Is number >= decimal divisor
         bra  nc pd32_l2         # If no then skip ahead and decide whether to print the digit
         sub     r3,r3, r5       # If yes, then do the subtraction
         add     r8,r8,1         # Increment the quotient
-#ifndef ZLOOP_INSTR
         bra     pd32_l1a        # Loop again to try another subtraction
-#endif
 pd32_l2:
         add     r1,r8,48        # put ASCII val of quotient in r1
         add     r7,r7,r8        # Add digit into leading zero flag
         bsr     nz oswrch       # Print only if the leading zero flag is non-zero
 
 pd32_l3:
+#ifdef ZLOOP_INSTR
+        DJZ     (r9, pd32_l4)   # Exit if zero
+pd32_l4:
+#else
         DJNZ    (r9, pd32_l1)   # Point at the next divisor in the table and loop again if not zero
+#endif
         add     r1,r3,48        # otherwise convert remainder low word to ASCII
         jsr     oswrch          # and print it
         POPALL  ()              # Restore all high registers and return

@@ -3,7 +3,7 @@
  *
  */
 
-`define TWO_STAGE_PIPE 1
+//`define TWO_STAGE_PIPE 1
 // Including single cycle MUL18x18 limits clock speed to ~90MHz
 `define MUL_INSTR 1
 // Define this to allow shifts of 16-31bits in one instruction, but speed limited to ~94MHz, otherwise limited to 0-15

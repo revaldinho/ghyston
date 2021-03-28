@@ -24,6 +24,14 @@ MACRO   DJNZ ( _reg_, _label_)
         bra nz  _label_
 #endif
 ENDMACRO
+MACRO   DJZ  ( _reg_, _label_)
+#ifdef DJNZ_INSTR
+        djz    _reg_, _reg_, _label_
+#else
+        sub     _reg_, _reg_, 1
+        bra z  _label_
+#endif
+ENDMACRO
 
 MACRO   PUSH( _data_)
         sub     r12, r12, 1
