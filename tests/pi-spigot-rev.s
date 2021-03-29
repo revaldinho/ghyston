@@ -49,15 +49,14 @@ start:
         mov     r3,cols+remain-1        ; loop counter i starts at index = 1
 #ifdef ZLOOP_INSTR
         zloop   L1A
+#endif        
 L1:     sto     r2,r3                   ; store remainder value to pointer
         sub     r3, r3, 1               ; next loop counter
         cmp     r3, remain-1
+#ifdef ZLOOP_INSTR        
         bra z   L1A                     ; break out if zero
 L1A:
 #else
-L1:     sto     r2,r3                   ; store remainder value to pointer
-        sub     r3, r3, 1               ; next loop counter
-        cmp     r3, remain-1
         bra nz  L1                      ; loop again while not zero
 #endif
         mov     r9,digits               ; set up outer loop counter (digits)
@@ -269,9 +268,6 @@ udiv32:
 #ifdef UNROLL_UDIV4
 	movi    r0,8           ; loop counter
 #endif
-#ifdef UNROLL_UDIV8
-	movi    r0,4           ; loop counter
-#endif
         bra     udiv_0
         ;; Determine whether to use 16 or 32 bit division depending on whether
         ;; any bits in the upper half-word of either operatnd are set
@@ -293,9 +289,6 @@ udiv16:
 #endif
 #ifdef UNROLL_UDIV4
 	movi    r0,4           ; loop counter
-#endif
-#ifdef UNROLL_UDIV8
-	movi    r0,2           ; loop counter
 #endif
 #ifdef SHIFT_32
 	asl     r1, r1, 16      ; Move N into R1 upper half word/zero lower half
@@ -324,18 +317,13 @@ udiv_1:
         DIVSTEP ()
         DIVSTEP ()
 #endif
-#ifdef UNROLL_UDIV8
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-#endif
 #ifdef ZLOOP_INSTR
+  #ifdef DJNZ_INSTR
         djz     r0, udiv_3
+  #else
+        sub     r0,r0,1
+        bra z   udiv_3
+  #endif        
 #else
         DJNZ    (r0,udiv_1)
 #endif
