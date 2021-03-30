@@ -163,7 +163,6 @@ module cpu_2432 (
       p1_imm_d = { 16'b0, raw_instr_w[19:18], raw_instr_w[11:4], raw_instr_w[17:16], raw_instr_w[3:0] }; // zero-ext long immediate
     end
     else if (raw_instr_w[23:20] == 4'b0011 ) begin  // Format D: Load/Store
-      $display("LOAD/STO instruction fetched");
       if ( p1_opcode_d == `STO ) begin
         p1_rsrc0_d = p1_rdest_d; // dest register is actually the source for a STO
         p1_rf_wr_d = 0; // no register writes from a STO
@@ -177,7 +176,7 @@ module cpu_2432 (
         p1_rf_wr_d = 0;                    // Branch instruction does not write register file
       else
         p1_rdest_d = 6'b001110 ;           // Rlink= R14 for JRSR
-      $display("JR code=%02X src0=%02X data0=%08X src1=%02X data1=%08X", p1_cond_d, p1_rsrc0_d, rf_dout_0, p1_rsrc1_d, rf_dout_1);
+      //$display("JR code=%02X src0=%02X data0=%08X src1=%02X data1=%08X", p1_cond_d, p1_rsrc0_d, rf_dout_0, p1_rsrc1_d, rf_dout_1);
     end
     else begin
       $display("Illegal opcode %06X", raw_instr_w);
@@ -206,7 +205,7 @@ module cpu_2432 (
     if ( p0_moe_q )
       if ((|rf0_wen) & !(|p1_rdest_d[5:4])) begin
         if ( (p1_rdest_d == p0_rsrc0_d) || (p1_rdest_d == p0_rsrc1_d) ) begin
-          $display("Delay one cycle or write-through for R%d", p1_rdest_d[3:0]);
+//          $display("Delay one cycle or write-through for R%d", p1_rdest_d[3:0]);
           p0_moe_d = 1'b0;
         end
       end
@@ -233,17 +232,24 @@ module cpu_2432 (
         p0_pc_d = p1_ead_q + p1_src0_data_q ;
     else if (p0_moe_d) begin
       next_pc = p0_pc_q + 1;  // default is to increment PC
+`ifdef ZLOOP_INSTR
       p0_pc_d = (p0_zloop_valid_q && (next_pc==p0_zloop_end_q)) ? p0_zloop_start_q : next_pc;
+`else
+      p0_pc_d = next_pc;
+`endif
     end
     else
       p0_pc_d = p0_pc_q;
   end
 
+
   always @ ( * ) begin
     // Compute the result ready for assigning to the RF
+`ifdef ZLOOP_INSTR
     p0_zloop_start_d = p0_zloop_start_q;
     p0_zloop_end_d = p0_zloop_end_q;
     p0_zloop_valid_d = p0_zloop_valid_q;
+`endif
     p0_result_d = alu_dout;
     if ( p1_stage_valid_q ) begin
       if ( p1_opcode_q == `LD )
@@ -251,7 +257,6 @@ module cpu_2432 (
 `ifdef ZLOOP_INSTR
       else if ( p1_opcode_q == `ZLOOP ) begin
         p0_zloop_valid_d = 1'b1;
-`endif
   `ifdef TWO_STAGE_PIPE
         p0_zloop_end_d = p1_ead_q + p1_pc_q ;
         p0_zloop_start_d = p1_pc_q+1; // should come through ALU or be part of RET instuction ie JR CC Rlink, +1
@@ -260,23 +265,25 @@ module cpu_2432 (
         p0_zloop_start_d = p2_pc_q+1; // should come through ALU or be part of RET instuction ie JR CC Rlink, +1
   `endif
       end
-      else if (p1_opcode_q == `JSR || p1_opcode_q == `JRSRCC)
+`endif
+      else if (p1_opcode_q == `JSR || p1_opcode_q == `JRSRCC) begin
         // Value to put into link register and retain flags
 `ifdef TWO_STAGE_PIPE
         p0_result_d = p1_pc_q+1; // should come through ALU or be part of RET instuction ie JR CC Rlink, +1
 `else
         p0_result_d = p2_pc_q+1; // should come through ALU or be part of RET instuction ie JR CC Rlink, +1
 `endif
+      end
     end // if ( p1_stage_valid_q )
-  end
+  end // always @ ( * )
+
 
   always @ ( * ) begin
     // Compute the flag result  - default is to retain PSR
     psr_d = psr_q;
     if ( p1_stage_valid_q ) begin
-      if ( p1_rdest_q[5] ) begin
+      if ( p1_rdest_q[5] )
         psr_d = alu_dout;
-      end
       else if ( p1_retain_flags_q )
         psr_d = psr_q;
       else begin
@@ -399,9 +406,11 @@ module cpu_2432 (
       p1_cond_q        <= 0;
       p1_rf_wr_q       <= 0;
       p2_jump_taken_q  <= 0;
+`ifdef ZLOOP_INSTR
       p0_zloop_valid_q <= 0;
       p0_zloop_start_q <= 0;
       p0_zloop_end_q   <= 0;
+`endif
       rstb_q           <= 0;
     end
     else

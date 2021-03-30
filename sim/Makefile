@@ -10,6 +10,9 @@ STDOUT= $(patsubst %.s,%.stdout,$(TESTNAMES))
 STATS = $(patsubst %.s,%.stats,$(TESTNAMES))
 VPATH=${SRCDIR}:${TSTDIR}
 
+
+# OPtions
+PIPE_OPTION ?= ""
 pyexec ?= python3
 
 %.code.hex: %.s ../tests/options.h ${TESTSRCS}
@@ -23,7 +26,7 @@ pyexec ?= python3
 	iverilog -I${SRCDIR} -o $*.exe \
 	   -D ROM_INIT_FILE_D="\"${TSTDIR}/$*.code.hex\"" \
 	   -D RAM_INIT_FILE_D="\"${TSTDIR}/$*.data.hex\"" \
-           -D RAM_DUMP_FILE_D="\"$*.dump\"" \
+           -D RAM_DUMP_FILE_D="\"$*.dump\"" ${PIPE_OPTION} \
 	   system_tb.v \
            ${SRCDIR}/system.v \
            ${SRCDIR}/gpio.v \

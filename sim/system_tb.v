@@ -99,9 +99,9 @@ always @ ( negedge clk ) begin
             dut_0.cpu_0.p0_stage_valid_q );
 `endif // !`ifdef TWO_STAGE_PIPE
 
-`ifdef ZLOOP_INSTR
-  $display("p0_zloop_start_q=%08X p0_zloop_end_q=%08X p0_zloop_valid_q=%d", dut_0.cpu_0.p0_zloop_start_q, dut_0.cpu_0.p0_zloop_end_q, dut_0.cpu_0.p0_zloop_valid_q);
-`endif
+// `ifdef ZLOOP_INSTR
+//   $display("p0_zloop_start_q=%08X p0_zloop_end_q=%08X p0_zloop_valid_q=%d", dut_0.cpu_0.p0_zloop_start_q, dut_0.cpu_0.p0_zloop_end_q, dut_0.cpu_0.p0_zloop_valid_q);
+// `endif
 
 //  $display( "P1:     = %10d: %02X : %02X : - : %X %X %X -------- : %X : - - %d " , cycle,
 //            dut_0.cpu_0.p1_pc_q,
@@ -112,32 +112,32 @@ always @ ( negedge clk ) begin
 //            dut_0.cpu_0.p1_cond_q,
 //            dut_0.cpu_0.p1_stage_valid_q );
 
-  $display("FLAGS C=%d Z=%d V=%d S=%d",
-           dut_0.cpu_0.psr_q[`C],
-           dut_0.cpu_0.psr_q[`Z],
-           dut_0.cpu_0.psr_q[`V],
-           dut_0.cpu_0.psr_q[`S]);
-
-
-  $display("RF R0 =%08X R1 =%08X R2 =%08X R3 =%08X R4 =%08X R5 =%08X R6 =%08X R7 =%08X",
-           dut_0.cpu_0.u0.rf_q[0],
-           dut_0.cpu_0.u0.rf_q[1],
-           dut_0.cpu_0.u0.rf_q[2],
-           dut_0.cpu_0.u0.rf_q[3],
-           dut_0.cpu_0.u0.rf_q[4],
-           dut_0.cpu_0.u0.rf_q[5],
-           dut_0.cpu_0.u0.rf_q[6],
-           dut_0.cpu_0.u0.rf_q[7]);
-
-  $display("RF R8 =%08X R9 =%08X R10=%08X R11=%08X R12=%08X R13=%08X R14=%08X R15=%08X",
-           dut_0.cpu_0.u0.rf_q[8],
-           dut_0.cpu_0.u0.rf_q[9],
-           dut_0.cpu_0.u0.rf_q[10],
-           dut_0.cpu_0.u0.rf_q[11],
-           dut_0.cpu_0.u0.rf_q[12],
-           dut_0.cpu_0.u0.rf_q[13],
-           dut_0.cpu_0.u0.rf_q[14],
-           dut_0.cpu_0.u0.rf_q[15]);
+//  $display("FLAGS C=%d Z=%d V=%d S=%d",
+//           dut_0.cpu_0.psr_q[`C],
+//           dut_0.cpu_0.psr_q[`Z],
+//           dut_0.cpu_0.psr_q[`V],
+//           dut_0.cpu_0.psr_q[`S]);
+//
+//
+//  $display("RF R0 =%08X R1 =%08X R2 =%08X R3 =%08X R4 =%08X R5 =%08X R6 =%08X R7 =%08X",
+//           dut_0.cpu_0.u0.rf_q[0],
+//           dut_0.cpu_0.u0.rf_q[1],
+//           dut_0.cpu_0.u0.rf_q[2],
+//           dut_0.cpu_0.u0.rf_q[3],
+//           dut_0.cpu_0.u0.rf_q[4],
+//           dut_0.cpu_0.u0.rf_q[5],
+//           dut_0.cpu_0.u0.rf_q[6],
+//           dut_0.cpu_0.u0.rf_q[7]);
+//
+//  $display("RF R8 =%08X R9 =%08X R10=%08X R11=%08X R12=%08X R13=%08X R14=%08X R15=%08X",
+//           dut_0.cpu_0.u0.rf_q[8],
+//           dut_0.cpu_0.u0.rf_q[9],
+//           dut_0.cpu_0.u0.rf_q[10],
+//           dut_0.cpu_0.u0.rf_q[11],
+//           dut_0.cpu_0.u0.rf_q[12],
+//           dut_0.cpu_0.u0.rf_q[13],
+//           dut_0.cpu_0.u0.rf_q[14],
+//           dut_0.cpu_0.u0.rf_q[15]);
 
 //   $display("p0_pc_d=%08x p0_pc_q=%08x p2_jump_taken_d=%d",
 //             dut_0.cpu_0.p0_pc_d,
