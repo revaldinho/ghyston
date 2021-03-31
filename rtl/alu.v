@@ -72,21 +72,21 @@ module alu(
 `ifdef DJNZ_Z_INSTR
       `DJNZ : begin
         {alu_cout,alu_dout} = {din_a - 32'b01};
-        djtaken = |alu_dout; // Jump if NON-zero
+        djtaken = (din_a != 32'h00000001); // Jump if result will be NON-zero
       end
       `DJZ : begin
         {alu_cout,alu_dout} = {din_a - 32'b01};
-        djtaken = ! (|alu_dout); // Jump if zero
+        djtaken = (din_a == 32'h00000001); // Jump if result will be zero
       end
 `endif
-`ifdef DJCC_CS_INSTR
-      `DJCS : begin
+`ifdef DJMI_PL_INSTR
+      `DJPL : begin
         {alu_cout,alu_dout} = {din_a - 32'b01};
-	djtaken = !alu_cout; // Jump if NOT borrow
+	djtaken = din_a[31] | ( !(|din_a[30:0])); // Jump if result will be negative, ie A already negative or = 0
       end
-      `DJCC : begin
+      `DJMI : begin
         {alu_cout,alu_dout} = {din_a - 32'b01};
-	djtaken = alu_cout; // Jump if Borrow
+	djtaken = !din_a[31] & ( |din_a[30:0]); // Jump if result be positive, ia A is positive and non-zero
       end
 `endif
 `ifdef NEG_INSTR

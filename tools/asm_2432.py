@@ -95,8 +95,8 @@ cond_codes = {
 
 ##  Generally only even opcodes are listed - odd versions select an immediate rather than second source reg
 op = {
-    "djcc"      : {"format":"a", "opcode": 0 , "sext":True , "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
-    "djcs"      : {"format":"a", "opcode": 1 , "sext":True , "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
+    "djmi"      : {"format":"a", "opcode": 0 , "sext":True , "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
+    "djpl"      : {"format":"a", "opcode": 1 , "sext":True , "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
     "djnz"      : {"format":"a", "opcode": 2 , "sext":True , "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
     "djz"       : {"format":"a", "opcode": 3 , "sext":True , "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
     "zloop"     : {"format":"a", "opcode": 4 , "sext":True , "cond":False, "operands":1, "min_imm":-512, "max_imm":511},

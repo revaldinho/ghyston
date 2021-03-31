@@ -305,8 +305,8 @@ module cpu_2432 (
 `ifdef DJNZ_Z_INSTR
                        p1_opcode_d == `DJNZ || p1_opcode_d == `DJZ ||
 `endif
-`ifdef DJCC_CS_INSTR
-                       p1_opcode_d == `DJCC || p1_opcode_d == `DJCS ||
+`ifdef DJMI_PL_INSTR
+                       p1_opcode_d == `DJMI || p1_opcode_d == `DJPL ||
 `endif
                        1'b0 );
 
