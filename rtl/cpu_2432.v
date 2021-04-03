@@ -64,6 +64,9 @@ module cpu_2432 (
   wire [23:0]                  raw_instr_w;
   wire                         djtaken_w;
 
+  wire                         no_wr_w;
+
+
 `ifdef TWO_STAGE_PIPE
   assign raw_instr_w = i_instr;
 `else
@@ -80,16 +83,26 @@ module cpu_2432 (
   assign o_ram_wr = p1_ram_wr_d;
   assign o_dout   = p1_src0_data_d;
 
-  assign rf_wen = { (p1_rf_wr_q ),
-                    (p1_rf_wr_q ),
-                    (p1_rf_wr_q && p1_opcode_q != `LMOVT),
-                    (p1_rf_wr_q && p1_opcode_q != `LMOVT) };
-
-`ifndef BYPASS_EN_D
-  assign rf0_wen = { (p1_rf_wr_d ),
-                     (p1_rf_wr_d ),
-                     (p1_rf_wr_d && p1_opcode_d != `LMOVT),
-                     (p1_rf_wr_d && p1_opcode_d != `LMOVT) };
+`ifdef BYPASS_EN_D
+  `ifdef ABS_INSTR
+  assign no_wr_w = p1_opcode_q == `ABS && p0_result_d[31];  // For ABS only write result if newly computed sign is zero (positive)
+  `else
+  assign no_wr_w = 1'b0;
+  `endif
+  assign rf_wen = { (!no_wr_w && p1_rf_wr_q ),
+                    (!no_wr_w && p1_rf_wr_q ),
+                    (!no_wr_w && p1_rf_wr_q && p1_opcode_q != `LMOVT),
+                    (!no_wr_w && p1_rf_wr_q && p1_opcode_q != `LMOVT) };
+`else
+  `ifdef ABS_INSTR
+  assign no_wr_w = p1_opcode_d == `ABS && psr_d[`S];  // For ABS only write result if sign is zero (positive)
+  `else
+  assign no_wr_w = 1'b0;
+  `endif
+  assign rf0_wen = { (!no_wr_w && p1_rf_wr_d ),
+                     (!no_wr_w && p1_rf_wr_d ),
+                     (!no_wr_w && p1_rf_wr_d && p1_opcode_d != `LMOVT),
+                     (!no_wr_w && p1_rf_wr_d && p1_opcode_d != `LMOVT) };
 `endif
 
   // General Register File

@@ -3,21 +3,23 @@
  *
  */
 
-`define TWO_STAGE_PIPE 1
+//`define TWO_STAGE_PIPE 1
 
 `ifdef THREE_STAGE_PIPE
   `undef TWO_STAGE_PIPE
 `endif
 // Including single cycle MUL18x18 limits clock speed to ~90MHz
-`define MUL_INSTR 1
+//`define MUL_INSTR 1
+// NB cannot define ABS at the same time as MUL !
+`define ABS_INSTR 1
 // Define this to allow shifts of 16-31bits in one instruction, but speed limited to ~94MHz, otherwise limited to 0-15
 //`define SHIFT16 1
 `define BYPASS_EN_D 1
 //`define HALF_RATE_D 1
 `define NEG_INSTR 1
-`define ZLOOP_INSTR 1
-`define DJNZ_Z_INSTR 1
-`define DJMI_PL_INSTR 1
+//`define ZLOOP_INSTR 1
+//`define DJNZ_Z_INSTR 1
+//`define DJMI_PL_INSTR 1
 /* ****************************** */
 // PSR register bits
 `define Z        0
@@ -101,6 +103,10 @@
 `define ADD    6'h38
 `define SUB    6'h3A
 `define CMP    6'h3C
-`ifdef MUL_INSTR
-  `define MUL    6'h3E
+`ifdef ABS_INSTR
+  `define ABS    6'h3E
+`else
+  `ifdef MUL_INSTR
+    `define MUL    6'h3E
+  `endif
 `endif

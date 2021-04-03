@@ -26,10 +26,10 @@ build_regexps = {
     "dsp_slices_re":re.compile(".*?DSP48A1s\:\s*(?P<dsp>\d*?)\s")
 }
 
-dirname_re = re.compile("pipe(?P<pipestages>\d)_(?P<shift31>s16_)?mul(?P<mul>\d)_zl(?P<zloop>\d)_(?:dj(_)?(?P<dj>\d)_)?(?:djz(?P<djz>\d)_)?(?:djm(?P<djm>\d)_)?neg(?P<neg>\d).*")
+dirname_re = re.compile("pipe(?P<pipestages>\d)_(?P<shift31>s16_)?mul(?P<mul>\d)_zl(?P<zloop>\d)_(?:dj(_)?(?P<dj>\d)_)?(?:djz(?P<djz>\d)_)?(?:djm(?P<djm>\d)_)?neg(?P<neg>\d)(?:_abs(?P<abs>\d))?.*")
 
 
-options = { "shift31":"0" , "djm":"0", "djz":"0"}
+options = { "shift31":"0" , "djm":"0", "djz":"0", "abs":"0"}
 
 m = dirname_re.match(dir)
 if not m:
@@ -79,7 +79,7 @@ data = []
 
 
 # Stick to a fixed order for the headings even though it means explicitly enumerating them here
-okeys = "pipestages,mul,neg,shift31,zloop,djz,djm".split(",")
+okeys = "pipestages,mul,neg,shift31,zloop,djz,djm,abs".split(",")
 bkeys = "device,speed,frequency,period,occupied_slices,slice_registers,slice_LUTs,LUT_memory,ramb16,ramb8,dsp".split(',')
 
 for k in okeys:

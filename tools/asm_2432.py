@@ -137,7 +137,9 @@ op = {
     "add"       : {"format":"e", "opcode": 56 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
     "sub"       : {"format":"e", "opcode": 58 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
     "cmp"       : {"format":"e", "opcode": 60 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
+    ## Map ABS to same opcode as MUL and syntax as NEG
     "mul"       : {"format":"e", "opcode": 62 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":511},
+    "abs"       : {"format":"e", "opcode": 62 ,"sext":True, "cond":False, "operands":2, "min_imm":-512, "max_imm":512},
 }
 
 

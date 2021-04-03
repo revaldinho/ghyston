@@ -89,14 +89,26 @@ module alu(
 	djtaken = !din_a[31] & ( |din_a[30:0]); // Jump if result be positive, ia A is positive and non-zero
       end
 `endif
-`ifdef NEG_INSTR
-      `NEG, `SUB, `CMP :
+`ifdef ABS_INSTR
+  `ifdef NEG_INSTR
+      `ABS, `NEG, `SUB, `CMP :
+        begin
+          {borrow_out,alu_dout} = ((opcode==`NEG || opcode==`ABS)?32'b0:din_a) - din_b;
+  `else
+      `ABS, `SUB, `CMP :
+        begin
+          {borrow_out,alu_dout} = ((opcode==`ABS)?32'b0:din_a) - din_b;
+  `endif
+`else
+  `ifdef NEG_INSTR
+       `NEG, `SUB, `CMP :
         begin
           {borrow_out,alu_dout} = ((opcode==`NEG)?32'b0:din_a) - din_b;
-`else
+  `else
       `SUB, `CMP :
         begin
           {borrow_out,alu_dout} = din_a - din_b;
+  `endif
 `endif
           alu_cout = !borrow_out;
           // overflow if -ve - +ve = +ve  or +ve - -ve = -ve

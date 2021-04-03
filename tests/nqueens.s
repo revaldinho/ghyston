@@ -47,6 +47,9 @@ L90:    sub     r9, r9,1        # Y = Y-1
         ld      r2,r0           # r2 = A(Y)
         sub     r1,r1, r2       # T= A(X)-A(Y)
         bra z   L140            # IF T=0 THEN L140
+#ifdef ABS_INSTR
+        abs     r1, r1
+#else
         bra pl  L90a
                                 # T = ABS(T)
                                 # IF X-Y != ABS(T) GOTO L90
@@ -55,6 +58,7 @@ L90:    sub     r9, r9,1        # Y = Y-1
 #else
         movi    r0, 0
         sub     r1, r0, r1
+#endif
 #endif
 L90a:
         sub     r1,r1,r10       # [if ABS(T)-X+Y!=0]
