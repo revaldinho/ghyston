@@ -9,7 +9,7 @@ import shutil
 MAX_CPUS = 8
 PI_ONLY = False
 
-fixed_options = { "NEG_INSTR":1 }
+fixed_options = { "NEG_INSTR":0 }
 
 
 options = [
