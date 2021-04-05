@@ -50,6 +50,9 @@ module cpu_2432 (
   reg [5:0]                    p1_opcode_d, p1_opcode_q;
   reg [3:0]                    p1_cond_d, p1_cond_q;
   reg                          p1_rf_wr_d, p1_rf_wr_q;
+`ifdef PRED_INSTR
+  reg                          cond_rf_wr_d;
+`endif
 
 
 
@@ -80,10 +83,17 @@ module cpu_2432 (
   assign o_ram_wr = p1_ram_wr_d;
   assign o_dout   = p1_src0_data_d;
 
+`ifdef PRED_INSTR
+  assign rf_wen = { (cond_rf_wr_d && p1_rf_wr_q ),
+                    (cond_rf_wr_d && p1_rf_wr_q ),
+                    (cond_rf_wr_d && p1_rf_wr_q && p1_opcode_q != `LMOVT),
+                    (cond_rf_wr_d && p1_rf_wr_q && p1_opcode_q != `LMOVT) };
+`else
   assign rf_wen = { (p1_rf_wr_q ),
                     (p1_rf_wr_q ),
                     (p1_rf_wr_q && p1_opcode_q != `LMOVT),
                     (p1_rf_wr_q && p1_opcode_q != `LMOVT) };
+`endif
 
 `ifndef BYPASS_EN_D
   assign rf0_wen = { (p1_rf_wr_d ),
@@ -178,6 +188,13 @@ module cpu_2432 (
         p1_rdest_d = 6'b001110 ;           // Rlink= R14 for JRSR
       //$display("JR code=%02X src0=%02X data0=%08X src1=%02X data1=%08X", p1_cond_d, p1_rsrc0_d, rf_dout_0, p1_rsrc1_d, rf_dout_1);
     end
+`ifdef PRED_INSTR
+    else if ( raw_instr_w[23:21] == 3'b011) begin // Format B: JRCC (BRA), JRSRCC (BSR)
+      p1_cond_d = raw_instr_w[`RDST_RNG];  // Use the destination register field as a conditional
+      p1_rdest_d = raw_instr_w[`RSRC0_RNG];// destination register is the same as the initial source register
+      p1_rf_wr_d = 1;                      // default to writing the result (but will be dependent on value of a flag)
+    end
+`endif
     else begin
       $display("Illegal opcode %06X", raw_instr_w);
       $finish;
@@ -331,6 +348,32 @@ module cpu_2432 (
       end
     end // if ( p1_stage_valid_d )
   end // always @ (*)
+
+`ifdef PRED_INSTR
+  always @(*) begin
+    // Predicated instructions
+    if ( p1_opcode_q[5:3] == 3'b011)
+      case (p1_cond_q)
+        `EQ: cond_rf_wr_d = (psr_q[`Z]==1);    // Equal
+        `NE: cond_rf_wr_d = (psr_q[`Z]==0);    // Not equal
+        `CS: cond_rf_wr_d = (psr_q[`C]==1);    // Unsigned higher or same (or carry set).
+        `CC: cond_rf_wr_d = (psr_q[`C]==0);    // Unsigned lower (or carry clear).
+        `MI: cond_rf_wr_d = (psr_q[`S]==1);    // Negative. The mnemonic stands for "minus".
+        `PL: cond_rf_wr_d = (psr_q[`S]==0);    // Positive or zero. The mnemonic stands for "plus".
+        `VS: cond_rf_wr_d = (psr_q[`V]==1);    // Signed overflow. The mnemonic stands for "V set".
+        `VC: cond_rf_wr_d = (psr_q[`V]==0);    // No signed overflow. The mnemonic stands for "V clear".
+        `HI: cond_rf_wr_d = ((psr_q[`C]==1) && (psr_q[`Z]==0)); // Unsigned higher.
+        `LS: cond_rf_wr_d = ((psr_q[`C]==0) || (psr_q[`Z]==1)); // Unsigned lower or same.
+        `GE: cond_rf_wr_d = (psr_q[`S]==psr_q[`V]);             // Signed greater than or equal.
+        `LT: cond_rf_wr_d = (psr_q[`S]!=psr_q[`V]);             // Signed less than.
+        `GT: cond_rf_wr_d = ((psr_q[`Z]==0) && (psr_q[`S]==psr_q[`V])); // Signed greater than.
+        `LE: cond_rf_wr_d = ((psr_q[`Z]==1) || (psr_q[`S]!=psr_q[`V])); // Signed less than or equal.
+        default: cond_rf_wr_d = 1'b1 ;         // Always - unconditional
+      endcase // case (p1_cond_q)
+    else
+      cond_rf_wr_d = 1'b1;
+  end
+`endif
 
   always @(*) begin
     // Set JMP bits if a jump/branch is to be taken

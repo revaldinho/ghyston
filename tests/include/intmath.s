@@ -51,9 +51,12 @@ sqrt32:
 
         zloop   sq32_L2
         cmp     r2, r3          # compare number with bit
+#ifdef PRED_INSTR
+        asr mi  r3,r3,2         # shift bit 2 places right if number < bit
+#else
         bra pl  sq32_L2         # exit loop if number >= bit
         asr     r3,r3,2         # shift bit 2 places right
-
+#endif
 sq32_L2:
         zloop   sq32_endloop
         cmp     r3,0            # is R3 zero ?
@@ -61,9 +64,14 @@ sq32_L2:
         add     r0,r1,r3        # Trial subtract r2 -= Res + bit
         asr     r1,r1,1         # shift result right
         cmp     r2,r0
+#ifdef PRED_INSTR
+        subif pl r2,r0          # do subtraction if result >= 0
+        addif pl r1,r3          # .. and add bit
+#else
         bra mi  sq32_L3         # if >0 then skip ahead
         sub     r2,r2,r0        # else do subtraction ...
         add     r1,r1,r3        # .. and add bit
+#endif
 sq32_L3:
         asr     r3,r3,2
 sq32_endloop:
@@ -131,9 +139,14 @@ MACRO  DIVSTEP ( )
 	asl     r1, r1, 1       ; left shift N with MSB exiting into carry
 	rol     r2, r2, 1       ; left shift R and import carry into LSB
 	cmp     r2, r3          ; compare R with D
+#ifdef PRED_INSTR
+	subif pl r2, r3         ; if >= 0 then do subtract for real
+	addif pl r1, 1          ; ..and increment quotient
+#else
 	bra  mi @next           ; skip ahead if negative ..
 	sub     r2, r2, r3      ; ..otherwise do subtract for real..
 	add     r1, r1, 1       ; ..and increment quotient
+#endif
 @next:
 ENDMACRO
 
@@ -165,10 +178,10 @@ udiv16:
 #else
   #ifdef UNROLL_UDIV4
 	movi    r0,4           ; loop counter
-  #else        
-	movi    r0,16           ; loop counter        
+  #else
+	movi    r0,16           ; loop counter
   #endif
-#endif  
+#endif
 #ifdef SHIFT_32
 	asl     r1, r1, 16      ; Move N into R1 upper half word/zero lower half
 #else
@@ -233,8 +246,12 @@ qmul32b:
 #ifdef ZLOOP_INSTR
 qm32_loopstart:
         zloop    qm32_loopend
+#ifdef PRED_INSTR
+        addif c  r1, r2          ; add B into acc if carry
+#else
         bra  nc  qm32_2b
         add      r1, r1, r2      ; add B into acc if carry
+#endif
 qm32_2b:
         asl      r2, r2, 1       ; multiply B x 2
         lsr      r0, r0, 1       ; shift A to check LSB
@@ -245,8 +262,12 @@ qm32_loopend:
         ret      r14             ; return
 #else
 qm32_1b:
+#ifdef PRED_INSTR
+        addif c  r1, r2          ; add B into acc if carry
+#else
         bra  nc  qm32_2b
         add      r1, r1, r2      ; add B into acc if carry
+#endif
 qm32_2b:
         asl      r2, r2, 1       ; multiply B x 2
         lsr      r0, r0, 1       ; shift A to check LSB

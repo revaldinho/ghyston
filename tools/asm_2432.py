@@ -120,6 +120,12 @@ op = {
     "movi"      : {"format":"c", "opcode": 16 ,"sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":65535},
     "movti"     : {"format":"c", "opcode": 20 ,"sext":False, "cond":False, "operands":2, "min_imm":0,    "max_imm":65535},
 
+
+    ## Predicated instructions - similar to format 'b'
+    "addif"     : {"format":"b", "opcode": 24 ,"sext":True, "cond":True, "operands":2, "min_imm":-512, "max_imm":511},
+    "subif"     : {"format":"b", "opcode": 26 ,"sext":True, "cond":True, "operands":2, "min_imm":-512, "max_imm":511},
+    "asrif"     : {"format":"b", "opcode": 28 ,"sext":True, "cond":True, "operands":2, "min_imm":-512, "max_imm":511},
+
     "and"       : {"format":"e", "opcode": 32 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},
     "mov"       : {"format":"e", "opcode": 35, "sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},   # synonym for OR rd, rs, 0 (ie imm. form)
     "or"        : {"format":"e", "opcode": 34, "sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},

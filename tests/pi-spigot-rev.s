@@ -49,11 +49,11 @@ start:
         mov     r3,cols+remain-1        ; loop counter i starts at index = 1
 #ifdef ZLOOP_INSTR
         zloop   L1A
-#endif        
+#endif
 L1:     sto     r2,r3                   ; store remainder value to pointer
         sub     r3, r3, 1               ; next loop counter
         cmp     r3, remain-1
-#ifdef ZLOOP_INSTR        
+#ifdef ZLOOP_INSTR
         bra z   L1A                     ; break out if zero
 L1A:
 #else
@@ -193,8 +193,12 @@ qmul32b:
 #ifdef ZLOOP_INSTR
 qm32_loopstart:
         zloop    qm32_loopend
+#ifdef PRED_INSTR
+        addif c  r1, r2          ; add B into acc if carry
+#else
         bra  nc  qm32_2b
         add      r1, r1, r2      ; add B into acc if carry
+#endif
 qm32_2b:
         asl      r2, r2, 1       ; multiply B x 2
         lsr      r0, r0, 1       ; shift A to check LSB
@@ -205,8 +209,12 @@ qm32_loopend:
         ret      r14             ; return
 #else
 qm32_1b:
+#ifdef PRED_INSTR
+        addif c  r1, r2          ; add B into acc if carry
+#else
         bra  nc  qm32_2b
         add      r1, r1, r2      ; add B into acc if carry
+#endif
 qm32_2b:
         asl      r2, r2, 1       ; multiply B x 2
         lsr      r0, r0, 1       ; shift A to check LSB
@@ -215,7 +223,9 @@ qm32_2b:
         add      r1, r1, r2      ; Add last copy of multiplicand into acc if carry was set
         ret      r14             ; return
 #endif
+
 #endif
+
 	;; -----------------------------------------------------------------
 	;;
 	;; udiv32 (udiv16)
@@ -252,21 +262,26 @@ MACRO  DIVSTEP ( )
 	asl     r1, r1, 1       ; left shift N with MSB exiting into carry
 	rol     r2, r2, 1       ; left shift R and import carry into LSB
 	cmp     r2, r3          ; compare R with D
+#ifdef PRED_INSTR
+	subif pl r2, r3         ; if >= 0 then do subtract for real
+	addif pl r1, 1          ; ..and increment quotient
+#else
 	bra  mi @next           ; skip ahead if negative ..
 	sub     r2, r2, r3      ; ..otherwise do subtract for real..
 	add     r1, r1, 1       ; ..and increment quotient
+#endif
 @next:
 ENDMACRO
 
 udiv32:
-#ifdef NOUNROLL_UDIV
-	movi    r0,32           ; loop counter
-#endif
 #ifdef UNROLL_UDIV2
 	movi    r0,16           ; loop counter
-#endif
-#ifdef UNROLL_UDIV4
+#else
+ #ifdef UNROLL_UDIV4
 	movi    r0,8           ; loop counter
+ #else
+	movi    r0,32           ; loop counter
+ #endif
 #endif
         bra     udiv_0
         ;; Determine whether to use 16 or 32 bit division depending on whether
@@ -281,14 +296,14 @@ udiv1632:
 #endif
         bra  nz udiv32
 udiv16:
-#ifdef NOUNROLL_UDIV
-	movi    r0,16           ; loop counter
-#endif
 #ifdef UNROLL_UDIV2
 	movi    r0,8           ; loop counter
-#endif
-#ifdef UNROLL_UDIV4
+#else
+  #ifdef UNROLL_UDIV4
 	movi    r0,4           ; loop counter
+  #else
+	movi    r0,16           ; loop counter
+  #endif
 #endif
 #ifdef SHIFT_32
 	asl     r1, r1, 16      ; Move N into R1 upper half word/zero lower half
@@ -301,35 +316,32 @@ udiv_0:
 	ret  z  r14            ; bail out if zero (and carry will be set also)
 	movi    r2,0           ; Initialise R
 #ifdef ZLOOP_INSTR
-        zloop   udiv_3
+        zloop udiv_3
 #endif
 udiv_1:
-#ifdef NOUNROLL_UDIV
-        DIVSTEP ()
-#endif
 #ifdef UNROLL_UDIV2
         DIVSTEP ()
         DIVSTEP ()
-#endif
-#ifdef UNROLL_UDIV4
+#else
+ #ifdef UNROLL_UDIV4
         DIVSTEP ()
         DIVSTEP ()
         DIVSTEP ()
         DIVSTEP ()
+ #else
+        DIVSTEP ()
+ #endif
 #endif
 #ifdef ZLOOP_INSTR
-  #ifdef DJNZ_INSTR
-        djz     r0, udiv_3
-  #else
-        sub     r0,r0,1
-        bra z   udiv_3
-  #endif        
-#else
-        DJNZ    (r0,udiv_1)
-#endif
+        djz     r0,udiv_3       ; breakout if zero
 udiv_3:
+#else
+        DJNZ    (r0,udiv_1)     ; Loop again if not zero
+#endif
 	and     r1, r1, r1      ; clear carry
 	ret     r14
+
+
         ; --------------------------------------------------------------
         ;
         ; oswrch

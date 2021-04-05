@@ -63,7 +63,12 @@ module alu(
         vout = !(din_a[31] ^ din_b[31] ^ alu_dout[31]);
       end
 `endif
-      `ADD              : begin
+`ifdef PRED_INSTR
+      `ADDIF, `ADD      :
+`else
+      `ADD              :
+`endif
+        begin
         // overflow if -ve + -ve = +ve  or +ve + +ve = -ve
         {alu_cout,alu_dout} = din_a + din_b;
         vout =  ( din_a[31] & din_b[31] & !alu_dout[31]) ||
@@ -77,6 +82,15 @@ module alu(
       `DJZ : begin
         {alu_cout,alu_dout} = {din_a - 32'b01};
         djtaken = (din_a == 32'h00000001); // Jump if result will be zero
+      end
+`endif
+`ifdef PRED_INSTR
+      `SUBIF :  begin
+        {borrow_out,alu_dout} = din_a - din_b;
+        alu_cout = !borrow_out;
+        // overflow if -ve - +ve = +ve  or +ve - -ve = -ve
+        vout =  ( din_a[31] & !din_b[31] & !alu_dout[31]) ||
+                ( !din_a[31] & din_b[31] & alu_dout[31]) ;
       end
 `endif
 `ifdef DJMI_PL_INSTR
@@ -146,10 +160,17 @@ module barrel_shifter(
         stg0 = {din, cin, din};
         {cout, dout } = r_stg5[32:0];
       end
+`ifdef PRED_INSTR
+      `ASR, `ASRIF : begin
+        stg0 = { din, cin, {32{din[31]}}} ;
+        {dout, cout} = { r_stg5[64:32]};
+      end
+`else
       `ASR : begin
         stg0 = { din, cin, {32{din[31]}}} ;
         {dout, cout} = { r_stg5[64:32]};
       end
+`endif
       `LSR : begin
         stg0 = { din, cin, 32'b0};
         {dout, cout} = { r_stg5[64:32]};

@@ -9,7 +9,7 @@
   `undef TWO_STAGE_PIPE
 `endif
 // Including single cycle MUL18x18 limits clock speed to ~90MHz
-`define MUL_INSTR 1
+// `define MUL_INSTR 1
 // Define this to allow shifts of 16-31bits in one instruction, but speed limited to ~94MHz, otherwise limited to 0-15
 //`define SHIFT16 1
 `define BYPASS_EN_D 1
@@ -18,6 +18,7 @@
 `define ZLOOP_INSTR 1
 `define DJNZ_Z_INSTR 1
 `define DJMI_PL_INSTR 1
+`define PRED_INSTR 1
 /* ****************************** */
 // PSR register bits
 `define Z        0
@@ -82,6 +83,13 @@
 // as immediate data so define only the 4 MSBs and zero the others
 `define LMOV   6'h10
 `define LMOVT  6'h14
+
+`ifdef PRED_INSTR
+// FORMAT B1 (again)
+  `define ADDIF 6'h18
+  `define SUBIF 6'h1A
+  `define ASRIF 6'h1C
+`endif
 // Format E. Define 5 MSBs only for these instructions where the LSB
 // indicates direct or register source
 `define AND    6'h20
