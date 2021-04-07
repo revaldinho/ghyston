@@ -39,6 +39,9 @@ L40s:
         sto     r8,r0           # A(X)=R
 L70:    add     r11, r11,1      # S = S+1
         mov     r9,r10          # Y = X
+#ifdef ZLOOP_INSTR        
+        zloop   L140
+#endif        
 L90:    sub     r9, r9,1        # Y = Y-1
         bra z   L40             # IF Y=0 THEN L40
         add     r0, r10, results
@@ -59,9 +62,14 @@ L90:    sub     r9, r9,1        # Y = Y-1
 L90a:
         sub     r1,r1,r10       # [if ABS(T)-X+Y!=0]
         add     r1,r1,r9        #
-        bra nz  L90
+#ifdef ZLOOP_INSTR        
+        bra z  L140             # breakout if counter reaches zero
+#else        
+        bra nz  L90             # loop again while not zero
+#endif
 
-L140:   add     r0, r10, results
+L140:
+        add     r0, r10, results
         ld      r1,r0           # r1 = A(X)
         sub     r1, r1, 1
         sto     r1, r0          # A(X) = A(X)-1
