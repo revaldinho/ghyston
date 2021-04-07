@@ -52,8 +52,8 @@ module alu(
       //MOVT will have the bits shifted to the top of the word before writing the regfile
       `LMOVT      :{alu_cout,alu_dout} = {cin, din_b[15:0], din_a[15:0]} ;
       `LMOV       :{alu_cout,alu_dout} = {cin, din_b} ;
-      `AND        :{alu_cout,alu_dout} = {cin,(din_a & din_b)};
-      `OR         :{alu_cout,alu_dout} = {cin,(din_a | din_b)};
+      `AND        :{alu_cout,alu_dout} = {1'b0,(din_a & din_b)};
+      `OR         :{alu_cout,alu_dout} = {1'b1,(din_a | din_b)};
       `XOR        :{alu_cout,alu_dout} = {cin,(din_a ^ din_b)};
       // Restrict multiplies to 18x18 to fit a single DSP slice on a Spartan
       // 6 FPGA and single cycle execution
