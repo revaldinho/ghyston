@@ -51,27 +51,23 @@ sqrt32:
 
         zloop   sq32_L2
         cmp     r2, r3          # compare number with bit
-#ifdef PRED_INSTR
-        asr mi  r3,r3,2         # shift bit 2 places right if number < bit
-#else
         bra pl  sq32_L2         # exit loop if number >= bit
         asr     r3,r3,2         # shift bit 2 places right
-#endif
 sq32_L2:
         zloop   sq32_endloop
         cmp     r3,0            # is R3 zero ?
         ret z   r14             # Yes ? then exit
         add     r0,r1,r3        # Trial subtract r2 -= Res + bit
-        asr     r1,r1,1         # shift result right
+        asr     r1,r1,1         # shift result right                        
         cmp     r2,r0
 #ifdef PRED_INSTR
-        subif pl r2,r0          # do subtraction if result >= 0
-        addif pl r1,r3          # .. and add bit
+        subif pl r2,r0        # if >=0  do subtraction ...        
+        addif pl r1,r3        # .. and add bit        
 #else
         bra mi  sq32_L3         # if >0 then skip ahead
         sub     r2,r2,r0        # else do subtraction ...
         add     r1,r1,r3        # .. and add bit
-#endif
+#endif        
 sq32_L3:
         asr     r3,r3,2
 sq32_endloop:
@@ -91,10 +87,17 @@ sq32_L2:
         cmp     r3,0            # is R3 zero ?
         ret z   r14             # Yes ? then exit
         add     r0,r1,r3        # Trial subtract r2 -= Res + bit
-        sub     r2,r2,r0
-        bra mi  sq32_L3         # if <0 then need to restore r2
         asr     r1,r1,1         # shift result right
+        cmp     r2,r0
+#ifdef PRED_INSTR
+        subif pl r2,r0        # if >=0  do subtraction ...        
+        addif pl r1,r3        # .. and add bit        
+#else
+        bra mi  sq32_L2A         # if <0 then need skip ahead
+        sub     r2,r2,r0        # else do subtraction ...        
         add     r1,r1,r3        # .. and add bit
+#endif        
+sq32_L2A:       
         asr     r3,r3,2
         bra     sq32_L2
 sq32_L3:

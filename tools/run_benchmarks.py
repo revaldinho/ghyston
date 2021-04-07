@@ -9,11 +9,11 @@ import shutil
 MAX_CPUS = 8
 PI_ONLY = False
 
-fixed_options = { "NEG_INSTR":0 }
+fixed_options = { "NEG_INSTR":0, "MUL18X18":0, "ABS_INSTR":0 }
 
 
 options = [
-    ("MUL18X18",[0,1]),
+    ("PRED_INSTR",[0,1]),
     ("ZLOOP_INSTR",[0,1]),
     ("DJNZ_INSTR",[0,1]),
     ("PIPE_STAGES",[2,3]),
@@ -42,7 +42,7 @@ for ii in (options[0])[1]:
                     run_script.append("# Run number %s"% run)
                     run +=1
                     option_list.append("------------------------------------------------------------")
-                    filebase = "mul%d_neg%d_zloop%d_djnz%d_pipe%d_urol%d" %(ii,fixed_options["NEG_INSTR"],kk,ll,mm,nn)
+                    filebase = "mul%d_neg%d_zloop%d_djnz%d_pipe%d_urol%d_abs%d_pred%d" %(fixed_options["MUL18X18"], fixed_options["NEG_INSTR"], kk,ll,mm,nn, fixed_options["ABS_INSTR"],ii)
                     option_filename = ("options/%s.options.h" %(filebase))
                     option_list.append (";; %s" % option_filename)
                     option_list.append("------------------------------------------------------------")

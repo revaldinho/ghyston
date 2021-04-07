@@ -2,7 +2,6 @@
  * General configuration
  *
  */
-
 `define TWO_STAGE_PIPE 1
 
 `ifdef THREE_STAGE_PIPE
@@ -14,10 +13,10 @@
 //`define SHIFT16 1
 `define BYPASS_EN_D 1
 //`define HALF_RATE_D 1
-`define NEG_INSTR 1
+//`define NEG_INSTR 1
 `define ZLOOP_INSTR 1
 `define DJNZ_Z_INSTR 1
-`define DJMI_PL_INSTR 1
+//`define DJMI_PL_INSTR 1
 `define PRED_INSTR 1
 /* ****************************** */
 // PSR register bits
