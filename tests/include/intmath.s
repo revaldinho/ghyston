@@ -1,4 +1,3 @@
-
         ;; -----------------------------------------------------------------
         ;; intmath.s
         ;;
@@ -58,16 +57,16 @@ sq32_L2:
         cmp     r3,0            # is R3 zero ?
         ret z   r14             # Yes ? then exit
         add     r0,r1,r3        # Trial subtract r2 -= Res + bit
-        asr     r1,r1,1         # shift result right                        
+        asr     r1,r1,1         # shift result right
         cmp     r2,r0
 #ifdef PRED_INSTR
-        subif pl r2,r0        # if >=0  do subtraction ...        
-        addif pl r1,r3        # .. and add bit        
+        subif pl r2,r0        # if >=0  do subtraction ...
+        addif pl r1,r3        # .. and add bit
 #else
         bra mi  sq32_L3         # if >0 then skip ahead
         sub     r2,r2,r0        # else do subtraction ...
         add     r1,r1,r3        # .. and add bit
-#endif        
+#endif
 sq32_L3:
         asr     r3,r3,2
 sq32_endloop:
@@ -90,14 +89,14 @@ sq32_L2:
         asr     r1,r1,1         # shift result right
         cmp     r2,r0
 #ifdef PRED_INSTR
-        subif pl r2,r0        # if >=0  do subtraction ...        
-        addif pl r1,r3        # .. and add bit        
+        subif pl r2,r0        # if >=0  do subtraction ...
+        addif pl r1,r3        # .. and add bit
 #else
         bra mi  sq32_L2A         # if <0 then need skip ahead
-        sub     r2,r2,r0        # else do subtraction ...        
+        sub     r2,r2,r0        # else do subtraction ...
         add     r1,r1,r3        # .. and add bit
-#endif        
-sq32_L2A:       
+#endif
+sq32_L2A:
         asr     r3,r3,2
         bra     sq32_L2
 sq32_L3:
@@ -154,71 +153,41 @@ MACRO  DIVSTEP ( )
 ENDMACRO
 
 udiv32:
-#ifdef UNROLL_UDIV2
-	movi    r0,16           ; loop counter
-#else
- #ifdef UNROLL_UDIV4
-	movi    r0,8           ; loop counter
- #else
-	movi    r0,32           ; loop counter
- #endif
-#endif
-        bra     udiv_0
-        ;; Determine whether to use 16 or 32 bit division depending on whether
-        ;; any bits in the upper half-word of either operatnd are set
 udiv1632:
-        or      r0, r1, r2
-#ifdef SHIFT_32
-        lsr     r0, r0, 16
-#else
-        lsr     r0, r0, 8
-        lsr     r0, r0, 8
-#endif
-        bra  nz udiv32
-udiv16:
-#ifdef UNROLL_UDIV2
-	movi    r0,8           ; loop counter
-#else
-  #ifdef UNROLL_UDIV4
-	movi    r0,4           ; loop counter
-  #else
-	movi    r0,16           ; loop counter
-  #endif
-#endif
-#ifdef SHIFT_32
-	asl     r1, r1, 16      ; Move N into R1 upper half word/zero lower half
-#else
-        asl     r1, r1, 8
-        asl     r1, r1, 8
-#endif
 udiv_0:
 	mov     r3, r2         ; copy D to R3 and check != 0
 	ret  z  r14            ; bail out if zero (and carry will be set also)
 	movi    r2,0           ; Initialise R
+        sub     r1, r1, 0      ; check if N == 0
+        bra  z  udiv_end       ; bail out with Q=0,R=0 and setting C=0
+
+        movi    r0, 32          ; 32 iterations
+        ;; Try and improve cycles by shifting N 'til it meets the lh end and reducing the loop count
+        or      r1, r1, r1
 #ifdef ZLOOP_INSTR
-        zloop udiv_3
-#endif
-udiv_1:
-#ifdef UNROLL_UDIV2
-        DIVSTEP ()
-        DIVSTEP ()
+        zloop   udiv_2
+udiv_1: bra mi  udiv_2          ; break out if top bit is set
+        sub     r0, r0, 1       ; decrement loop counter
+        asl     r1, r1, 1       ; shift N left
 #else
- #ifdef UNROLL_UDIV4
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
-        DIVSTEP ()
- #else
-        DIVSTEP ()
- #endif
+udiv_1: bra mi  udiv_2          ; break out if top bit is set
+        sub     r0, r0, 1       ; decrement loop counter
+        asl     r1, r1, 1       ; shift N left
+        bra     udiv_1
 #endif
+
+udiv_2:
 #ifdef ZLOOP_INSTR
-        djz     r0,udiv_3       ; breakout if zero
-udiv_3:
+        zloop udiv_end
+        DIVSTEP ()
+        DJZ     (r0,udiv_end)   ; breakout if zero
 #else
-        DJNZ    (r0,udiv_1)     ; Loop again if not zero
+        DIVSTEP ()
+        DJNZ    (r0,udiv_2)     ; Loop again if not zero
 #endif
-	and     r1, r1, r1      ; clear carry
+
+udiv_end:
+	and     r0,r0,r0        ; clear carry
 	ret     r14
 
         ; -----------------------------------------------------------------
