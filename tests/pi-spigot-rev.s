@@ -164,6 +164,10 @@ PZN1:   mov     r1, r2
         ret     r3
 
 
+#ifdef USE_STD_LIB
+        #include "include/intmath.s"
+        #include "include/stdio.s"
+#else
 #ifndef MUL18X18
         ; -----------------------------------------------------------------
         ;
@@ -225,7 +229,6 @@ qm32_2b:
 #endif
 
 #endif
-
 	;; -----------------------------------------------------------------
 	;;
 	;; udiv32 (udiv16)
@@ -359,7 +362,7 @@ oswrch_loop:
         movti   r0, 0x00FF
         sto     r1, r0
         ret     r14
-
+#endif
 
         ; DATA MEM defines
         EQU     remain_minus_one,        0x0
