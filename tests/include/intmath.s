@@ -124,10 +124,11 @@ sq32_L3:
 	;; - all other registers preserved
 	;;
 	;; Register Usage
+        ;; - R0 = temporary var
 	;; - R1 = N:Quotient (N shifts out of LHS/Q in from RHS)
 	;; - R2 = Divisor
 	;; - R3 = Remainder
-	;; - R0 = loop counter
+	;; - R4 = loop counter
 	;; -----------------------------------------------------------------
 	;;
 	;; For 16b operation, N must be moved to the upper 16 bits of R1 to
@@ -161,29 +162,57 @@ udiv_0:
         sub     r1, r1, 0      ; check if N == 0
         bra  z  udiv_end       ; bail out with Q=0,R=0 and setting C=0
 
-        movi    r0, 32          ; 32 iterations
-        ;; Try and improve cycles by shifting N 'til it meets the lh end and reducing the loop count
-        or      r1, r1, r1
-#ifdef ZLOOP_INSTR
-        zloop   udiv_2
-udiv_1: bra mi  udiv_2          ; break out if top bit is set
-        sub     r0, r0, 1       ; decrement loop counter
-        asl     r1, r1, 1       ; shift N left
+        ;; Find the highest bit set in N to reduce iterations through the loop
+        movi    r4, 32          ; 32 iterations
+udiv_p0:
+#ifdef SHIFT_32
+        lsr     r0,r1,16        ; trial shift right by 16 places to lose lsbs
 #else
-udiv_1: bra mi  udiv_2          ; break out if top bit is set
-        sub     r0, r0, 1       ; decrement loop counter
-        asl     r1, r1, 1       ; shift N left
-        bra     udiv_1
+        lsr     r0,r1,15        ; trial shift right by 15 places to lose lsbs
+#endif
+        bra  nz udiv_p1         ; if non zero skip ahead - bits in the top half set
+#ifdef SHIFT_32        
+        asl     r1,r1,16        ; else shift N left
+        sub     r4,r4,16        
+#else        
+        asl     r1,r1,15         ; else shift N left
+        sub     r4,r4,15        
 #endif
 
-udiv_2:
+udiv_p1:
+#ifdef SHIFT_32        
+        lsr     r0,r1,24        ; trial shift right by 24 places to lose last byte
+#else
+        lsr     r0,r1,15        ; trial shift right by 24 places to lose last byte
+        lsr     r0,r0,9
+#endif
+        bra  nz udiv_p2         ; if non zero skip ahead - bits in the top half set
+        sub     r4,r4,8
+        asl     r1,r1,8         ; else shift N left
+
+udiv_p2:
+        or      r1, r1, r1      ; set sign bit of N
+#ifdef ZLOOP_INSTR
+        zloop   udiv_p4
+        bra mi  udiv_p4         ; break out if top bit is set
+        sub     r4, r4, 1       ; decrement loop counter
+        asl     r1, r1, 1       ; shift N left
+#else
+udiv_p3:
+        bra mi  udiv_p4          ; break out if top bit is set
+        sub     r4, r4, 1       ; decrement loop counter
+        asl     r1, r1, 1       ; shift N left
+        bra     udiv_p3
+#endif
+
+udiv_p4:
 #ifdef ZLOOP_INSTR
         zloop udiv_end
         DIVSTEP ()
-        DJZ     (r0,udiv_end)   ; breakout if zero
+        DJZ     (r4,udiv_end)   ; breakout if zero
 #else
         DIVSTEP ()
-        DJNZ    (r0,udiv_2)     ; Loop again if not zero
+        DJNZ    (r4,udiv_p4)     ; Loop again if not zero
 #endif
 
 udiv_end:

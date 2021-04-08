@@ -10,7 +10,7 @@
 // Including single cycle MUL18x18 limits clock speed to ~90MHz
 `define MUL_INSTR 1
 // Define this to allow shifts of 16-31bits in one instruction, but speed limited to ~94MHz, otherwise limited to 0-15
-//`define SHIFT16 1
+`define SHIFT_32 1
 `define BYPASS_EN_D 1
 //`define HALF_RATE_D 1
 `define NEG_INSTR 1

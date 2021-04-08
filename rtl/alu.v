@@ -1,6 +1,6 @@
 `include "cpu_2432.vh"
 
-`ifdef SHIFT16
+`ifdef SHIFT_32
   `define ROT16 ((distance & 5'b10000)!=0)
 `else
   `define ROT16 1'b0
