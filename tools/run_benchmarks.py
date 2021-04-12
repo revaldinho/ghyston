@@ -9,7 +9,7 @@ import shutil
 MAX_CPUS = 8
 PI_ONLY = False
 
-fixed_options = { "USE_STD_LIB":0 , "NOUNROLL_UDIV":1 }
+fixed_options = { "USE_STD_LIB":1 , "NOUNROLL_UDIV":1 }
 
 
 options = [
@@ -47,7 +47,7 @@ for ineg in (options[0])[1]:
                             run_script.append("# Run number %s"% run)
                             run +=1
                             option_list.append("------------------------------------------------------------")
-                            filebase = "mul%d_s32_%d_neg%d_zloop%d_djnz%d_pipe%d_urol%d_pred%d" %(imul,ishift,ineg,izloop,idjnz,ipipe,iunroll,ipred)
+                            filebase = "stdlib%d_mul%d_s32_%d_neg%d_zloop%d_djnz%d_pipe%d_urol%d_pred%d" %(fixed_options["USE_STD_LIB"],imul,ishift,ineg,izloop,idjnz,ipipe,iunroll,ipred)
                             option_filename = ("options/%s.options.h" %(filebase))
                             option_list.append (";; %s" % option_filename)
                             option_list.append("------------------------------------------------------------")
@@ -60,13 +60,6 @@ for ineg in (options[0])[1]:
                             option_list.append("%s#define %s %d" % (("" if idjnz else ";;"),   options[4][0], idjnz))
                             option_list.append("%s#define %s %d" % (("" if ipipe else ";;"),   options[5][0], ipipe))
                             option_list.append("%s#define %s %d" % (("" if ishift else ";;"),   options[6][0], ishift))
-                            # UNROLL
-                            if not iunroll:
-                                option_list.append("#define NOUNROLL_UDIV 1")
-                            elif iunroll == 2:
-                                option_list.append("#define UNROLL_UDIV2 1")
-                            elif iunroll == 4:
-                                option_list.append("#define UNROLL_UDIV4 1")
                             with open (option_filename,"w") as fh:
                                 fh.write( '\n'.join(option_list))
                             fh.close

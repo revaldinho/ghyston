@@ -25,7 +25,7 @@
         ; r1,r2 = temporary registers, parameters and return registers
         ; (r0   =0)
 
-        EQU     digits,   16          ; 16
+        EQU     digits,  16          ; 16
         EQU     cols,     1+(digits*10//3)            ; 1 + (digits * 10/3)
 
         mov     r13,r0                ; Initialise r13 to stop PUSH/POP ever loading Xs to stack for regression runs
@@ -114,6 +114,8 @@ L4b:    cmp     r11,10                  ; Is result 10 and needing correction?
         cmp     r6, 0
         bsr  nz PRINTZEROES             ; Now write out any nines as 0s
         mov     r8,r11                  ; set predigit = Q
+        cmp     r9, 0                   ; bail out if we have already finished
+        bra  z  END
         DJNZ    (r9, L3)                ; dec loop counter and loop again if non zero
 
 SDCL5:  cmp     r9,digits
@@ -126,6 +128,8 @@ SDCL6a: cmp     r9,digits-1             ; Print the decimal point if this is the
         bra nz  SDCL6b
         WRCH    (46)
 SDCL6b: mov     r8,r11                  ; set predigit = Q
+        cmp     r9, 0                   ; bail out if we have already finished
+        bra  z  END
         DJNZ    (r9, L3)                ; dec loop counter and loop again if non zero
 
 SDCL7:  WRDIG    (r8)                    ; Print last predigit (ASCII) and any nines we are holding

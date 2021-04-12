@@ -168,19 +168,21 @@ udiv_p0:
 #ifdef SHIFT_32
         lsr     r0,r1,16        ; trial shift right by 16 places to lose lsbs
 #else
-        lsr     r0,r1,15        ; trial shift right by 15 places to lose lsbs
+        lsr     r0,r1,8        ; trial shift right by 16 places to lose lsbs
+        lsr     r0,r0,8        ; trial shift right by 15 places to lose lsbs
 #endif
         bra  nz udiv_p1         ; if non zero skip ahead - bits in the top half set
-#ifdef SHIFT_32        
+#ifdef SHIFT_32
         asl     r1,r1,16        ; else shift N left
-        sub     r4,r4,16        
-#else        
-        asl     r1,r1,15         ; else shift N left
-        sub     r4,r4,15        
+        sub     r4,r4,16
+#else
+        asl     r1,r1,8         ; else shift N left
+        asl     r1,r1,8         ; else shift N left
+        sub     r4,r4,16
 #endif
 
 udiv_p1:
-#ifdef SHIFT_32        
+#ifdef SHIFT_32
         lsr     r0,r1,24        ; trial shift right by 24 places to lose last byte
 #else
         lsr     r0,r1,15        ; trial shift right by 24 places to lose last byte
