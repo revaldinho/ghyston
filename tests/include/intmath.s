@@ -167,17 +167,15 @@ udiv_0:
 udiv_p0:
 #ifdef SHIFT_32
         lsr     r0,r1,16        ; trial shift right by 16 places to lose lsbs
-#else
-        lsr     r0,r1,8        ; trial shift right by 16 places to lose lsbs
-        lsr     r0,r0,8        ; trial shift right by 15 places to lose lsbs
-#endif
         bra  nz udiv_p1         ; if non zero skip ahead - bits in the top half set
-#ifdef SHIFT_32
         asl     r1,r1,16        ; else shift N left
         sub     r4,r4,16
 #else
+        lsr     r0,r1,8        ; trial shift right by 16 places to lose lsbs
+        lsr     r0,r0,8
+        bra  nz udiv_p1         ; if non zero skip ahead - bits in the top half set
         asl     r1,r1,8         ; else shift N left
-        asl     r1,r1,8         ; else shift N left
+        asl     r1,r1,8
         sub     r4,r4,16
 #endif
 
@@ -193,18 +191,26 @@ udiv_p1:
         asl     r1,r1,8         ; else shift N left
 
 udiv_p2:
-        or      r1, r1, r1      ; set sign bit of N
+#ifdef SHIFT_32
+        lsr     r0,r1,28        ; trial shift right by 28 places to lose last nybble
+#else
+        lsr     r0,r1,15
+        lsr     r0,r0,13
+#endif
+        bra  nz udiv_p3         ; if non zero skip ahead - bits in the top half set
+        sub     r4,r4,4
+        asl     r1,r1,4         ; else shift N left
+
+udiv_p3:
+
 #ifdef ZLOOP_INSTR
+        ;; Only home in to the nearest set bit if zloop is available otherwise better
+        ;; to start execution
+        or      r1, r1, r1      ; set sign bit of N
         zloop   udiv_p4
         bra mi  udiv_p4         ; break out if top bit is set
         sub     r4, r4, 1       ; decrement loop counter
         asl     r1, r1, 1       ; shift N left
-#else
-udiv_p3:
-        bra mi  udiv_p4          ; break out if top bit is set
-        sub     r4, r4, 1       ; decrement loop counter
-        asl     r1, r1, 1       ; shift N left
-        bra     udiv_p3
 #endif
 
 udiv_p4:
