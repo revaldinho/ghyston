@@ -58,7 +58,7 @@ L0:     add     r3, r1, results-1
 
         # output 2 to console - first prime number
         WRDIG    (2)
-        jsr     newline
+        PRINT_NL ()
 
         mov     r11,3            # Start sieve at first odd number
 L1:     mov     r1,r11           # Copy pointer val into r1
@@ -67,7 +67,7 @@ L1:     mov     r1,r11           # Copy pointer val into r1
 
         mov     r1,r11
         jsr     printdec32
-        jsr     newline
+        PRINT_NL ()
 
         mov     r7,r11            # p2 <- ptr
 L2:
@@ -124,16 +124,6 @@ sb1:
         ret     r14
 
 #include "include/stdio.s"
-newline:
-        PUSH    (r1)
-        PUSH    (r2)
-        PUSH    (r14)
-        WRCH  (10)
-        WRCH  (13)
-        POP     (r14)
-        POP     (r2)
-        POP     (r1)
-        ret     r14
 
         # data Section
         DATA

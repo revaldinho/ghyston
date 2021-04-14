@@ -1,8 +1,9 @@
+
 /*
  * General configuration
  *
  */
-`define TWO_STAGE_PIPE 1
+//`define TWO_STAGE_PIPE 1
 
 `ifdef THREE_STAGE_PIPE
   `undef TWO_STAGE_PIPE

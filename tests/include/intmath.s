@@ -204,8 +204,8 @@ udiv_p2:
 udiv_p3:
 
 #ifdef ZLOOP_INSTR
-        ;; Only home in to the nearest set bit if zloop is available otherwise better
-        ;; to start execution
+        ;; Only home in to the nearest set bit if zloop is available otherwise
+        ;; start execution of the division
         or      r1, r1, r1      ; set sign bit of N
         zloop   udiv_p4
         bra mi  udiv_p4         ; break out if top bit is set
@@ -285,3 +285,73 @@ qm32_2b:
         add      r1, r1, r2      ; Add last copy of multiplicand into acc if carry was set
         ret      r14             ; return
 #endif
+
+        ;; -------------------------------------------------------------------
+        ;;
+        ;; RAND (n )
+        ;;
+        ;; Return a positive integer random number R where 0 < R < n or, if
+        ;; n=0, 0 < R < (2^31)-1 which is the largest possible positive value.
+        ;;
+        ;; Random number generation uses a primitive polynomial function
+        ;;
+        ;; P = X^32 + X^22 + X^2 + X^1 + 1
+        ;;
+        ;; Entry
+        ;; - R1 holds n
+        ;; - Seed is stored in RAM at addr LFSR
+        ;;
+        ;; Exit
+        ;; - R1 holds random number
+        ;; - R0,R2,R3 used as workspace and trashed
+        ;; - addr LFSR updated
+        ;;
+        ;; -------------------------------------------------------------------
+
+        DATA
+LFSR:   WORD  0x12345678         ; Reserve one word of data for the random seed
+        CODE
+
+rand:
+        ld      r0, LFSR        ; get current LFSR value
+        mov     r2, 0           ; feedback bit
+        asl     r0, r0, 1       ; shift LFSR left
+#ifdef PRED_INSTR
+        addif c r2, 1           ; X^32 term
+        btst    r0, 22
+        addif nz r2, 1          ; X^22 term
+        btst    r0, 2
+        addif nz r2, 1          ; X^2 term
+        btst    r0, 1
+        addif nz r2, 1          ; X^1 term
+        and     r2, r2, 1       ; isolate LSB of feedback
+#else
+        bra nc  pred0
+        xor     r2,r2,1         ; X^32 term
+pred0:  btst    r0, 22
+        bra z   pred1
+        xor     r2,r2,1         ; X^22 term
+pred1:  btst    r0, 2
+        bra z   pred2
+        xor     r2,r2,1         ; X^2 term
+pred2:  btst    r0, 1
+        bra z   pred3
+        xor     r2,r2,1         ; X^1 term
+pred3:
+#endif
+        or      r0, r0, r2      ; OR into the new LFSR value
+        sto     r0, LFSR        ; store raw LFSR in memory
+        bclr    r0, r0, 31      ; clear top bit for a positive result
+        cmp     r1, 0           ; was 0 used as the incoming parameter
+        bra nz  rand_l1         ; if not, then need to take a modulus
+        mov     r1, r0          ; else move result to r1 and return
+        ret     r14
+
+rand_l1:
+        mov     r2, r1          ; use parameter as divisor
+        mov     r1, r0          ; move N into r1 for use as dividend
+        PUSH    (r14)
+        jsr     udiv1632        ; call division routine, returning remainder in r2
+        mov     r1, r2
+        POP     (r14)
+        ret     r14

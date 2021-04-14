@@ -25,7 +25,7 @@
         ; r1,r2 = temporary registers, parameters and return registers
         ; (r0   =0)
 
-        EQU     digits,  16          ; 16
+        EQU     digits,   16          ; 16
         EQU     cols,     1+(digits*10//3)            ; 1 + (digits * 10/3)
 
         mov     r13,r0                ; Initialise r13 to stop PUSH/POP ever loading Xs to stack for regression runs
@@ -292,7 +292,7 @@ udiv32:
 #endif
         bra     udiv_0
         ;; Determine whether to use 16 or 32 bit division depending on whether
-        ;; any bits in the upper half-word of either operatnd are set
+        ;; any bits in the upper half-word of either operand are set
 udiv1632:
         or      r0, r1, r2
 #ifdef SHIFT_32

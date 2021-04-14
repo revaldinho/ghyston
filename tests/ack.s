@@ -66,9 +66,11 @@ acktest:
         ;; Exit
         ;;   r1 = val
         ;; ----------------------------------------
-ack:    PUSH    (r14)
-        cmp     r1, 0
-        bra  z  ack1
+ack:    cmp     r1, 0
+        bra  nz  ack1
+        add     r1, r2, 1       ; return VAL=Y+1
+        ret
+ack1:   PUSH    (r14)
         cmp     r2, 0
         bra  z  ack2
         sub     r3,r1,1         ; X-1
@@ -78,10 +80,6 @@ ack:    PUSH    (r14)
         mov     r2, r1          ; move to Y
         POP     (r1)            ; restore X
         jsr     ack
-        POP     (r14)
-        ret
-ack1:
-        add     r1, r2, 1       ; return VAL=Y+1
         POP     (r14)
         ret
 ack2:

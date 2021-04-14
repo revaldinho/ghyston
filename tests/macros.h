@@ -69,4 +69,3 @@ MACRO   PRINT_NL ()
         WRCH(10)
         WRCH(13)
 ENDMACRO
-
