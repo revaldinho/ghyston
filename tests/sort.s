@@ -4,14 +4,13 @@
 
 #include "options.h"
 #include "macros.h"
-        EQU     MAX,  50            # size of array
+        EQU     MAX,  128            # size of array
         EQU     HEAD, 10
         EQU     TAIL, 10
 
-
         ORG 0
 
-        ;; generate an array of 1000 random numbers
+        ;; generate an array of random numbers
 
         mov     r5, MAX
         mov     r6, randarr - 1
@@ -56,6 +55,24 @@ l0:
         mov     r3, MAX
         jsr     arrsum
 
+
+        ;;  compare the results of the bubble and shell sorts
+        mov     r1, array1
+        mov     r2, array2
+        mov     r3, MAX
+        jsr     memcmp
+        mov     r1, msg10
+        jsr     sprint
+
+        cmp     r1, 0
+        bra nz  fail
+        mov     r1, msg8
+        bra     end
+fail:   mov     r1, msg9
+end:    jsr     sprint
+        mov     r1, msg10
+        jsr     sprint
+
         HALT    ()
 
 
@@ -98,6 +115,9 @@ ssort2:
         ld      r4, r0          ; v = *(array + i)
         mov     r7, r3          ; j = i
 
+#ifdef ZLOOP_INSTR
+        zloop   ssort4
+#endif
 ssort3:
         sub     r0, r7, r11     ; j-h
         add     r0, r0, r9      ; (arr + j-h)
@@ -111,7 +131,11 @@ ssort3:
         sto     r5, r1
         sub     r7, r7,r11      ; j = j-h
         cmp     r7, r11
-        bra ge  ssort3
+#ifdef ZLOOP_INSTR
+        bra lt  ssort4          ; breakout if less than
+#else
+        bra ge  ssort3          ; loop again is greater or equal
+#endif
 ssort4:
         add     r8, r8, 1       ; swaps ++
         add     r0, r7, r9      ; arr + j
@@ -171,7 +195,7 @@ bsort3:
         add     r6, r6, r1      ; increment total swap counter
         add     r7, r7, 1       ; increment pass counter
         cmp     r1, 0           ; check swap counter
-        bra nz  bsort4           ; and repeat if not zero
+        bra nz  bsort4          ; and repeat if not zero
 
         ;;  Print the stats before leaving
         mov     r1, msg3
@@ -252,6 +276,9 @@ msg3:   BSTRING "Passes through array: \0"
 msg5:   BSTRING "Total swaps:          \0"
 msg6:   BSTRING "**  B U B B L E   S O R T  **\012\015\0"
 msg7:   BSTRING "**  S H E L L  S O R T  **\012\015\0"
+msg8:   BSTRING "PASS - result arrays match\012\015\0"
+msg9:   BSTRING "FAIL - mismatch in result arrays\012\015\0"
+msg10:  BSTRING "----------------------------------- \012\015\0"
 
 randarr:
         DATA MAX               ; reserve space for the array
