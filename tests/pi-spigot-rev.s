@@ -25,7 +25,7 @@
         ; r1,r2 = temporary registers, parameters and return registers
         ; (r0   =0)
 
-        EQU     digits,   16          ; 16
+        EQU     digits,   32          ; 32
         EQU     cols,     1+(digits*10//3)            ; 1 + (digits * 10/3)
 
         mov     r13,r0                ; Initialise r13 to stop PUSH/POP ever loading Xs to stack for regression runs

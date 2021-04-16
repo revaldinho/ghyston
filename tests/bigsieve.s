@@ -35,9 +35,9 @@
 #include "macros.h"
 
         ORG     0x0000
-        EQU   MAX, 1024                    # set max number to sift through
+        EQU   MAX, 2048                    # set max number to sift through
 
-        movi    r12, stack_top
+        movi    r12, stack_top-1
         # Initialise registers to stop PUSHALL/POPALL ever loading X's to stack for regression runs
         mov     r11,0
         mov     r10,0
@@ -128,4 +128,4 @@ sb1:
         # data Section
         DATA
 results:
-        EQU     stack_top, 0x03F
+        EQU     stack_top, 8191
