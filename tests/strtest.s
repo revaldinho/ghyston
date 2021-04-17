@@ -104,6 +104,33 @@ MACRO GETBYTE ( _str1_, _bnum_ )
 @l2:
 ENDMACRO
 
+MACRO PUTBYTE ( _str1_, _bnum_ , _char_)
+        SPRINT  ("Replacing the \0")
+        mov     r1, _bnum_
+        jsr     printdec32
+        SPRINT  ("th byte of \'\0")
+        mov     r1, _str1_
+        jsr     sprint
+        SPRINT  ("\' with "\0)
+        mov     r1, _char_
+        jsr     oswrch
+        PRINT_NL ()
+        mov     r1, _str1_
+        mov     r2, _bnum_
+        mov     r3, _char_
+        jsr     putbstrbyte
+        mov     r1, _str1_
+        jsr     sprint
+        PRINT_NL ()
+        bra     @l2
+@l1:
+        SPRINT  ("String length exceeded\012\015\0")
+@l2:
+ENDMACRO
+
+
+
+
         SHOWSTRSTATS( s1)
         SHOWSTRSTATS( s2)
         SHOWSTRSTATS( s3)
@@ -130,6 +157,12 @@ ENDMACRO
         GETBYTE( s1, 18)
         GETBYTE( s4, 19)
         GETBYTE( s4, 20)
+
+        PUTBYTE( s1, 0, 64)
+        PUTBYTE( s1, 1, 65)
+        PUTBYTE( s1, 2, 66)
+        PUTBYTE( s1, 3, 67)
+        PUTBYTE( s1, 4, 68)
 
         HALT    ()
 

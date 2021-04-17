@@ -56,11 +56,40 @@ gbstrbyte4:                     ; all done, return length in r1
         ;;
         ;; Put a character into the Nth byte of a BSTRING but with no checking whether the string length is
         ;; exceeded. Use with care.
+        ;;
         ;; Entry
         ;; - r1 dest string pointer
-        ;; - r2 source string pointer
-
-
+        ;; - r2 N
+        ;; - r3 character to be inserted
+        ;;
+        ;; Exit
+        ;; - r0-r4 used as workspace and trashed
+putbstrbyte:
+        PUSH    (r5)
+        mov     r5, r3          ; save value to be merged in
+        mov     r4, 0x0FF       ; setup data mask
+        lsr     r0, r2, 2       ; shift byte counter 2 places to make word destination
+        add     r1, r1, r0      ; add string pointer base and N to make word counter
+        and     r2, r2, 0x03    ; make r2 now a byte counter within the word by using only the LSBs
+        ld      r0, r1          ; read the existing word data
+        mov     r3, 0           ; byte index
+pbstrbyte0:
+        cmp     r2, r3          ; does byte index match byte address
+        bra nz  pbstrbyte1      ; if not, next byte
+        movi    r2, 0xFFFF      ; get inverted data mask into r2
+        movti   r2, 0xFFFF
+        xor     r2, r2, r4
+        and     r0, r0, r2      ; blank out byte in existing data by anding with NOT mask
+        and     r5, r5, r4      ; ensure incoming data is only one byte by anding with mask
+        or      r0, r0, r5      ; merge data together
+        sto     r0, r1          ; write it back
+        POP     (r5)
+        ret     r14             ; and exit
+pbstrbyte1:
+        asl     r4, r4, 8       ; shift byte mask data
+        asl     r5, r5, 8       ; shift byte data
+        add     r3, r3, 1       ; increment byte index
+        bra     pbstrbyte0      ; and loop again
 
 ;;         ;; --------------------------------------------------------------------------------------------
 ;;         ;; bstrcat
