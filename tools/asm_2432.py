@@ -131,7 +131,7 @@ op = {
     "or"        : {"format":"e", "opcode": 34, "sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},
     "not"       : {"format":"e", "opcode": 37 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},   # synonym for XOR rd, rs, 0x3FF (ie imm form)
     "xor"       : {"format":"e", "opcode": 36 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},
-    "neg"       : {"format":"e", "opcode": 38 ,"sext":True, "cond":False, "operands":2, "min_imm":-512, "max_imm":512},
+    "neg"       : {"format":"e", "opcode": 38 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},
     "asr"       : {"format":"e", "opcode": 40 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},
     "lsr"       : {"format":"e", "opcode": 42 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},
     "ror"       : {"format":"e", "opcode": 44 ,"sext":True, "cond":False, "operands":3, "min_imm":-512, "max_imm":512},
@@ -324,6 +324,10 @@ def assemble( filename, listingon=True):
                         words.append(-1)
                     else:
                         errors.append("Error: NOT instruction can only take a register source \n on line %s" % (line.strip()))
+                elif inst == "neg":
+                    words.insert(1,0)
+                    opfields.insert(1,"r0")
+
                 # CMP [r0] r1, r2|Imm  and BTST [r0] r1, r2|IMM need to have an extra field inserted
                 elif inst in( "cmp", "btst") :
                     words.insert(0,0)

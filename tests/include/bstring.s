@@ -27,8 +27,12 @@ getbstrbyte:
         PUSH    (r6)
         PUSH    (r5)
         mov     r3, r1          ; move pointer to r3
-        mov     r1, 0
-        sub     r1, r1, 1       ; default result is -1
+#ifdef  NEG_INSTR
+        neg     r1, 1           ; default result to -1
+#else
+        mov     r1, 0           ; default result to -1
+        sub     r1, r1, 1
+#endif
         mov     r6, 0           ; byte counter
 gbstrbyte0:
         ld      r5, r3          ; get word
@@ -86,8 +90,13 @@ putbstrbyte:
 pbstrbyte0:
         cmp     r2, r3          ; does byte index match byte address
         bra nz  pbstrbyte1      ; if not, next byte
+
+#ifdef NEG_INSTR
+        neg     r2, 1
+#else
         movi    r2, 0xFFFF      ; get inverted data mask into r2
         movti   r2, 0xFFFF
+#endif
         xor     r2, r2, r4
         and     r0, r0, r2      ; blank out byte in existing data by anding with NOT mask
         and     r5, r5, r4      ; ensure incoming data is only one byte by anding with mask

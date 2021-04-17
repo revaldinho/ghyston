@@ -104,14 +104,13 @@ module alu(
       end
 `endif
 `ifdef NEG_INSTR
-      `NEG, `SUB, `CMP :
-        begin
-          {borrow_out,alu_dout} = ((opcode==`NEG)?32'b0:din_a) - din_b;
-`else
+      `NEG : begin
+        alu_dout = (~din_b)+1;
+      end
+`endif
       `SUB, `CMP :
         begin
           {borrow_out,alu_dout} = din_a - din_b;
-`endif
           alu_cout = !borrow_out;
           // overflow if -ve - +ve = +ve  or +ve - -ve = -ve
           vout =  ( din_a[31] & !din_b[31] & !alu_dout[31]) ||
