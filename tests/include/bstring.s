@@ -1,17 +1,12 @@
-
-
         ;; bstring.s
         ;;
         ;;  C-like library routines for working on byte strings terminated with a nul character.
         ;;
         ;; NB ALL byte strings are aligned to word boundaries and padded out to full words with zeroes.
-        ;;
-        ;; bstrcmp( r1, r2 ) - r1 returns zero for a match, +ve for r1>r2, -ve for r2>r1
-        ;; bstrcpy( r1, r2 ) - r1 returns pointer to copied string
-        ;; bstrlen( r1 )     - r1 returns length of string excl. NUL terminator
 
-
+        ;; --------------------------------------------------------------------------------------------
         ;; getbstrbyte
+        ;; --------------------------------------------------------------------------------------------
         ;;
         ;; Return the Nth byte value in a BSTRING or -1 if N > string length
         ;;
@@ -22,18 +17,18 @@
         ;; Exit
         ;; - r1 byte value or -1 if N > string length
         ;; - r0, r2-r4 used as workspace and trashed
-
+        ;; --------------------------------------------------------------------------------------------
 getbstrbyte:
         PUSH    (r6)
         PUSH    (r5)
         mov     r3, r1          ; move pointer to r3
+        mov     r6, 0           ; zero byte counter
 #ifdef  NEG_INSTR
         neg     r1, 1           ; default result to -1
 #else
-        mov     r1, 0           ; default result to -1
-        sub     r1, r1, 1
+        sub     r1, r6, 1       ; default result to -1 (by subtracted from zeroed byte counter)
 #endif
-        mov     r6, 0           ; byte counter
+
 gbstrbyte0:
         ld      r5, r3          ; get word
         mov     r4, 4           ; counter for 4 bytes per word
@@ -62,7 +57,9 @@ gbstrbyte4:                     ; all done, return length in r1
         POP     (r6)
         ret     r14
 
+        ;; --------------------------------------------------------------------------------------------
         ;; putbstrbyte
+        ;; --------------------------------------------------------------------------------------------
         ;;
         ;; Put a character into the Nth byte of a BSTRING but with no checking whether the string length is
         ;; exceeded. Use with care.
@@ -74,6 +71,7 @@ gbstrbyte4:                     ; all done, return length in r1
         ;;
         ;; Exit
         ;; - r0-r4 used as workspace and trashed
+        ;; --------------------------------------------------------------------------------------------
 putbstrbyte:
         PUSH    (r5)
         mov     r5, r3          ; save value to be merged in
