@@ -239,8 +239,11 @@ def assemble( filename, listingon=True):
                     strings = re.match('.*STRING\s*\"(.*?)\"(?:\s*?,\s*?\"(.*?)\")?(?:\s*?,\s*?\"(.*?)\")?(?:\s*?,\s*?\"(.*?)\")?.*?', line.rstrip())
                     string_data = codecs.decode(''.join([ x for x in strings.groups() if x != None]),  'unicode_escape')
                     string_len = chr(len( string_data ) & 0xFF) if inst=="PBSTRING" else ''    # limit string length to 255 for PBSTRINGS
-                    if inst in ("BSTRING","PBSTRING") :
+                    if inst == "PBSTRING" :
                         wordstr =  string_len + string_data + chr(0) + chr(0) + chr(0)
+                        words = [(ord(wordstr[i])|(ord(wordstr[i+1])<<8)|(ord(wordstr[i+2])<<16)|(ord(wordstr[i+3])<<24)) for  i in range(0,len(wordstr)-3,4) ]
+                    elif inst == "BSTRING" :
+                        wordstr =  string_data + chr(0) + chr(0) + chr(0)
                         words = [(ord(wordstr[i])|(ord(wordstr[i+1])<<8)|(ord(wordstr[i+2])<<16)|(ord(wordstr[i+3])<<24)) for  i in range(0,len(wordstr)-3,4) ]
                     else:
                         wordstr = string_len + string_data
@@ -461,7 +464,7 @@ def assemble( filename, listingon=True):
                     else:
                         print("%08x D  %-8s %s"%(dmemptr,' '.join([("%08x" % i) for i in words[0:2]]),line.strip()))
                         for idx in range (2, len(words), 2):
-                              print("%08x D  %-8s"%(dmemptr+(idx*2-2),' '.join([("%08x" % i) for i in words[idx:]])))
+                              print("%08x D  %-8s"%(dmemptr+(idx),' '.join([("%08x" % i) for i in words[idx:idx+2]])))
 
     print ("\nAssembled %5d words of code with %d error%s and %d warning%s." % (code_count,len(errors),'' if len(errors)==1 else 's',len(warnings),'' if len(warnings)==1 else 's'))
     print ("          %5d words of data" % (data_count))
