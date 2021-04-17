@@ -33,6 +33,9 @@ getbstrbyte:
 gbstrbyte0:
         ld      r5, r3          ; get word
         mov     r4, 4           ; counter for 4 bytes per word
+#ifdef ZLOOP_INSTR
+        zloop   gbstrbyte2
+#endif
 gbstrbyte1:
         and     r0, r5, 0xFF    ; isolate the lowest byte
         bra z   gbstrbyte4      ; exit if zero
@@ -40,11 +43,14 @@ gbstrbyte1:
         bra z   gbstrbyte3      ; if yes, exit copying byte to r1
         add     r6, r6, 1       ; else add one to the byte counter
         lsr     r5, r5, 8       ; shift word down one byte
+#ifdef ZLOOP_INSTR
+        DJZ     (r4, gbstrbyte2); breakout if no more bytes
+#else
         DJNZ    (r4, gbstrbyte1); loop again if more bytes in the word
+#endif
 gbstrbyte2:
         add     r3, r3, 1       ; increment source pointer
         bra     gbstrbyte0      ; next word
-
 gbstrbyte3:                     ; this is the Nth byte
         mov     r1, r0          ; so copy into r1 to return
 gbstrbyte4:                     ; all done, return length in r1
@@ -73,6 +79,10 @@ putbstrbyte:
         and     r2, r2, 0x03    ; make r2 now a byte counter within the word by using only the LSBs
         ld      r0, r1          ; read the existing word data
         mov     r3, 0           ; byte index
+
+#ifdef ZLOOP_INSTR
+        zloop   pbstrbyte2
+#endif
 pbstrbyte0:
         cmp     r2, r3          ; does byte index match byte address
         bra nz  pbstrbyte1      ; if not, next byte
@@ -89,83 +99,11 @@ pbstrbyte1:
         asl     r4, r4, 8       ; shift byte mask data
         asl     r5, r5, 8       ; shift byte data
         add     r3, r3, 1       ; increment byte index
+#ifdef ZLOOP_INSTR
+pbstrbyte2:
+#else
         bra     pbstrbyte0      ; and loop again
-
-;;         ;; --------------------------------------------------------------------------------------------
-;;         ;; bstrcat
-;;         ;; --------------------------------------------------------------------------------------------
-;;         ;;
-;;         ;; Concatenate two strings by copying the second (source) string onto the end of the first (dest).
-;;         ;;
-;;         ;; Entry
-;;         ;; - r1 dest string pointer
-;;         ;; - r2 source string pointer
-;;         ;;
-;;         ;; Exit
-;;         ;; - r1 = 0
-;;         ;; - r0,r2-r4 used as workspace and trashed
-;;         ;; - all other registers preserved
-;;         ;; --------------------------------------------------------------------------------------------
-;;
-;; bstrcat:
-;;         PUSH    (r7)            ; preserve higher registers
-;;         PUSH    (r6)
-;;         PUSH    (r5)
-;;         PUSH    (r2)
-;;         PUSH    (r1)
-;;
-;;         ;; Find the end of the first string
-;;
-;;         mov     r3, r1          ; move pointer to r3
-;;         mov     r1, 0           ; zero result
-;; bstrcat0:
-;;         mov     r0, 0x0FF       ; byte mask set for low byte
-;;         ld      r6, r3          ; get word
-;;         mov     r5, 4           ; counter for 4 bytes per word
-;; bstrcat1:
-;;         and     r4, r6, r0      ; isolate the lowest byte
-;;         bra z   bstrlen3        ; exit if zero
-;;         asl     r0, r0, 8       ; shift byte mask to next byte
-;;         DJNZ    (r5, bstrcat1)  ; loop again if more bytes in the word
-;;
-;; bstrcat2:
-;;         add     r3, r3, 1       ; increment source pointer
-;;         bra     bstrcat0        ; next word
-;;
-;; bstrcat3:
-;;         ;; at this point r3 is pointing to the last word of str1
-;;         ;; and the mask r0 is set at the current byte
-;;         ;; and r5 = 4 (low byte) .. 1 (highest byte)
-;;         mov     r4, 4
-;;         sub     r5, r4, r5      ; change r5 to hold 0 (low byte) .. 3 (high byte)
-;;
-;; bstrcat4:
-;;         mov     r7, 0xFF        ; byte mask set for low byte of str2
-;;         ld      r6, r2          ; get str2 word
-;;         mov     r5, 4           ; counter for 4 bytes per word
-;; bstrcat5:
-;;         and     r4, r6,r7       ; isolate low byte str2
-;;         bra  z  bstrcat6        ; exit if zero
-;;         ;; non-zero so need to add it into the new word by shifting into place
-;;
-;;
-;;
-;;
-;;
-;;         asl     r7, r7, 8       ; shift byte mask to next byte
-;;         DJNZ    (r5, bstrcat5)  ; loop again if more bytes in the word
-;; bstrcat5:
-;;         add     r2, r2, 1       ; increment source pointer
-;;         bra     bstrcat4        ; next word
-;;
-;;
-;; bstrcat6:
-;;         ;;  need to zero the last byte
-;;
-;;
-;; bstrcat7:                       ; all done, return length in r1
-;;         POP     (r5)
-;;         ret     r14
+#endif
         ;; --------------------------------------------------------------------------------------------
         ;; bstrcmp
         ;; --------------------------------------------------------------------------------------------

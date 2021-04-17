@@ -130,11 +130,14 @@ ENDMACRO
 
 
 
+        SPRINT("\012\015STRLEN Test\012\015\0")
 
         SHOWSTRSTATS( s1)
         SHOWSTRSTATS( s2)
         SHOWSTRSTATS( s3)
         SHOWSTRSTATS( s4)
+
+        SPRINT("\012\015STRCMP Test\012\015\0")
 
         STRCOMPARE ( s1, s2 )
         STRCOMPARE ( s1, s1 )
@@ -143,12 +146,17 @@ ENDMACRO
         STRCOMPARE ( s4, s2 )
         STRCOMPARE ( s3, s2 )
 
+        SPRINT("\012\015STRCPY Test\012\015\0")
+
         STRCOPYANDCOMPARE( s1, dest)
         STRCOPYANDCOMPARE( s2, dest)
         STRCOPYANDCOMPARE( s3, dest)
         STRCOPYANDCOMPARE( s4, dest)
 
         PRINT_NL()
+
+        SPRINT("\012\015GETBYTE Test\012\015\0")
+
         GETBYTE( s1, 0)
         GETBYTE( s1, 1)
         GETBYTE( s1, 2)
@@ -157,6 +165,8 @@ ENDMACRO
         GETBYTE( s1, 18)
         GETBYTE( s4, 19)
         GETBYTE( s4, 20)
+
+        SPRINT("\012\015PUTBYTE Test\012\015\0")
 
         PUTBYTE( s1, 0, 64)
         PUTBYTE( s1, 1, 65)
