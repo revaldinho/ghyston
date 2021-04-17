@@ -77,6 +77,33 @@ MACRO STRCOPYANDCOMPARE ( _str1_ , _str2_ )
 @exit:
 ENDMACRO
 
+MACRO GETBYTE ( _str1_, _bnum_ )
+        SPRINT  ("The \0")
+        mov     r1, _bnum_
+        jsr     printdec32
+        SPRINT  ("th byte of \'\0")
+        mov     r1, _str1_
+        jsr     sprint
+        SPRINT  ("\' is "\0)
+        mov     r1, _str1_
+        mov     r2, _bnum_
+        jsr     getbstrbyte
+        PUSH    (r1)
+
+        cmp     r1, -1
+        bra z   @l1
+        jsr     oswrch
+        SPRINT  ("  [\0")
+        POP     (r1)
+        jsr     printdec32
+        SPRINT  ( "]\0")
+        PRINT_NL ()
+        bra     @l2
+@l1:
+        SPRINT  ("String length exceeded\012\015\0")
+@l2:
+ENDMACRO
+
         SHOWSTRSTATS( s1)
         SHOWSTRSTATS( s2)
         SHOWSTRSTATS( s3)
@@ -93,6 +120,16 @@ ENDMACRO
         STRCOPYANDCOMPARE( s2, dest)
         STRCOPYANDCOMPARE( s3, dest)
         STRCOPYANDCOMPARE( s4, dest)
+
+        PRINT_NL()
+        GETBYTE( s1, 0)
+        GETBYTE( s1, 1)
+        GETBYTE( s1, 2)
+        GETBYTE( s1, 3)
+        GETBYTE( s1, 4)
+        GETBYTE( s1, 18)
+        GETBYTE( s4, 19)
+        GETBYTE( s4, 20)
 
         HALT    ()
 
