@@ -31,7 +31,6 @@ MACRO SHOWSTRSTATS (_str_)
 ENDMACRO
 
 MACRO STRCOMPARE (_str1_, _str2_)
-
         SPRINT  ( "Comparing: \012\015    s1: \0" )
         mov     r1, _str1_
         jsr     sprint
@@ -57,6 +56,27 @@ MACRO STRCOMPARE (_str1_, _str2_)
         PRINT_NL ()
 ENDMACRO
 
+MACRO STRCOPYANDCOMPARE ( _str1_ , _str2_ )
+        SPRINT  ("Copying string \'\0")
+        mov     r1, _str1_
+        jsr     sprint
+        SPRINT  ("\'\012\015\0")
+        mov     r1, _str1_
+        mov     r2, _str2_
+        jsr     bstrcpy
+        SPRINT  ("Comparing strings ...\0")
+        mov     r2, _str2_      ; get addr of copied string
+        mov     r1, _str1_      ; get addr of original string
+        jsr     bstrcmp
+        cmp     r1, 0
+        bra nz  @fail
+        SPRINT  ("PASS.\012\015\0")
+        bra     @exit
+@fail:
+        SPRINT ("FAIL.\012\015\0")
+@exit:
+ENDMACRO
+
         SHOWSTRSTATS( s1)
         SHOWSTRSTATS( s2)
         SHOWSTRSTATS( s3)
@@ -68,6 +88,12 @@ ENDMACRO
         STRCOMPARE ( s2, s3 )
         STRCOMPARE ( s4, s2 )
         STRCOMPARE ( s3, s2 )
+
+        STRCOPYANDCOMPARE( s1, dest)
+        STRCOPYANDCOMPARE( s2, dest)
+        STRCOPYANDCOMPARE( s3, dest)
+        STRCOPYANDCOMPARE( s4, dest)
+
         HALT    ()
 
         #include "include/intmath.s"
@@ -86,11 +112,8 @@ s4:     BSTRING  "This is a very, very long string!\0"
 m1:     BSTRING  "String \'\0"
 m2:     BSTRING  "\' has length \0"
 
-m3:     BSTRING  "Comparing: \015\012  s1: \0"
-m4:     BSTRING  "vs \015\012 s2: \0"
-m5:     BSTRING  "Result: Equal\015\012\0"
-m6:     BSTRING  "Result: s1 greater\015\012\0"
-m7:     BSTRING  "Result: s2 greater\015\012\0"
+        ; Make some space to trial string copying
+dest:   DATA 128
 
 
         EQU     stack, 8191   ; Stack at top of memory

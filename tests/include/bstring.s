@@ -118,7 +118,7 @@ bstrcpy3:
         POP     (r5)
         POP     (r6)
         POP     (r1)            ; return pointer to copied string
-        ret     14
+        ret     r14
 
         ;; --------------------------------------------------------------------------------------------
         ;; bstrlen
