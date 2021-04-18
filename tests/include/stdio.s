@@ -29,16 +29,17 @@ printdec32:
         PUSH    (r11)
         PUSH    (r10)
         PUSH    (r9)
-
+        PUSH    (r8)
         mov     r9,0            # leading zero flag
         mov     r11,9           # r11 points to end of 9 entry table (numbered 1-9 to allow use of DJNZ)
         mov     r3,r1           # move number into r3 to sav juggling over oswrch call
+        movi    r8, pd32_table -1
 
 #ifdef ZLOOP_INSTR
         zloop   pd32_l4
 #endif
 pd32_l1:
-        add     r0, r11, pd32_table-1
+        add     r0, r11, r8
         ld      r4,r0           # get 32b divisor from table low word first
         mov     r10, 0          # set Q = 0
 pd32_l1a:
@@ -61,10 +62,11 @@ pd32_l4:
 #endif
         add     r1,r3,48        # otherwise convert remainder low word to ASCII
         jsr     oswrch          # and print it
-        POP    (r9)
-        POP    (r10)
-        POP    (r11)
-        POP    (r14)
+        POP     (r8)
+        POP     (r9)
+        POP     (r10)
+        POP     (r11)
+        POP     (r14)
 
         ret
 

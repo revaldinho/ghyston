@@ -6,14 +6,6 @@
 #include "options.h"
 #include "macros.h"
         ORG 0
-        bra     start
-
-
-        #include "include/intmath.s"
-        #include "include/stdio.s"
-        #include "include/stdlib.s"
-        #include "include/bstring.s"
-start:
         mov     r12,  stack-1
 
 MACRO SPRINT ( _str_ )
@@ -105,7 +97,7 @@ MACRO GETBYTE ( _str1_, _bnum_ )
         jsr     getbstrbyte
         PUSH    (r1)
 
-        cmp     r1, -1
+        cmp     r1, 0
         bra z   @l1
         jsr     oswrch
         SPRINT  ("  [\0")
@@ -203,6 +195,10 @@ ENDMACRO
 
         HALT    ()
 
+        #include "include/intmath.s"
+        #include "include/stdio.s"
+        #include "include/stdlib.s"
+        #include "include/bstring.s"
 
         DATA
         ; DATA MEM defines after any local memory for include files
