@@ -8,7 +8,7 @@
         ;; getbstrbyte
         ;; --------------------------------------------------------------------------------------------
         ;;
-        ;; Return the Nth byte value in a BSTRING or -1 if N > string length
+        ;; Return the Nth byte value in a BSTRING or 0 if N > string length
         ;;
         ;; Entry
         ;; - r1 string pointer (word value)
@@ -23,7 +23,7 @@ getbstrbyte:
         PUSH    (r5)
         mov     r3, r1          ; move pointer to r3
         mov     r6, 0           ; zero byte counter
-        sub     r1, r6, 1       ; default result to -1 (by subtracting from zeroed byte counter)
+        mov     r1, 0           ; default result to 0
 
 gbstrbyte0:
         ld      r5, r3          ; get word
@@ -100,6 +100,92 @@ pbstrbyte2:
 #else
         bra     pbstrbyte0      ; and loop again
 #endif
+
+        ;; --------------------------------------------------------------------------------------------
+        ;; bstrcat
+        ;; --------------------------------------------------------------------------------------------
+        ;;
+        ;; Concatenate a source string onto the end of a destination string. The start of both strings
+        ;; is word aligned, but the end of the destination string might not be.
+        ;;
+        ;; If the end of the destination string is word aligned, then a fast word copy is done. Otherwise
+        ;; the routine needs to do a slower byte by byte copy.
+        ;;
+        ;; Entry
+        ;; - r1 dest string pointer (word aligned)
+        ;; - r2 source string pointer (word aligned)
+        ;;
+        ;; Exit
+        ;; - r1 result
+        ;; - r0,r2-r4 used as workspace and trashed
+        ;; - all other registers preserved
+        ;; --------------------------------------------------------------------------------------------
+	;;
+	;;        l = strlen(r1)
+	;;        # if the destination is word aligned then do a simple string copy to a word address
+	;;        if ( l & 0x03 ==0 ) :
+	;;            bstrcpy r2, r1 + (l>>2)
+	;;        else:
+	;;            for i=0 to strlen(r2)
+	;;               b = getbyte(r2, i)
+	;;               putbyte (r1, i + l, b)
+
+
+bstrcat:
+        PUSH    (r14)           ; save return address
+        PUSH    (r1)            ; save dest addr
+        PUSH    (r2)            ; save source addr
+
+        jsr     bstrlen         ; r1 = strlen (bytes)
+        POP     (r2)            ; r2 = source str
+        POP     (r3)            ; r3 = dest str
+        and     r0, r1, 0x3     ; check LSBs of dest str length
+        bra z   bstrcat1        ; if zero, then all word aligned
+
+        ;;  else need to copy byte by byte
+        PUSH    (r10)
+        PUSH    (r9)
+        PUSH    (r8)
+        PUSH    (r7)
+        PUSH    (r6)
+
+        mov     r9, r3          ; save dest str pointer in r9
+        mov     r10, r1         ; save dest str length in r10
+        mov     r8, r2          ; save source str pointer in r8
+
+        mov     r1, r2          ; move source str pointer to r1
+        jsr     bstrlen         ; get length of source string
+        mov     r7, r1          ; save source str length in r7
+
+        mov     r6, 0           ; counter
+bstrcat2:
+        mov     r1,r8           ; restore pointer to source string
+        mov     r2,r6           ; move byte counter to r2
+        jsr     getbstrbyte     ; get the source byte in r1
+        mov     r3, r1          ; transfer to r3
+        mov     r1, r9          ; restore pointer to dest string
+        add     r2, r10,r6      ; byte location = dest strlen + counter
+        jsr     putbstrbyte
+        cmp     r6, r7          ; reached the end of the source string? (including last zero byte)
+        bra  z  bstrcat3        ; if yes, then exit
+        add     r6, r6, 1       ; else next byte
+        bra     bstrcat2
+bstrcat3:
+        POP     (r6)
+        POP     (r7)
+        POP     (r8)
+        POP     (r9)
+        POP     (r10)
+        POP     (r14)
+        ret     r14
+
+bstrcat1:                       ; Fast word aligned copy
+        lsr     r1, r1, 2       ; make strlen into a word length
+        add     r1, r1, r3      ; add to original dest pointer
+        jsr     bstrcpy         ; standard word aligned copy and then return
+        POP     (r14)
+        ret     r14
+
         ;; --------------------------------------------------------------------------------------------
         ;; bstrcmp
         ;; --------------------------------------------------------------------------------------------
@@ -108,8 +194,8 @@ pbstrbyte2:
         ;; greater than the second.
         ;;
         ;; Entry
-        ;; - r1 source string pointer
-        ;; - r2 dest string pointer
+        ;; - r1 string pointer (word aligned)
+        ;; - r2 string pointer (word aligned)
         ;;
         ;; Exit
         ;; - r1 result
@@ -164,8 +250,8 @@ bstrcmp3:
         ;; address of the copied string
         ;;
         ;; Entry
-        ;; - r1 source string pointer
-        ;; - r2 dest string pointer
+        ;; - r1 dest string pointer
+        ;; - r2 source string pointer
         ;;
         ;; Exit
         ;; - r1 dest string pointer
@@ -174,7 +260,7 @@ bstrcmp3:
         ;; --------------------------------------------------------------------------------------------
 
 bstrcpy:
-        PUSH    (r2)            ; save pointer to destination string
+        PUSH    (r1)            ; save pointer to destination string
         PUSH    (r5)
 
 #ifdef ZLOOP_INSTR
@@ -182,7 +268,7 @@ bstrcpy:
 #endif
 bstrcpy0:
         mov     r0, 0x0FF       ; byte mask set for low byte
-        ld      r3, r1          ; get word
+        ld      r3, r2          ; get word from source
         mov     r4, 0           ; zero r4 to start
         and     r5, r3, r0      ; isolate the byte
         bra z   bstrcpy1        ; exit if zero
@@ -200,14 +286,14 @@ bstrcpy0:
         bra z   bstrcpy1        ; exit if zero
         or      r4, r4, r5      ; else OR it into the current word
 
-        sto     r4, r2          ; save the word
-        add     r1, r1, 1       ; increment source pointer
-        add     r2, r2, 1       ; increment dest pointer
+        sto     r4, r1          ; save the word
+        add     r2, r2, 1       ; increment source pointer
+        add     r1, r1, 1       ; increment dest pointer
 #ifndef ZLOOP_INSTR
         bra     bstrcpy0
 #endif
 bstrcpy1:
-        sto     r4, r2
+        sto     r4, r1
         POP     (r5)
         POP     (r1)            ; return pointer to copied string
         ret     r14

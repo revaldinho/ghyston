@@ -6,6 +6,14 @@
 #include "options.h"
 #include "macros.h"
         ORG 0
+        bra     start
+
+
+        #include "include/intmath.s"
+        #include "include/stdio.s"
+        #include "include/stdlib.s"
+        #include "include/bstring.s"
+start:
         mov     r12,  stack-1
 
 MACRO SPRINT ( _str_ )
@@ -56,25 +64,32 @@ MACRO STRCOMPARE (_str1_, _str2_)
         PRINT_NL ()
 ENDMACRO
 
-MACRO STRCOPYANDCOMPARE ( _str1_ , _str2_ )
+MACRO STRCOPY ( _str1_ , _str2_ )
         SPRINT  ("Copying string \'\0")
-        mov     r1, _str1_
+        mov     r1, _str2_
         jsr     sprint
         SPRINT  ("\'\012\015\0")
         mov     r1, _str1_
         mov     r2, _str2_
         jsr     bstrcpy
-        SPRINT  ("Comparing strings ...\0")
-        mov     r2, _str2_      ; get addr of copied string
-        mov     r1, _str1_      ; get addr of original string
-        jsr     bstrcmp
-        cmp     r1, 0
-        bra nz  @fail
-        SPRINT  ("PASS.\012\015\0")
-        bra     @exit
-@fail:
-        SPRINT ("FAIL.\012\015\0")
-@exit:
+ENDMACRO
+
+
+MACRO STRCAT ( _str1_ , _str2_ )
+        SPRINT  ("Concatenating string \'\0")
+        mov     r1, _str2_
+        jsr     sprint
+        SPRINT  ("\'\012\015onto end of string \'\0")
+        mov     r1, _str1_
+        jsr     sprint
+        SPRINT  ("\'\012\015\0")
+        mov     r1, _str1_
+        mov     r2, _str2_
+        jsr     bstrcat
+        SPRINT  ("New string \'\0")
+        mov     r1, _str1_
+        jsr     sprint
+        SPRINT  ("\'\012\015\0")
 ENDMACRO
 
 MACRO GETBYTE ( _str1_, _bnum_ )
@@ -148,12 +163,24 @@ ENDMACRO
 
         SPRINT("\012\015STRCPY Test\012\015\0")
 
-        STRCOPYANDCOMPARE( s1, dest)
-        STRCOPYANDCOMPARE( s2, dest)
-        STRCOPYANDCOMPARE( s3, dest)
-        STRCOPYANDCOMPARE( s4, dest)
-
+        STRCOPY(dest, s1)
+        STRCOMPARE(dest, s1)
+        STRCOPY(dest, s3)
+        STRCOMPARE(dest, s3)
+        STRCOPY(dest, s2)
+        STRCOMPARE(dest, s2)
+        STRCOPY(dest, s4)
+        STRCOMPARE(dest, s4)
         PRINT_NL()
+
+        SPRINT("\012\015STRCAT Test\012\015\0")
+
+        STRCOPY( dest, s1)
+        STRCAT( dest , s1)
+        STRCOPY( dest, s2)
+        STRCAT( dest , s1)
+        STRCOPY( dest, s3)
+        STRCAT( dest , s2)
 
         SPRINT("\012\015GETBYTE Test\012\015\0")
 
@@ -176,10 +203,6 @@ ENDMACRO
 
         HALT    ()
 
-        #include "include/intmath.s"
-        #include "include/stdio.s"
-        #include "include/stdlib.s"
-        #include "include/bstring.s"
 
         DATA
         ; DATA MEM defines after any local memory for include files
