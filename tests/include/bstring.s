@@ -175,38 +175,40 @@ bstrcmp3:
 
 bstrcpy:
         PUSH    (r2)            ; save pointer to destination string
-        PUSH    (r6)
         PUSH    (r5)
 
+#ifdef ZLOOP_INSTR
+        zloop   bstrcpy1
+#endif
 bstrcpy0:
         mov     r0, 0x0FF       ; byte mask set for low byte
         ld      r3, r1          ; get word
         mov     r4, 0           ; zero r4 to start
-        mov     r6, 4           ; counter for 4 bytes per word
-
-#ifdef ZLOOP_INSTR
-        zloop bstrcpy2
-#endif
-bstrcpy1:
         and     r5, r3, r0      ; isolate the byte
-        bra z   bstrcpy3        ; exit if zero
+        bra z   bstrcpy1        ; exit if zero
         or      r4, r4, r5      ; else OR it into the current word
         asl     r0, r0, 8       ; shift byte mask to next byte
-#ifdef ZLOOP_INSTR
-        DJZ     (r6, bstrcpy2)  ; breakout if no more bytes in the word
-#else
-        DJNZ    (r6, bstrcpy1)  ; loop again if more bytes in the word
-#endif
-bstrcpy2:
+        and     r5, r3, r0      ; isolate the byte
+        bra z   bstrcpy1        ; exit if zero
+        or      r4, r4, r5      ; else OR it into the current word
+        asl     r0, r0, 8       ; shift byte mask to next byte
+        and     r5, r3, r0      ; isolate the byte
+        bra z   bstrcpy1        ; exit if zero
+        or      r4, r4, r5      ; else OR it into the current word
+        asl     r0, r0, 8       ; shift byte mask to next byte
+        and     r5, r3, r0      ; isolate the byte
+        bra z   bstrcpy1        ; exit if zero
+        or      r4, r4, r5      ; else OR it into the current word
+
         sto     r4, r2          ; save the word
         add     r1, r1, 1       ; increment source pointer
         add     r2, r2, 1       ; increment dest pointer
+#ifndef ZLOOP_INSTR
         bra     bstrcpy0
-
-bstrcpy3:
+#endif
+bstrcpy1:
         sto     r4, r2
         POP     (r5)
-        POP     (r6)
         POP     (r1)            ; return pointer to copied string
         ret     r14
 
@@ -224,32 +226,41 @@ bstrcpy3:
         ;; - r0,r2-r4 used as workspace and trashed
         ;; - all other registers preserved
         ;; --------------------------------------------------------------------------------------------
-
 bstrlen:
-        PUSH    (r5)
-        mov     r3, r1          ; move pointer to r3
-        mov     r1, 0           ; zero result
-bstrlen0:
-        mov     r0, 0x0FF       ; byte mask set for low byte
-        ld      r2, r3          ; get word
-        mov     r5, 4           ; counter for 4 bytes per word
-#ifdef ZLOOP_INSTR
-        zloop bstrlen2
+        PUSH    (r1)            ; save original pointer
+        mov     r3, 0           ; zero result
+
+#ifdef ZERO_INSTR
+        zloop   bstrlen3
 #endif
-bstrlen1:
+bstrlen_loop:
+        mov     r0, 0x0FF       ; byte mask set for low byte
+        ld      r2, r1          ; get word
+        and     r4, r2, r0      ; isolate the lowest byte
+        bra z   bstrlen0        ; exit if zero
+        asl     r0, r0, 8       ; shift byte mask to next byte
+        and     r4, r2, r0      ; isolate the lowest byte
+        bra z   bstrlen1        ; exit if zero
+        asl     r0, r0, 8       ; shift byte mask to next byte
+        and     r4, r2, r0      ; isolate the lowest byte
+        bra z   bstrlen2        ; exit if zero
+        asl     r0, r0, 8       ; shift byte mask to next byte
         and     r4, r2, r0      ; isolate the lowest byte
         bra z   bstrlen3        ; exit if zero
-        add     r1, r1, 1       ; else add one to the length
-        asl     r0, r0, 8       ; shift byte mask to next byte
-#ifdef ZLOOP_INSTR
-        DJZ     (r5, bstrlen2)  ; breakout if no more bytes in the word
-#else
-        DJNZ    (r5, bstrlen1)  ; loop again if more bytes in the word
+        add     r1, r1, 1       ; increment source pointer
+#ifndef ZERO_INSTR
+        bra     bstrlen_loop    ; next word
 #endif
+bstrlen3:
+        add     r3, r3, 1       ; byte 3
 bstrlen2:
-        add     r3, r3, 1       ; increment source pointer
-        bra     bstrlen0        ; next word
-
-bstrlen3:                       ; all done, return length in r1
-        POP     (r5)
+        add     r3, r3, 1       ; byte 2
+bstrlen1:
+        add     r3, r3, 1       ; byte 1
+bstrlen0:                       ; byte 0
+        POP     (r2)            ; get original word pointer
+        sub     r1, r1, r2      ; subtract from current word pointer
+        asl     r1, r1, 2       ; multiply by 4 to get byte pointer
+        add     r1, r1, r3      ; add to intra word byte counter
+                                ; all done, return length in r1
         ret     r14
