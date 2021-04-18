@@ -33,7 +33,8 @@ printdec32:
         mov     r9,0            # leading zero flag
         mov     r11,9           # r11 points to end of 9 entry table (numbered 1-9 to allow use of DJNZ)
         mov     r3,r1           # move number into r3 to sav juggling over oswrch call
-        movi    r8, pd32_table -1
+        movi    r8, pd32_table  # r8 will be incremented before use, but can't assign to pd32_table-1
+        sub     r8, r8, 1       # directly since pd32_table could be zero and that needs a 32b assignment to make -1
 
 #ifdef ZLOOP_INSTR
         zloop   pd32_l4

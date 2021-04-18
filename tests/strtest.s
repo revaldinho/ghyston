@@ -66,7 +66,6 @@ MACRO STRCOPY ( _str1_ , _str2_ )
         jsr     bstrcpy
 ENDMACRO
 
-
 MACRO STRCAT ( _str1_ , _str2_ )
         SPRINT  ("Concatenating string \'\0")
         mov     r1, _str2_

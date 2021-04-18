@@ -396,7 +396,7 @@ def assemble( filename, listingon=True):
                         print ("cond = %d" % cond)
                         print ("imm   = %05x (%d)" % (imm & 0xFFFFFFFF,imm))
 
-                    if ( not (op[inst]["min_imm"] <= imm <= op[inst]["max_imm"]) ):
+                    if ( not (op[inst]["min_imm"] <= imm <= op[inst]["max_imm"]) and iteration>0 ):
                         errors.append("Error: immediate %d out of range (%d to %d) \n on line %s" % (imm, op[inst]["min_imm"], op[inst]["max_imm"], line.strip()))
 
                     # Break up immediate for recoding in segments
