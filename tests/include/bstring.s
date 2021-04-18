@@ -8,49 +8,32 @@
         ;; getbstrbyte
         ;; --------------------------------------------------------------------------------------------
         ;;
-        ;; Return the Nth byte value in a BSTRING or 0 if N > string length
-        ;;
+        ;; Return the Nth byte value in a BSTRING without any checking for exceeding the length of the 
+        ;; string
+        ;; 
         ;; Entry
         ;; - r1 string pointer (word value)
         ;; - r2 N
         ;;
         ;; Exit
-        ;; - r1 byte value or -1 if N > string length
+        ;; - r1 byte value or 0 if N > string length
         ;; - r0, r2-r4 used as workspace and trashed
         ;; --------------------------------------------------------------------------------------------
 getbstrbyte:
-        PUSH    (r6)
-        PUSH    (r5)
-        mov     r3, r1          ; move pointer to r3
-        mov     r6, 0           ; zero byte counter
-        mov     r1, 0           ; default result to 0
-
-gbstrbyte0:
-        ld      r5, r3          ; get word
-        mov     r4, 4           ; counter for 4 bytes per word
-#ifdef ZLOOP_INSTR
-        zloop   gbstrbyte2
-#endif
+        lsr     r3, r2, 2       ; get word pointer for N
+        add     r1, r1, r3      ; add to string base
+        ld      r3, r1          ; get the word holding the byte
+        and     r2, r2, 0x03    ; LSBs of r2 point at the byte within the word
+        bra  z  gbstrbyte1
+        lsr     r3, r3, 8       ; shift word 1 byte to right
+        cmp     r2, 1
+        bra  z  gbstrbyte1
+        lsr     r3, r3, 8       ; shift word 1 byte to right
+        cmp     r2, 2
+        bra  z  gbstrbyte1
+        lsr     r3, r3, 8       ; shift word 1 byte to right
 gbstrbyte1:
-        and     r0, r5, 0xFF    ; isolate the lowest byte
-        bra z   gbstrbyte4      ; exit if zero
-        cmp     r6, r2          ; is this the Nth byte
-        bra z   gbstrbyte3      ; if yes, exit copying byte to r1
-        add     r6, r6, 1       ; else add one to the byte counter
-        lsr     r5, r5, 8       ; shift word down one byte
-#ifdef ZLOOP_INSTR
-        DJZ     (r4, gbstrbyte2); breakout if no more bytes
-#else
-        DJNZ    (r4, gbstrbyte1); loop again if more bytes in the word
-#endif
-gbstrbyte2:
-        add     r3, r3, 1       ; increment source pointer
-        bra     gbstrbyte0      ; next word
-gbstrbyte3:                     ; this is the Nth byte
-        mov     r1, r0          ; so copy into r1 to return
-gbstrbyte4:                     ; all done, return length in r1
-        POP     (r5)
-        POP     (r6)
+        and     r1, r3, 0x0FF   ; mask data with low bye
         ret     r14
 
         ;; --------------------------------------------------------------------------------------------
@@ -79,11 +62,19 @@ putbstrbyte:
         mov     r3, 0           ; byte index
 
 #ifdef ZLOOP_INSTR
-        zloop   pbstrbyte2
+        zloop   pbstrbyte1
 #endif
 pbstrbyte0:
         cmp     r2, r3          ; does byte index match byte address
-        bra nz  pbstrbyte1      ; if not, next byte
+        bra z   pbstrbyte1      ; if yes, bail out
+        asl     r4, r4, 8       ; shift byte mask data
+        asl     r5, r5, 8       ; shift byte data
+        add     r3, r3, 1       ; increment byte index
+#ifndef ZLOOP_INSTR
+        bra     pbstrbyte0      ; and loop again
+#endif
+
+pbstrbyte1:        
         xor     r2, r4, -1      ; invert mask by XORing with (sign extended) 0xFFFFFFFF
         and     r0, r0, r2      ; blank out byte in existing data by anding with NOT mask
         and     r5, r5, r4      ; ensure incoming data is only one byte by anding with mask
@@ -91,15 +82,7 @@ pbstrbyte0:
         sto     r0, r1          ; write it back
         POP     (r5)
         ret     r14             ; and exit
-pbstrbyte1:
-        asl     r4, r4, 8       ; shift byte mask data
-        asl     r5, r5, 8       ; shift byte data
-        add     r3, r3, 1       ; increment byte index
-#ifdef ZLOOP_INSTR
-pbstrbyte2:
-#else
-        bra     pbstrbyte0      ; and loop again
-#endif
+
 
         ;; --------------------------------------------------------------------------------------------
         ;; bstrcat
